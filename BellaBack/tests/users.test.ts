@@ -80,5 +80,10 @@ describe("Users CRUD + branch assignment", () => {
 
     const disable = await request(app).patch(`/api/users/${id}/status`).set("Cookie", [cookie]).send({ status: "DISABLED" });
     expect(disable.body.status).toBe("DISABLED");
+    // Regression: updateUserStatus must re-fetch the full user (with userBranches)
+    // before building the DTO, not just use the bare updateUser() result — otherwise
+    // this response would report branches: [] even though the branch assignment above
+    // was never touched.
+    expect(disable.body.branches.map((b: any) => b.id)).toContain(branchId);
   });
 });

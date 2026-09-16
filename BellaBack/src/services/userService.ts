@@ -27,13 +27,15 @@ export async function createUser(input: any, actorId: string) {
 }
 
 export async function updateUser(id: string, input: any, actorId: string) {
-  const user = await userRepository.updateUser(id, input);
+  await userRepository.updateUser(id, input);
+  const user = await userRepository.findUserById(id);
   await logAudit({ userId: actorId, action: "users.update", module: "users", entityType: "user", entityId: id });
   return toDTO(user);
 }
 
 export async function updateUserStatus(id: string, status: "ACTIVE" | "DISABLED", actorId: string) {
-  const user = await userRepository.updateUser(id, { status });
+  await userRepository.updateUser(id, { status });
+  const user = await userRepository.findUserById(id);
   await logAudit({ userId: actorId, action: status === "ACTIVE" ? "users.enable" : "users.disable", module: "users", entityType: "user", entityId: id });
   return toDTO(user);
 }
