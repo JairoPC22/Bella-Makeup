@@ -65,8 +65,20 @@ describe("permission & branch-scope middleware", () => {
     // second back-to-back run of this file (or the full suite) starts from a clean
     // slate. userBranch rows cascade-delete when their branch is deleted, but we
     // delete them explicitly first for clarity/defensiveness.
-    await prisma.userBranch.deleteMany({ where: { userId } });
-    await prisma.branch.deleteMany({ where: { id: { in: [branchAId, branchBId] } } });
+    //
+    // Guarded: if beforeAll threw before assigning userId/branchAId/branchBId (e.g. a
+    // transient DB error), vitest still runs afterAll with those vars left undefined.
+    // Prisma treats an `undefined` filter value as "field not present" rather than
+    // "match nothing," so an unguarded `deleteMany({ where: { userId } })` with
+    // userId === undefined would silently become `deleteMany({ where: {} })` and wipe
+    // every row in the table. Only delete once we know we actually created something.
+    if (userId) {
+      await prisma.userBranch.deleteMany({ where: { userId } });
+    }
+    const branchIds = [branchAId, branchBId].filter(Boolean);
+    if (branchIds.length > 0) {
+      await prisma.branch.deleteMany({ where: { id: { in: branchIds } } });
+    }
   });
 
   function buildApp() {
