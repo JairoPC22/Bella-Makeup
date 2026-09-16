@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  description String
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Branch {
+  id           String       @id @default(uuid())
+  name         String
+  address      String?
+  phone        String?
+  schedule     String?
+  managerName  String?      @map("manager_name")
+  status       BranchStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  userBranches UserBranch[]
+  auditLogs    AuditLog[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  firstName    String     @map("first_name")
+  lastName     String     @map("last_name")
+  displayName  String     @map("display_name")
+  username     String     @unique
+  email        String     @unique
+  phone        String?
+  passwordHash String     @map("password_hash")
+  avatarStyle  String     @default("adventurer") @map("avatar_style")
+  avatarSeed   String     @map("avatar_seed")
+  roleId       String     @map("role_id")
+  status       UserStatus @default(ACTIVE)
+  allBranches  Boolean    @default(false) @map("all_branches")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  lastLoginAt  DateTime?  @map("last_login_at")
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  userBranches  UserBranch[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model UserBranch {
+  userId   String @map("user_id")
+  branchId String @map("branch_id")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@map("user_branches")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model CompanySettings {
+  id           String   @id @default(uuid())
+  companyName  String   @map("company_name")
+  address      String?
+  phone        String?
+  socialLinks  Json?    @map("social_links")
+  logoUrl      String?  @map("logo_url")
+  currency     String   @default("MXN")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("company_settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  module     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  branchId   String?  @map("branch_id")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+  @@index([module])
+  @@index([userId])
+  @@index([createdAt])
+}
