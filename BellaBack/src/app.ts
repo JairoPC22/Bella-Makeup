@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import roleRoutes from "./routes/role.routes";
 import branchRoutes from "./routes/branch.routes";
+import userRoutes from "./routes/user.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -15,6 +16,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/branches", branchRoutes);
+app.use("/api/users", userRoutes);
 app.use(errorHandler);
 
 export default app;
