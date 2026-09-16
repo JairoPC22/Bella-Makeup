@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import app from "../src/app";
 import { prisma } from "../src/config/prisma";
@@ -9,11 +9,15 @@ describe("Users CRUD + branch assignment", () => {
   let cookie: string;
   let cashierRoleId: string;
   let branchId: string;
+  let createdUserId: string | undefined;
 
   beforeAll(async () => {
     const adminRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" } });
     const cashierRole = await prisma.role.findUniqueOrThrow({ where: { code: "cashier" } });
     cashierRoleId = cashierRole.id;
+
+    // Branch has no unique field to upsert against, so each run creates a fresh row;
+    // afterAll (below) deletes it so re-runs never accumulate orphaned branches.
     const branch = await prisma.branch.create({ data: { name: "Users Test Branch" } });
     branchId = branch.id;
 
@@ -27,6 +31,35 @@ describe("Users CRUD + branch assignment", () => {
       },
     });
     cookie = `access_token=${signAccessToken({ sub: admin.id, roleId: adminRole.id })}`;
+
+    // The user created inside the test below goes through POST /api/users, which has
+    // no upsert semantics, and username/email are unique columns. A leftover row from
+    // a prior run (e.g. a previous run that wasn't cleaned up) would make that create()
+    // call fail with a P2002 unique-constraint 500. Clear it defensively up front so
+    // this file is idempotent across repeated runs.
+    await prisma.userBranch.deleteMany({ where: { user: { username: "nueva_vendedora" } } });
+    await prisma.user.deleteMany({ where: { username: "nueva_vendedora" } });
+  });
+
+  afterAll(async () => {
+    // Clean up everything this file created that isn't idempotently upserted, so a
+    // second back-to-back run of this file (or the full suite) starts from a clean
+    // slate and never accumulates orphaned rows.
+    //
+    // Guarded: if beforeAll threw before assigning createdUserId/branchId (e.g. a
+    // transient DB error), vitest still runs afterAll with those vars left undefined.
+    // Prisma treats an `undefined` filter value as "field not present" rather than
+    // "match nothing," so an unguarded deleteMany({ where: { id } }) with id ===
+    // undefined would silently become deleteMany({ where: {} }) and wipe every row in
+    // the table. Only delete once we know we actually created something.
+    if (createdUserId) {
+      await prisma.userBranch.deleteMany({ where: { userId: createdUserId } });
+      await prisma.user.deleteMany({ where: { id: createdUserId } });
+    }
+    if (branchId) {
+      await prisma.userBranch.deleteMany({ where: { branchId } });
+      await prisma.branch.deleteMany({ where: { id: branchId } });
+    }
   });
 
   it("creates a user, lists it, updates it, assigns a branch, and disables it", async () => {
@@ -37,6 +70,7 @@ describe("Users CRUD + branch assignment", () => {
     expect(create.status).toBe(201);
     expect(create.body.passwordHash).toBeUndefined();
     const id = create.body.id;
+    createdUserId = id;
 
     const list = await request(app).get("/api/users").set("Cookie", [cookie]);
     expect(list.body.some((u: any) => u.id === id)).toBe(true);
