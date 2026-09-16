@@ -37,8 +37,22 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 
+  it("returns a JSON error message for invalid credentials", async () => {
+    const res = await request(app).post("/api/auth/login").send({ username: "testuser", password: "wrong" });
+    expect(res.status).toBe(401);
+    expect(res.type).toBe("application/json");
+    expect(typeof res.body.message).toBe("string");
+  });
+
   it("rejects unauthenticated access to /api/auth/me", async () => {
     const res = await request(app).get("/api/auth/me");
     expect(res.status).toBe(401);
+  });
+
+  it("returns 400 with JSON body for missing username", async () => {
+    const res = await request(app).post("/api/auth/login").send({ password: "Password#123" });
+    expect(res.status).toBe(400);
+    expect(res.type).toBe("application/json");
+    expect(res.body.message).toBeDefined();
   });
 });
