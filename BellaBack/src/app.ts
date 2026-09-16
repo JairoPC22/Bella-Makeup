@@ -1,6 +1,9 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 import { env } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import roleRoutes from "./routes/role.routes";
@@ -12,9 +15,20 @@ import auditRoutes from "./routes/audit.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
+app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+if (env.NODE_ENV !== "test") app.use(morgan("dev"));
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api/auth/login", loginLimiter);
+
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/roles", roleRoutes);
