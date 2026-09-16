@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bella
+      POSTGRES_PASSWORD: bella_dev_password
+      POSTGRES_DB: bellamakeup
+    ports:
+      - "5432:5432"
+    volumes:
+      - bella_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  bella_postgres_data:
