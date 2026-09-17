@@ -1,0 +1,25 @@
+:root {
+  --color-primary: #18181B;
+  --color-bg: #F7F3F1;
+  --color-white: #FFFFFF;
+  --color-pink-soft: #F4D9DC;
+  --color-pink-elegant: #DFA8B2;
+  --color-pink-deep: #A85C70;
+  --color-text-secondary: #6F6868;
+  --color-border: #E7DDDA;
+  --color-accent: #9FFF00;
+
+  --font-heading: "Outfit", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
