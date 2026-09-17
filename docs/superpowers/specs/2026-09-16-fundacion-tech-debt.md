@@ -95,13 +95,12 @@ antes — no representan bugs de seguridad ni de corrección funcional.
   tiene un `PermissionGate` — un usuario sin `settings.manage` ve el
   formulario completo y solo al intentar guardar recibe un 403. Arreglo
   barato: envolver el botón de guardar en `PermissionGate code="settings.manage"`.
-- **`tests/auditService.test.ts` sigue teniendo una condición de carrera
-  pre-existente** bajo ejecución paralela de vitest (mismo patrón que se
-  identificó y quedó abierto en la Tarea 4): `deleteMany()` sin filtro +
-  aserciones de conteo exacto, corriendo en paralelo con otros archivos que
-  también generan filas de auditoría. Cada test pasa de forma aislada o con
-  `--no-file-parallelism`. Aplicar el mismo patrón de aislamiento ya usado en
-  `users.test.ts`/`permissions.test.ts`.
+- ~~`tests/auditService.test.ts` tenía una condición de carrera pre-existente
+  bajo ejecución paralela de vitest~~ — **resuelto** al cerrar la fase: se
+  aplicó el mismo patrón de aislamiento de `users.test.ts`/`permissions.test.ts`
+  (nombres de módulo únicos por test + limpieza acotada a esas filas). Verificado
+  con 5 corridas consecutivas del archivo y 2 corridas completas de la suite,
+  todas en verde.
 
 ## Notas generales
 
