@@ -1,0 +1,19 @@
+.profile-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
+.profile-card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.profile-card__header { display: flex; align-items: center; gap: var(--space-3); }
+.profile-card label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--color-text-secondary); }
+.profile-card input { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-body); }
+.profile-card button { align-self: flex-start; margin-top: var(--space-2); padding: var(--space-2) var(--space-4); background: var(--color-primary); color: var(--color-white); border: none; border-radius: var(--radius-sm); cursor: pointer; }
+.profile-card__success { color: var(--color-pink-deep); }
+.profile-card__error { color: var(--color-pink-deep); }
+.avatar-picker__grid { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+.avatar-picker__option { border: 1px solid var(--color-border); border-radius: 50%; padding: 2px; background: var(--color-white); cursor: pointer; }
+.avatar-picker__generate { display: inline-flex; align-items: center; gap: 6px; background: var(--color-pink-soft); border: none; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); cursor: pointer; width: fit-content; }
