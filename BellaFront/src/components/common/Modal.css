@@ -5,20 +5,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: var(--space-4);
   z-index: 100;
   opacity: 0;
   transition: opacity var(--transition-base) var(--ease-premium);
 }
 .modal-overlay--visible { opacity: 1; }
 
+/* .modal is a column flexbox capped at 90vh (minus the overlay's own
+   padding, so the card never touches the viewport edge). The header is
+   a non-shrinking pinned band; .modal__body is the only scrollable
+   region, so long forms scroll internally while the title and close
+   button stay put and the submit button always stays reachable. */
 .modal {
+  display: flex;
+  flex-direction: column;
   background: var(--color-white);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(90vh - var(--space-4) * 2);
+  overflow: hidden;
   box-shadow: var(--shadow-lg);
   transform: scale(0.96) translateY(8px);
   opacity: 0;
@@ -29,7 +36,15 @@
   opacity: 1;
 }
 
-.modal__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
+.modal__header {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
 .modal__header h2 { font-size: 1.2rem; }
 .modal__header button {
   background: none;
@@ -39,9 +54,16 @@
   border-radius: var(--radius-sm);
   padding: 4px;
   display: inline-flex;
+  flex-shrink: 0;
   transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
 }
 .modal__header button:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); }
+
+.modal__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
 
 /* Generic styling for the plain <form><label>Text<input/></label></form>
    pattern used by BranchFormModal/UserFormModal, so their fields don't
@@ -80,8 +102,27 @@
   background: var(--color-bg);
   color: var(--color-text-secondary);
 }
+/* Form-level error banners (UserFormModal/BranchFormModal), styled to
+   match the premium error treatment introduced in the login redesign
+   instead of rendering as unstyled black text. */
+.modal__body .user-form__error,
+.modal__body .branch-form__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(168, 92, 112, 0.08);
+  border: 1px solid rgba(168, 92, 112, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-pink-deep);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
 .modal__body button[type="submit"] {
   align-self: flex-start;
+  margin-top: var(--space-1);
   padding: var(--space-2) var(--space-4);
   background: var(--color-primary);
   color: var(--color-white);

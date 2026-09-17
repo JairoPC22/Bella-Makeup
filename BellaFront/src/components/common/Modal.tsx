@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import "./Modal.css";
 
@@ -24,9 +25,26 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
     if (!open) setMounted(false);
   }
 
+  // Lock background scroll while the modal is mounted so the page behind
+  // it can't scroll independently of the modal's own internal scroll area.
+  useEffect(() => {
+    if (!mounted) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mounted]);
+
   if (!mounted) return null;
 
-  return (
+  // Rendered via a portal directly under <body> so the overlay's
+  // `position: fixed` is always relative to the real viewport. Any
+  // ancestor with a CSS transform/animation (e.g. the page-transition
+  // animation on .app-shell__page) would otherwise become the containing
+  // block for a fixed-position descendant, shrinking/mispositioning the
+  // overlay and cutting off the modal card.
+  return createPortal(
     <div
       className={`modal-overlay${visible ? " modal-overlay--visible" : ""}`}
       onClick={onClose}
@@ -39,6 +57,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
         </div>
         <div className="modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
