@@ -12,7 +12,8 @@ export async function getProfile(userId: string) {
 }
 
 export async function updateProfile(userId: string, input: any) {
-  const user = await updateUser(userId, input);
+  await updateUser(userId, input);
+  const user = await findUserById(userId);
   await logAudit({ userId, action: "profile.update", module: "profile", entityType: "user", entityId: userId });
   return toPublicUser(user);
 }
@@ -31,7 +32,8 @@ export function getAvatarOptions(style: string, count: number) {
 }
 
 export async function changeAvatar(userId: string, style: string, seed: string) {
-  const user = await updateUser(userId, { avatarStyle: style, avatarSeed: seed });
+  await updateUser(userId, { avatarStyle: style, avatarSeed: seed });
+  const user = await findUserById(userId);
   await logAudit({ userId, action: "profile.change_avatar", module: "profile", entityType: "user", entityId: userId });
   return toPublicUser(user);
 }
