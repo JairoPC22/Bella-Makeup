@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
+import multer from "multer";
 import { AppError } from "../utils/AppError";
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
@@ -9,6 +10,9 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
   if (err instanceof AppError) {
     return res.status(err.status).json({ message: err.message });
+  }
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ message: `Error al subir el archivo: ${err.message}` });
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {

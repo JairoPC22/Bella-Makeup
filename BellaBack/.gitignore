@@ -4,3 +4,6 @@ dist
 .env.test
 uploads/*
 !uploads/.gitkeep
+!uploads/products/
+uploads/products/*
+!uploads/products/.gitkeep

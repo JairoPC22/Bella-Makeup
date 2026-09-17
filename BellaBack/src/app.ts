@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
@@ -10,6 +11,7 @@ import roleRoutes from "./routes/role.routes";
 import branchRoutes from "./routes/branch.routes";
 import categoryRoutes from "./routes/category.routes";
 import brandRoutes from "./routes/brand.routes";
+import productImageRoutes from "./routes/productImage.routes";
 import userRoutes from "./routes/user.routes";
 import profileRoutes from "./routes/profile.routes";
 import companySettingsRoutes from "./routes/companySettings.routes";
@@ -29,6 +31,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 if (env.NODE_ENV !== "test") app.use(morgan("dev"));
 
 const loginLimiter = rateLimit({
@@ -45,6 +48,7 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/brands", brandRoutes);
+app.use("/api/products", productImageRoutes); // routes internally define "/:productId/images..."
 app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/company-settings", companySettingsRoutes);
