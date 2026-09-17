@@ -1,4 +1,96 @@
-.modal-overlay { position: fixed; inset: 0; background: rgba(24,24,27,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: var(--color-white); border-radius: var(--radius-lg); padding: var(--space-4); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 24, 27, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity var(--transition-base) var(--ease-premium);
+}
+.modal-overlay--visible { opacity: 1; }
+
+.modal {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.96) translateY(8px);
+  opacity: 0;
+  transition: transform var(--transition-base) var(--ease-premium), opacity var(--transition-base) var(--ease-premium);
+}
+.modal--visible {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
 .modal__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); }
-.modal__header button { background: none; border: none; cursor: pointer; }
+.modal__header h2 { font-size: 1.2rem; }
+.modal__header button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  display: inline-flex;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.modal__header button:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); }
+
+/* Generic styling for the plain <form><label>Text<input/></label></form>
+   pattern used by BranchFormModal/UserFormModal, so their fields don't
+   flow inline unstyled. Scoped to modal content only. */
+.modal__body form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.modal__body label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.modal__body input,
+.modal__body select {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-primary);
+  background: var(--color-white);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.modal__body input:focus,
+.modal__body select:focus {
+  outline: none;
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-focus);
+}
+.modal__body input:disabled {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+.modal__body button[type="submit"] {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.modal__body button[type="submit"]:hover:not(:disabled) { background: #2c2c31; }
+.modal__body button[type="submit"]:active:not(:disabled) { transform: scale(0.98); }
+.modal__body button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }

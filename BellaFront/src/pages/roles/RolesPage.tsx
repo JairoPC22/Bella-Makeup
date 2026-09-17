@@ -21,8 +21,8 @@ export function RolesPage() {
     <div className="roles-page">
       <h1>Roles</h1>
       <div className="roles-grid">
-        {roles.map((role) => (
-          <article key={role.id} className="role-card">
+        {roles.map((role, i) => (
+          <article key={role.id} className="role-card" style={{ animationDelay: `${Math.min(i, 10) * 60}ms` }}>
             <header>
               <h2>{role.name}</h2>
               <span className="role-card__count">{role.assignedUsersCount} usuario{role.assignedUsersCount === 1 ? "" : "s"}</span>

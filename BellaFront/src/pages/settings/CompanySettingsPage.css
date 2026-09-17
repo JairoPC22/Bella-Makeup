@@ -1,6 +1,14 @@
-.settings-card { max-width: 480px; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+.settings-card { max-width: 480px; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); animation: fade-in-up 0.6s var(--ease-premium) both; }
 .settings-card label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--color-text-secondary); }
-.settings-card input { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-body); }
-.settings-card button { align-self: flex-start; margin-top: var(--space-2); padding: var(--space-2) var(--space-4); background: var(--color-primary); color: var(--color-white); border: none; border-radius: var(--radius-sm); cursor: pointer; }
+.settings-card input { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-body); transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium); }
+.settings-card input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.settings-card button {
+  align-self: flex-start; margin-top: var(--space-2); padding: var(--space-2) var(--space-4);
+  background: var(--color-primary); color: var(--color-white); border: none; border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.settings-card button:hover { background: #2c2c31; }
+.settings-card button:active { transform: scale(0.98); }
 .settings-card__success { color: var(--color-pink-deep); }
 .settings-card__error { color: #B3261E; }

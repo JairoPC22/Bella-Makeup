@@ -7,6 +7,7 @@
   text-align: center;
   padding: var(--space-6) var(--space-4);
   color: var(--color-text-secondary);
+  animation: fade-in-up 0.6s var(--ease-premium) both;
 }
 .error-page h1 { margin: 0; }
 .error-page__link {
@@ -14,5 +15,6 @@
   color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
+  transition: color var(--transition-base) var(--ease-premium);
 }
-.error-page__link:hover { text-decoration: underline; }
+.error-page__link:hover { color: var(--color-pink-deep); text-decoration: underline; }

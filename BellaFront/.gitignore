@@ -3,3 +3,4 @@ dist
 .env
 .qa-screenshots/
 .qa-screenshots-fix/
+.qa-screenshots-redesign/

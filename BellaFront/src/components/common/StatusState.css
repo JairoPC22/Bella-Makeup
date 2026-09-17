@@ -6,6 +6,7 @@
   padding: var(--space-6) var(--space-3);
   color: var(--color-text-secondary);
   text-align: center;
+  animation: fade-in-up 0.5s var(--ease-premium) both;
 }
 .status-state--error { color: var(--color-pink-deep); }
 .spin { animation: spin 1s linear infinite; }

@@ -57,8 +57,8 @@ export function BranchesPage() {
       {branches && branches.length === 0 && <StatusState kind="empty" message="Todavía no hay sucursales." />}
 
       <div className="branches-grid">
-        {branches?.map((b) => (
-          <article key={b.id} className="branch-card">
+        {branches?.map((b, i) => (
+          <article key={b.id} className="branch-card" style={{ animationDelay: `${Math.min(i, 10) * 60}ms` }}>
             <header>
               <h2>{b.name}</h2>
               <Badge tone={b.status === "ACTIVE" ? "success" : "neutral"}>{b.status === "ACTIVE" ? "Activa" : "Inactiva"}</Badge>

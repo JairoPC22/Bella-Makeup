@@ -103,8 +103,8 @@ export function AuditPage() {
 
       {status === "ready" && entries && entries.length > 0 && (
         <ul className="audit-list">
-          {entries.map((entry) => (
-            <li key={entry.id} className="audit-item">
+          {entries.map((entry, i) => (
+            <li key={entry.id} className="audit-item" style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}>
               {entry.user ? (
                 <Avatar avatarStyle={entry.user.avatarStyle} avatarSeed={entry.user.avatarSeed} displayName={entry.user.displayName} size="sm" />
               ) : (
