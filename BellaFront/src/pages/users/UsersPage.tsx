@@ -5,6 +5,7 @@ import { Badge } from "../../components/common/Badge";
 import { StatusState } from "../../components/common/StatusState";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { UserFormModal } from "./UserFormModal";
+import { ApiError } from "../../services/apiClient";
 import * as userService from "../../services/userService";
 import * as roleService from "../../services/roleService";
 import * as branchService from "../../services/branchService";
@@ -44,19 +45,13 @@ export function UsersPage() {
     }
   }
 
-  async function toggleAllBranches(user: User, branchId: string) {
+  async function updateUserBranches(user: User, branchIds: string[]) {
     setActionError(null);
-    const current = new Set(user.branches.map((b) => b.id));
-    if (current.has(branchId)) {
-      current.delete(branchId);
-    } else {
-      current.add(branchId);
-    }
     try {
-      const updated = await userService.assignBranches(user.id, Array.from(current), user.allBranches);
+      const updated = await userService.assignBranches(user.id, branchIds, user.allBranches);
       upsertUser(updated);
-    } catch {
-      setActionError("No se pudieron actualizar las sucursales del usuario.");
+    } catch (err) {
+      setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la asignación de sucursales.");
     }
   }
 
@@ -94,8 +89,8 @@ export function UsersPage() {
                       multiple
                       value={u.branches.map((b) => b.id)}
                       onChange={(e) => {
-                        const branchId = e.target.options[e.target.selectedIndex]?.value;
-                        if (branchId) toggleAllBranches(u, branchId);
+                        const selectedIds = Array.from(e.target.selectedOptions).map((o) => o.value);
+                        updateUserBranches(u, selectedIds);
                       }}
                     >
                       {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
