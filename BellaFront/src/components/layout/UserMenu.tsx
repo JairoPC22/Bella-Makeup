@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { Avatar } from "../common/Avatar";
+import "./UserMenu.css";
 
 export function UserMenu() {
   const { user, logout } = useAuth();
