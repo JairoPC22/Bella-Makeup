@@ -180,6 +180,91 @@ async function main() {
     },
   });
 
+  const maquillaje = await prisma.category.upsert({
+    where: { id: "10000000-0000-0000-0000-000000000001" },
+    update: {},
+    create: { id: "10000000-0000-0000-0000-000000000001", name: "Maquillaje" },
+  });
+  const cuidadoPiel = await prisma.category.upsert({
+    where: { id: "10000000-0000-0000-0000-000000000002" },
+    update: {},
+    create: { id: "10000000-0000-0000-0000-000000000002", name: "Cuidado de la piel" },
+  });
+
+  const bellaBrand = await prisma.brand.upsert({
+    where: { id: "20000000-0000-0000-0000-000000000001" },
+    update: {},
+    create: { id: "20000000-0000-0000-0000-000000000001", name: "Bella Makeup" },
+  });
+
+  const labial = await prisma.product.upsert({
+    where: { sku: "LAB-MATTE-001" },
+    update: {},
+    create: {
+      sku: "LAB-MATTE-001", name: "Labial Matte", categoryId: maquillaje.id, brandId: bellaBrand.id,
+      cost: 80, price: 129, minStock: 5, maxStock: 100,
+    },
+  });
+  const labialNude = await prisma.productVariant.upsert({
+    where: { sku: "LAB-MATTE-001-NUDE" },
+    update: {},
+    create: { productId: labial.id, name: "Nude", sku: "LAB-MATTE-001-NUDE", minStock: 3, maxStock: 40 },
+  });
+  const labialRojo = await prisma.productVariant.upsert({
+    where: { sku: "LAB-MATTE-001-ROJO" },
+    update: {},
+    create: { productId: labial.id, name: "Rojo", sku: "LAB-MATTE-001-ROJO", minStock: 3, maxStock: 40 },
+  });
+
+  const base = await prisma.product.upsert({
+    where: { sku: "BASE-LIQ-001" },
+    update: {},
+    create: {
+      sku: "BASE-LIQ-001", name: "Base Líquida", categoryId: maquillaje.id, brandId: bellaBrand.id,
+      cost: 150, price: 280, minStock: 5, maxStock: 60,
+    },
+  });
+
+  const crema = await prisma.product.upsert({
+    where: { sku: "CREMA-HID-001" },
+    update: {},
+    create: {
+      sku: "CREMA-HID-001", name: "Crema Hidratante", categoryId: cuidadoPiel.id, brandId: bellaBrand.id,
+      cost: 90, price: 199, minStock: 4, maxStock: 50,
+    },
+  });
+
+  const branchesForStock = await prisma.branch.findMany();
+  const stockSeeds: Array<{ productId: string; variantId?: string; stock: number }> = [
+    { productId: labial.id, variantId: labialNude.id, stock: 20 },
+    { productId: labial.id, variantId: labialRojo.id, stock: 15 },
+    { productId: base.id, stock: 12 },
+    { productId: crema.id, stock: 8 },
+  ];
+  for (const branch of branchesForStock) {
+    for (const s of stockSeeds) {
+      if (s.variantId) {
+        await prisma.inventory.upsert({
+          where: { productId_variantId_branchId: { productId: s.productId, variantId: s.variantId, branchId: branch.id } },
+          update: {},
+          create: { productId: s.productId, variantId: s.variantId, branchId: branch.id, stock: s.stock },
+        });
+      } else {
+        // Prisma's compound-unique input type for `productId_variantId_branchId` requires
+        // `variantId: string` even though the column is nullable, so upsert can't target
+        // rows where variantId is null. Fall back to findFirst + create for those rows.
+        const existing = await prisma.inventory.findFirst({
+          where: { productId: s.productId, variantId: null, branchId: branch.id },
+        });
+        if (!existing) {
+          await prisma.inventory.create({
+            data: { productId: s.productId, branchId: branch.id, stock: s.stock },
+          });
+        }
+      }
+    }
+  }
+
   console.log("Seed complete. Demo login: admin / BellaAdmin#2026");
 }
 

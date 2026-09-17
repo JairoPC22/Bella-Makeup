@@ -62,6 +62,8 @@ model Branch {
 
   userBranches UserBranch[]
   auditLogs    AuditLog[]
+  inventory    Inventory[]
+  inventoryMovements InventoryMovement[]
 
   @@map("branches")
 }
@@ -87,6 +89,7 @@ model User {
   userBranches  UserBranch[]
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  inventoryMovements InventoryMovement[]
 
   @@map("users")
 }
@@ -146,4 +149,152 @@ model AuditLog {
   @@index([module])
   @@index([userId])
   @@index([createdAt])
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MovementType {
+  ADJUSTMENT
+  PURCHASE
+  SALE
+  TRANSFER_IN
+  TRANSFER_OUT
+  RETURN
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  status    ProductStatus @default(ACTIVE)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String
+  status    ProductStatus @default(ACTIVE)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  products  Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id            String        @id @default(uuid())
+  sku           String        @unique
+  barcode       String?
+  name          String
+  description   String?
+  categoryId    String?       @map("category_id")
+  brandId       String?       @map("brand_id")
+  cost          Decimal       @default(0) @db.Decimal(10, 2)
+  price         Decimal       @db.Decimal(10, 2)
+  promoPrice    Decimal?      @map("promo_price") @db.Decimal(10, 2)
+  taxRate       Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  minStock      Int           @default(0) @map("min_stock")
+  maxStock      Int?          @map("max_stock")
+  status        ProductStatus @default(ACTIVE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  brand         Brand?        @relation(fields: [brandId], references: [id])
+  images        ProductImage[]
+  variants      ProductVariant[]
+  inventory     Inventory[]
+  movements     InventoryMovement[]
+
+  @@map("products")
+  @@index([categoryId])
+  @@index([brandId])
+}
+
+model ProductImage {
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  url        String
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id          String    @id @default(uuid())
+  productId   String    @map("product_id")
+  name        String
+  sku         String    @unique
+  barcode     String?
+  imageUrl    String?   @map("image_url")
+  price       Decimal?  @db.Decimal(10, 2)
+  minStock    Int       @default(0) @map("min_stock")
+  maxStock    Int?      @map("max_stock")
+  status      ProductStatus @default(ACTIVE)
+
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventory   Inventory[]
+  movements   InventoryMovement[]
+
+  @@map("product_variants")
+}
+
+model Inventory {
+  id         String   @id @default(uuid())
+  productId  String   @map("product_id")
+  variantId  String?  @map("variant_id")
+  branchId   String   @map("branch_id")
+  stock      Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  branch     Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, variantId, branchId])
+  @@map("inventory")
+  @@index([branchId])
+}
+
+model InventoryMovement {
+  id            String       @id @default(uuid())
+  productId     String       @map("product_id")
+  variantId     String?      @map("variant_id")
+  branchId      String       @map("branch_id")
+  type          MovementType
+  quantity      Int
+  stockBefore   Int          @map("stock_before")
+  stockAfter    Int          @map("stock_after")
+  reference     String?
+  userId        String?      @map("user_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  branch        Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("inventory_movements")
+  @@index([productId])
+  @@index([branchId])
+  @@index([createdAt])
+}
+
+model InventoryAdjustment {
+  id           String   @id @default(uuid())
+  movementId   String   @unique @map("movement_id")
+  reason       String
+  authorizedBy String?  @map("authorized_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("inventory_adjustments")
 }
