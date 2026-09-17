@@ -87,6 +87,8 @@ export function UsersPage() {
                   {u.allBranches ? "Todas" : (
                     <select
                       multiple
+                      className="users-table__branch-select"
+                      size={Math.min(branches.length, 3)}
                       value={u.branches.map((b) => b.id)}
                       onChange={(e) => {
                         const selectedIds = Array.from(e.target.selectedOptions).map((o) => o.value);

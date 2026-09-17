@@ -4,6 +4,29 @@
 .users-table { width: 100%; border-collapse: collapse; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
 .users-table th, .users-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; }
 .users-table button { background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-secondary); }
+.users-table__branch-select {
+  min-width: 160px;
+  max-width: 220px;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  outline: none;
+}
+.users-table__branch-select:focus {
+  border-color: var(--color-pink-elegant);
+}
+.users-table__branch-select option {
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.users-table__branch-select option:checked {
+  background: var(--color-pink-soft);
+  color: var(--color-pink-deep);
+}
 @media (max-width: 768px) {
   .users-table thead { display: none; }
   .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; width: 100%; }
