@@ -14,15 +14,26 @@
 
   --space-1: 4px;
   --space-2: 8px;
+  --space-2_5: 12px;
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 32px;
   --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 80px;
 
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+  --radius-pill: 9999px;
+
+  /* Negative letter-spacing tokens for display/headline sizes, per the
+     Apple analysis's "tight tracking at large sizes" principle. Only
+     meant for text set roughly 17px/1.05rem and up — never apply at
+     caption/fine-print sizes (Apple's own rule: never below 12-14px). */
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.03em;
 
   /* Shadows tinted with the brand's deep-rose hue instead of flat black,
      so elevation reads as warm/premium rather than generic UI chrome. */

@@ -1,13 +1,18 @@
 .dashboard-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   max-width: 1280px;
 }
 
 /* ---------- Hero ---------- */
 
 .dashboard-hero {
+  /* This is the one deliberate shadow on the page — reserved for the
+     hero/welcome card, per the Apple-analysis principle that a real soft
+     shadow belongs on a single featured element, not on every card. Every
+     other surface below (stat cards, panels) is flat: a border and a
+     surface-color change do the separating instead. */
   position: relative;
   overflow: hidden;
   display: flex;
@@ -17,7 +22,7 @@
   background: var(--color-primary);
   color: var(--color-white);
   border-radius: var(--radius-xl);
-  padding: var(--space-5) var(--space-5);
+  padding: var(--space-6) var(--space-5);
   box-shadow: var(--shadow-lg);
 }
 
@@ -59,14 +64,18 @@
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: clamp(1.6rem, 1.4vw + 1.2rem, 2.25rem);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
   color: var(--color-white);
 }
 
 .dashboard-hero__subtitle {
   margin: 0;
   color: rgba(247, 243, 241, 0.72);
-  font-size: 0.98rem;
+  font-size: 1.05rem;
+  /* The one deliberate "weight 300" moment on this page (Apple's "weight
+     300 is real and rare" — a light-atmosphere cue for a single airy read,
+     not a default). Inter 300 imported specifically for this. */
+  font-weight: 300;
 }
 
 .dashboard-hero__avatar {
@@ -84,20 +93,25 @@
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .stat-card {
+  /* Flat by default — a hairline border does the separating, not a
+     shadow (the hero above is the one place a real shadow belongs). A
+     faint shadow only appears on hover, as an interaction cue, and even
+     then it's the smallest token in the scale. */
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
   background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+  box-shadow: none;
+  transition: transform var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), border-color var(--transition-base) var(--ease-premium);
 }
-.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-sm); border-color: var(--color-pink-elegant); }
 
 .stat-card__icon {
   display: inline-flex;
@@ -113,7 +127,7 @@
 
 .stat-card__body { min-width: 0; flex: 1; }
 .stat-card__label { margin: 0 0 2px; font-size: 0.85rem; color: var(--color-text-secondary); }
-.stat-card__value { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 2rem; letter-spacing: -0.02em; }
+.stat-card__value { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 2rem; letter-spacing: var(--tracking-tight); }
 .stat-card__caption { margin: 2px 0 0; font-size: 0.78rem; color: var(--color-text-secondary); }
 .stat-card .status-state--compact { align-items: flex-start; text-align: left; padding: 4px 0 0; }
 
@@ -122,15 +136,19 @@
 .dashboard-body {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: start;
 }
 
 .dashboard-panel {
+  /* Flat utility card: white surface + hairline border, no shadow — the
+     same "structural card" grammar as Roles/Branches, and consistent with
+     reserving the one real shadow for the hero above. */
   background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+  box-shadow: none;
 }
 
 .dashboard-panel__header {
@@ -138,24 +156,33 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .dashboard-panel__title { display: flex; align-items: center; gap: 8px; color: var(--color-primary); }
-.dashboard-panel__title h2 { font-size: 1.05rem; }
+.dashboard-panel__title h2 { font-size: 1.05rem; letter-spacing: var(--tracking-tight); }
 .dashboard-panel__title svg { color: var(--color-pink-deep); }
 
 .dashboard-panel__link {
+  /* Pill shape: this is the one place on the page that reads as a real
+     "go do a thing" action rather than a structural row, so it gets the
+     Apple-style pill treatment the rest of the dashboard deliberately
+     doesn't use — small, ghost-filled, not a mismatch with the app's
+     mostly-rectangular button language elsewhere. */
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-pink-deep);
+  background: var(--color-pink-soft);
   text-decoration: none;
-  transition: color var(--transition-fast) var(--ease-premium);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
-.dashboard-panel__link:hover { color: var(--color-primary); }
+.dashboard-panel__link:hover { background: var(--color-pink-elegant); color: var(--color-primary); }
+.dashboard-panel__link:active { transform: scale(0.95); }
 
 /* ---------- Activity list ---------- */
 
@@ -196,7 +223,7 @@
   transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
 .quick-link:hover { background: var(--color-pink-soft); }
-.quick-link:active { transform: scale(0.98); }
+.quick-link:active { transform: scale(0.96); }
 
 .quick-link__icon {
   display: inline-flex;
