@@ -8,6 +8,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -36,5 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  // Lets pages that mutate the current user (e.g. /perfil editing the
+  // display name or avatar) push the fresh record back into the shared
+  // session state, so chrome that reads from this context — like the
+  // header's UserMenu avatar/name — updates immediately instead of staying
+  // stale until the next full page reload re-runs the /auth/me effect.
+  const updateUser = useCallback((updated: User) => {
+    setUser(updated);
+  }, []);
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>{children}</AuthContext.Provider>;
 }

@@ -9,7 +9,7 @@ import type { User } from "../../types/api";
 import "./ProfilePage.css";
 
 export function ProfilePage() {
-  const { user: sessionUser } = useAuth();
+  const { user: sessionUser, updateUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", displayName: "", email: "", phone: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
@@ -35,6 +35,7 @@ export function ProfilePage() {
     try {
       const updated = await profileService.updateProfile(form);
       setUser(updated);
+      updateUser(updated);
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);
     } catch {
@@ -72,7 +73,13 @@ export function ProfilePage() {
             <p>{user.role.name}{sessionUser?.allBranches ? " · Todas las sucursales" : ""}</p>
           </div>
         </div>
-        <AvatarPicker user={user} onChanged={setUser} />
+        <AvatarPicker
+          user={user}
+          onChanged={(updated) => {
+            setUser(updated);
+            updateUser(updated);
+          }}
+        />
       </section>
 
       <form className="profile-card" onSubmit={handleSave}>
