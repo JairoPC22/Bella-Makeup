@@ -114,7 +114,14 @@ export function UsersPage() {
         </table>
       )}
 
-      <UserFormModal open={modalOpen} onClose={() => setModalOpen(false)} onSaved={upsertUser} roles={roles} editingUser={editingUser} />
+      <UserFormModal
+        key={editingUser?.id ?? "new"}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={upsertUser}
+        roles={roles}
+        editingUser={editingUser}
+      />
     </div>
   );
 }
