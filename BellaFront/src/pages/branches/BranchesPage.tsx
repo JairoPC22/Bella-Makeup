@@ -77,7 +77,13 @@ export function BranchesPage() {
         ))}
       </div>
 
-      <BranchFormModal open={modalOpen} onClose={() => setModalOpen(false)} onSaved={upsert} editingBranch={editingBranch} />
+      <BranchFormModal
+        key={editingBranch?.id ?? "new"}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={upsert}
+        editingBranch={editingBranch}
+      />
     </div>
   );
 }
