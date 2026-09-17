@@ -4,12 +4,17 @@ import { comparePassword } from "../utils/password";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
 import { logAudit } from "./auditService";
 import { AppError } from "../utils/AppError";
+import { mapRole } from "../utils/roleMapper";
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function toPublicUser(user: any) {
-  const { passwordHash, ...publicUser } = user;
-  return publicUser;
+  const { passwordHash, role, userBranches, ...rest } = user;
+  return {
+    ...rest,
+    role: mapRole(role),
+    branches: userBranches?.map((ub: any) => ub.branch) ?? [],
+  };
 }
 
 export async function login(username: string, password: string) {

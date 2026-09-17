@@ -1,11 +1,9 @@
 import { prisma } from "../config/prisma";
+import { roleWithPermissionsInclude } from "../utils/roleMapper";
 
 export function findAllRolesWithPermissions() {
   return prisma.role.findMany({
-    include: {
-      rolePermissions: { include: { permission: true } },
-      _count: { select: { users: true } },
-    },
+    include: roleWithPermissionsInclude,
     orderBy: { name: "asc" },
   });
 }

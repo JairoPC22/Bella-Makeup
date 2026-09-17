@@ -1,15 +1,19 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { roleWithPermissionsInclude } from "../utils/roleMapper";
 
 export function findUserByUsernameOrEmail(identifier: string) {
   return prisma.user.findFirst({
     where: { OR: [{ username: identifier }, { email: identifier }] },
-    include: { role: true },
+    include: { role: { include: roleWithPermissionsInclude }, userBranches: { include: { branch: true } } },
   });
 }
 
 export function findUserById(id: string) {
-  return prisma.user.findUnique({ where: { id }, include: { role: true, userBranches: { include: { branch: true } } } });
+  return prisma.user.findUnique({
+    where: { id },
+    include: { role: { include: roleWithPermissionsInclude }, userBranches: { include: { branch: true } } },
+  });
 }
 
 export function touchLastLogin(id: string) {
@@ -17,13 +21,16 @@ export function touchLastLogin(id: string) {
 }
 
 export function createUser(data: Prisma.UserUncheckedCreateInput) {
-  return prisma.user.create({ data, include: { role: true } });
+  return prisma.user.create({ data, include: { role: { include: roleWithPermissionsInclude } } });
 }
 
 export function updateUser(id: string, data: Prisma.UserUncheckedUpdateInput) {
-  return prisma.user.update({ where: { id }, data, include: { role: true } });
+  return prisma.user.update({ where: { id }, data, include: { role: { include: roleWithPermissionsInclude } } });
 }
 
 export function listUsers() {
-  return prisma.user.findMany({ include: { role: true, userBranches: { include: { branch: true } } }, orderBy: { createdAt: "desc" } });
+  return prisma.user.findMany({
+    include: { role: { include: roleWithPermissionsInclude }, userBranches: { include: { branch: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 }

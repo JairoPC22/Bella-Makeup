@@ -4,15 +4,11 @@ import * as userRepository from "../repositories/userRepository";
 import { hashPassword } from "../utils/password";
 import { logAudit } from "./auditService";
 import { AppError } from "../utils/AppError";
-
-function toDTO(user: any) {
-  const { passwordHash, userBranches, ...rest } = user;
-  return { ...rest, branches: userBranches?.map((ub: any) => ub.branch) ?? [] };
-}
+import { toPublicUser } from "./authService";
 
 export async function listUsers() {
   const users = await userRepository.listUsers();
-  return users.map(toDTO);
+  return users.map(toPublicUser);
 }
 
 export async function createUser(input: any, actorId: string) {
@@ -23,21 +19,21 @@ export async function createUser(input: any, actorId: string) {
     passwordHash, avatarSeed: randomUUID(), roleId: input.roleId,
   });
   await logAudit({ userId: actorId, action: "users.create", module: "users", entityType: "user", entityId: user.id, details: { username: user.username } });
-  return toDTO(user);
+  return toPublicUser(user);
 }
 
 export async function updateUser(id: string, input: any, actorId: string) {
   await userRepository.updateUser(id, input);
   const user = await userRepository.findUserById(id);
   await logAudit({ userId: actorId, action: "users.update", module: "users", entityType: "user", entityId: id });
-  return toDTO(user);
+  return toPublicUser(user);
 }
 
 export async function updateUserStatus(id: string, status: "ACTIVE" | "DISABLED", actorId: string) {
   await userRepository.updateUser(id, { status });
   const user = await userRepository.findUserById(id);
   await logAudit({ userId: actorId, action: status === "ACTIVE" ? "users.enable" : "users.disable", module: "users", entityType: "user", entityId: id });
-  return toDTO(user);
+  return toPublicUser(user);
 }
 
 export async function assignBranches(id: string, branchIds: string[], allBranches: boolean, actorId: string) {
@@ -52,5 +48,5 @@ export async function assignBranches(id: string, branchIds: string[], allBranche
   await logAudit({ userId: actorId, action: "users.assign_branches", module: "users", entityType: "user", entityId: id, details: { branchIds, allBranches } });
 
   const updated = await userRepository.findUserById(id);
-  return toDTO(updated);
+  return toPublicUser(updated);
 }
