@@ -124,7 +124,7 @@ async function main() {
     }
   }
 
-  const centro = await prisma.branch.upsert({
+  await prisma.branch.upsert({
     where: { id: "00000000-0000-0000-0000-000000000001" },
     update: {},
     create: {

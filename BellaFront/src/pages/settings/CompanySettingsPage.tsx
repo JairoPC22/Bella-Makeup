@@ -21,7 +21,12 @@ export function CompanySettingsPage() {
     if (!settings) return;
     setSaveState("saving");
     try {
-      const updated = await settingsService.updateCompanySettings(settings);
+      const updated = await settingsService.updateCompanySettings({
+        companyName: settings.companyName,
+        address: settings.address ?? undefined,
+        phone: settings.phone ?? undefined,
+        currency: settings.currency,
+      });
       setSettings(updated);
       setSaveState("saved");
       setTimeout(() => setSaveState("idle"), 2000);

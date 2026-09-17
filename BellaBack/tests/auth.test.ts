@@ -56,3 +56,31 @@ describe("POST /api/auth/login", () => {
     expect(res.body.message).toBeDefined();
   });
 });
+
+describe("POST /api/auth/refresh", () => {
+  function extractCookie(setCookie: string[] | undefined, name: string): string | undefined {
+    const raw = setCookie?.find((c) => c.startsWith(`${name}=`));
+    return raw?.split(";")[0];
+  }
+
+  it("rotates the refresh token: issues a new one and invalidates the old one", async () => {
+    const login = await request(app).post("/api/auth/login").send({ username: "testuser", password: "Password#123" });
+    const oldRefreshCookie = extractCookie(login.headers["set-cookie"], "refresh_token");
+    expect(oldRefreshCookie).toBeDefined();
+
+    const refresh = await request(app).post("/api/auth/refresh").set("Cookie", [oldRefreshCookie!]);
+    expect(refresh.status).toBe(200);
+    const newRefreshCookie = extractCookie(refresh.headers["set-cookie"], "refresh_token");
+    expect(newRefreshCookie).toBeDefined();
+    // A genuinely rotated token must differ from the one that was presented.
+    expect(newRefreshCookie).not.toBe(oldRefreshCookie);
+
+    // The old refresh token must no longer work — it was revoked on rotation.
+    const reuseOld = await request(app).post("/api/auth/refresh").set("Cookie", [oldRefreshCookie!]);
+    expect(reuseOld.status).toBe(401);
+
+    // The new refresh token must work.
+    const useNew = await request(app).post("/api/auth/refresh").set("Cookie", [newRefreshCookie!]);
+    expect(useNew.status).toBe(200);
+  });
+});

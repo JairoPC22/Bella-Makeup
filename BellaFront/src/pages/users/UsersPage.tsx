@@ -85,18 +85,23 @@ export function UsersPage() {
                 <td>{u.role.name}</td>
                 <td>
                   {u.allBranches ? "Todas" : (
-                    <select
-                      multiple
-                      className="users-table__branch-select"
-                      size={Math.min(branches.length, 3)}
-                      value={u.branches.map((b) => b.id)}
-                      onChange={(e) => {
-                        const selectedIds = Array.from(e.target.selectedOptions).map((o) => o.value);
-                        updateUserBranches(u, selectedIds);
-                      }}
+                    <PermissionGate
+                      code="users.edit"
+                      fallback={u.branches.length > 0 ? u.branches.map((b) => b.name).join(", ") : "Sin sucursales"}
                     >
-                      {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
+                      <select
+                        multiple
+                        className="users-table__branch-select"
+                        size={Math.min(branches.length, 3)}
+                        value={u.branches.map((b) => b.id)}
+                        onChange={(e) => {
+                          const selectedIds = Array.from(e.target.selectedOptions).map((o) => o.value);
+                          updateUserBranches(u, selectedIds);
+                        }}
+                      >
+                        {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    </PermissionGate>
                   )}
                 </td>
                 <td><Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status === "ACTIVE" ? "Activo" : "Inactivo"}</Badge></td>

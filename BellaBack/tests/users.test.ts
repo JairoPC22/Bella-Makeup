@@ -86,4 +86,25 @@ describe("Users CRUD + branch assignment", () => {
     // was never touched.
     expect(disable.body.branches.map((b: any) => b.id)).toContain(branchId);
   });
+
+  it("returns 409 (not a raw 500) when creating a user with a duplicate username", async () => {
+    // Regression for the centralized Prisma error mapping: a unique-constraint
+    // violation on user creation must map to 409, not fall through to a 500.
+    const res = await request(app).post("/api/users").set("Cookie", [cookie]).send({
+      firstName: "Otra", lastName: "Vendedora", displayName: "Otra Vendedora",
+      username: "nueva_vendedora", email: "otra@bellamakeup.demo", password: "Password#123", roleId: cashierRoleId,
+    });
+    expect(res.status).toBe(409);
+    expect(typeof res.body.message).toBe("string");
+  });
+
+  it("returns 404 (not a raw 500) when updating a nonexistent user", async () => {
+    // Regression for the centralized Prisma error mapping: P2025 (record not
+    // found) must map to 404, not fall through to a 500.
+    const res = await request(app)
+      .put("/api/users/00000000-0000-0000-0000-000000000099")
+      .set("Cookie", [cookie])
+      .send({ displayName: "No existe" });
+    expect(res.status).toBe(404);
+  });
 });

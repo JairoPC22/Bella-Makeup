@@ -22,7 +22,8 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
 }
 
 export function getAvatarOptions(req: Request, res: Response) {
-  const count = Number(req.query.count ?? 6);
+  const parsed = Number(req.query.count);
+  const count = Math.min(Math.max(Number.isFinite(parsed) && parsed > 0 ? parsed : 6, 1), 12);
   res.json(profileService.getAvatarOptions("adventurer", count));
 }
 

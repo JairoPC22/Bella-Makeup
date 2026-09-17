@@ -12,6 +12,10 @@ npm run prisma:seed               # demo login: admin / BellaAdmin#2026
 npm run dev                       # http://localhost:4000
 ```
 
+> **Before any non-local deployment:** replace the `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET`
+> values (and any other dev defaults) from `.env.example` with real, unique secrets — they are
+> throwaway values committed to the repo and must never be used outside local development.
+
 ## Running tests
 
 Tests run against a **separate, dedicated database** — never against the dev/seed

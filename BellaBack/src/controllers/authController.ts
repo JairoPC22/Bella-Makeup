@@ -22,8 +22,9 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.cookies?.refresh_token;
     if (!token) return res.status(401).json({ message: "No hay sesión" });
-    const { accessToken, user } = await authService.refresh(token);
+    const { accessToken, refreshToken, user } = await authService.refresh(token);
     res.cookie("access_token", accessToken, { ...COOKIE_OPTS, maxAge: 15 * 60 * 1000 });
+    res.cookie("refresh_token", refreshToken, { ...COOKIE_OPTS, maxAge: 30 * 24 * 60 * 60 * 1000 });
     res.json({ user });
   } catch (err) {
     next(err);

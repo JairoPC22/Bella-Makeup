@@ -45,8 +45,14 @@ export async function refresh(refreshToken: string) {
   const user = await findUserById(payload.sub);
   if (!user || user.status !== "ACTIVE") throw new AppError(401, "Sesión inválida");
 
+  // Rotate: revoke the presented refresh token and issue+store a new one so a
+  // captured refresh token cannot be replayed indefinitely.
+  await revokeRefreshToken(user.id, refreshToken);
+  const newRefreshToken = signRefreshToken({ sub: user.id });
+  await storeRefreshToken(user.id, newRefreshToken, new Date(Date.now() + REFRESH_TOKEN_TTL_MS));
+
   const accessToken = signAccessToken({ sub: user.id, roleId: user.roleId });
-  return { accessToken, user: toPublicUser(user) };
+  return { accessToken, refreshToken: newRefreshToken, user: toPublicUser(user) };
 }
 
 export async function logout(userId: string, refreshToken: string) {

@@ -1,8 +1,9 @@
-import "dotenv/config";
 import jwt from "jsonwebtoken";
+import { randomUUID } from "crypto";
+import { env } from "../config/env";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? "change-me-access-dev-secret";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? "change-me-refresh-dev-secret";
+const ACCESS_SECRET = env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = env.JWT_REFRESH_SECRET;
 
 export interface AccessTokenPayload {
   sub: string;
@@ -11,6 +12,7 @@ export interface AccessTokenPayload {
 
 export interface RefreshTokenPayload {
   sub: string;
+  jti?: string;
 }
 
 export function signAccessToken(payload: AccessTokenPayload): string {
@@ -22,7 +24,11 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
 }
 
 export function signRefreshToken(payload: RefreshTokenPayload): string {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "30d" });
+  // HS256 signing is deterministic and `iat`/`exp` are second-granularity, so
+  // two tokens signed for the same subject within the same second would
+  // otherwise be byte-identical. A random `jti` guarantees every issued
+  // refresh token is unique, which rotation depends on.
+  return jwt.sign({ ...payload, jti: randomUUID() }, REFRESH_SECRET, { expiresIn: "30d" });
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {

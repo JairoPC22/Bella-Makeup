@@ -14,7 +14,7 @@ export async function updateBranch(id: string, input: any, actorId: string) {
   const existing = await branchRepository.findBranchById(id);
   if (!existing) throw new AppError(404, "Sucursal no encontrada");
   const branch = await branchRepository.updateBranch(id, input);
-  await logAudit({ userId: actorId, action: "branches.update", module: "branches", entityType: "branch", entityId: branch.id, branchId: branch.id });
+  await logAudit({ userId: actorId, action: "branches.update", module: "branches", entityType: "branch", entityId: branch.id, branchId: branch.id, details: { changes: input } });
   return branch;
 }
 

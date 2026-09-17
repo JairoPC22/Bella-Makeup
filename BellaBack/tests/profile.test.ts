@@ -55,3 +55,40 @@ describe("Profile endpoints", () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe("Password change revokes refresh tokens", () => {
+  function extractCookie(setCookie: string[] | undefined, name: string): string | undefined {
+    const raw = setCookie?.find((c) => c.startsWith(`${name}=`));
+    return raw?.split(";")[0];
+  }
+
+  it("invalidates a refresh token issued before the password change", async () => {
+    const role = await prisma.role.findUniqueOrThrow({ where: { code: "cashier" } });
+    await prisma.user.upsert({
+      where: { username: "profile_test_user_revoke" },
+      update: { passwordHash: await hashPassword("Password#123") },
+      create: {
+        firstName: "Revoke", lastName: "Test", displayName: "Revoke Test",
+        username: "profile_test_user_revoke", email: "profile_test_user_revoke@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "revoke-seed", roleId: role.id,
+      },
+    });
+
+    const login = await request(app).post("/api/auth/login").send({ username: "profile_test_user_revoke", password: "Password#123" });
+    expect(login.status).toBe(200);
+    const refreshCookie = extractCookie(login.headers["set-cookie"], "refresh_token");
+    const accessCookie = extractCookie(login.headers["set-cookie"], "access_token");
+    expect(refreshCookie).toBeDefined();
+    expect(accessCookie).toBeDefined();
+
+    const changePassword = await request(app)
+      .put("/api/profile/password")
+      .set("Cookie", [accessCookie!])
+      .send({ currentPassword: "Password#123", newPassword: "NewPassword#789" });
+    expect(changePassword.status).toBe(200);
+
+    // The refresh token issued before the password change must no longer work.
+    const refreshAfter = await request(app).post("/api/auth/refresh").set("Cookie", [refreshCookie!]);
+    expect(refreshAfter.status).toBe(401);
+  });
+});

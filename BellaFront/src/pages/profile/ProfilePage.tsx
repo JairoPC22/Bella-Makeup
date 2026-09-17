@@ -9,7 +9,7 @@ import type { User } from "../../types/api";
 import "./ProfilePage.css";
 
 export function ProfilePage() {
-  const { user: sessionUser, updateUser } = useAuth();
+  const { updateUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", displayName: "", email: "", phone: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
@@ -70,7 +70,7 @@ export function ProfilePage() {
           <Avatar avatarStyle={user.avatarStyle} avatarSeed={user.avatarSeed} displayName={user.displayName} size="lg" />
           <div>
             <h2>{user.displayName}</h2>
-            <p>{user.role.name}{sessionUser?.allBranches ? " · Todas las sucursales" : ""}</p>
+            <p>{user.role.name}{user.allBranches ? " · Todas las sucursales" : ""}</p>
           </div>
         </div>
         <AvatarPicker
