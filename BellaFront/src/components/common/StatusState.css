@@ -1,0 +1,12 @@
+.status-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-3);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+.status-state--error { color: var(--color-pink-deep); }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
