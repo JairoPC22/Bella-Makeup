@@ -1,0 +1,10 @@
+.audit-filters { display: flex; gap: var(--space-2); margin: var(--space-3) 0; }
+.audit-filters select { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-body); }
+.audit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.audit-item { display: flex; gap: var(--space-3); align-items: flex-start; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); }
+.audit-item p { margin: 0; font-size: 0.9rem; }
+.audit-item__meta { color: var(--color-text-secondary); font-size: 0.78rem; margin-top: 2px !important; }
+.audit-item__system-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--color-pink-soft); }
+.audit-pagination { display: flex; gap: var(--space-3); align-items: center; margin-top: var(--space-3); }
+.audit-pagination button { padding: var(--space-1) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-white); cursor: pointer; }
+.audit-pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
