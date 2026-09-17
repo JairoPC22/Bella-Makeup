@@ -1,0 +1,11 @@
+.users-page__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); }
+.users-page__header button { display: inline-flex; align-items: center; gap: 6px; background: var(--color-primary); color: var(--color-white); border: none; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); cursor: pointer; }
+.users-page__error { color: #B3261E; margin-bottom: var(--space-3); }
+.users-table { width: 100%; border-collapse: collapse; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+.users-table th, .users-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; }
+.users-table button { background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-secondary); }
+@media (max-width: 768px) {
+  .users-table thead { display: none; }
+  .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; width: 100%; }
+  .users-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+}
