@@ -15,6 +15,7 @@ export function ProfilePage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -44,12 +45,15 @@ export function ProfilePage() {
   async function handlePasswordChange(e: FormEvent) {
     e.preventDefault();
     setPasswordMessage(null);
+    setPasswordSaving(true);
     try {
       await profileService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       setPasswordMessage({ type: "success", text: "Contraseña actualizada." });
       setPasswordForm({ currentPassword: "", newPassword: "" });
     } catch (err) {
       setPasswordMessage({ type: "error", text: err instanceof ApiError ? err.message : "No se pudo cambiar la contraseña" });
+    } finally {
+      setPasswordSaving(false);
     }
   }
 
@@ -87,7 +91,7 @@ export function ProfilePage() {
         <h2>Cambiar contraseña</h2>
         <label>Contraseña actual<input type="password" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} required /></label>
         <label>Nueva contraseña<input type="password" minLength={8} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required /></label>
-        <button type="submit">Actualizar contraseña</button>
+        <button type="submit" disabled={passwordSaving}>Actualizar contraseña</button>
         {passwordMessage && <p className={passwordMessage.type === "success" ? "profile-card__success" : "profile-card__error"}>{passwordMessage.text}</p>}
       </form>
     </div>

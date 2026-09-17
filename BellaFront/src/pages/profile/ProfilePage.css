@@ -17,3 +17,4 @@
 .avatar-picker__grid { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
 .avatar-picker__option { border: 1px solid var(--color-border); border-radius: 50%; padding: 2px; background: var(--color-white); cursor: pointer; }
 .avatar-picker__generate { display: inline-flex; align-items: center; gap: 6px; background: var(--color-pink-soft); border: none; border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); cursor: pointer; width: fit-content; }
+.avatar-picker__error { color: var(--color-pink-deep); font-size: 0.85rem; margin: 0; }
