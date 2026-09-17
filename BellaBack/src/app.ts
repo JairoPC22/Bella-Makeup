@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import { env } from "./config/env";
+import { env, isAllowedCorsOrigin } from "./config/env";
 import authRoutes from "./routes/auth.routes";
 import roleRoutes from "./routes/role.routes";
 import branchRoutes from "./routes/branch.routes";
@@ -16,7 +16,15 @@ import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || isAllowedCorsOrigin(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 if (env.NODE_ENV !== "test") app.use(morgan("dev"));

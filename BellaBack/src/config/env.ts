@@ -14,3 +14,16 @@ export const env = {
   JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET"),
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 };
+
+// Dev machines juggle several local Vite servers, so the port BellaFront
+// actually binds to drifts (5173, 5174, 5175, ...). Accept any localhost
+// port in dev instead of hardcoding one, to avoid CORS breaking every time
+// a new dev server picks a different free port.
+export function isAllowedCorsOrigin(origin: string): boolean {
+  const configured = env.CORS_ORIGIN.split(",").map((o) => o.trim());
+  if (configured.includes(origin)) return true;
+  if (env.NODE_ENV !== "production" && /^http:\/\/localhost:\d+$/.test(origin)) {
+    return true;
+  }
+  return false;
+}
