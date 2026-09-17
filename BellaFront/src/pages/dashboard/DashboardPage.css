@@ -121,14 +121,14 @@
   height: 44px;
   flex-shrink: 0;
   border-radius: var(--radius-md);
-  background: var(--color-pink-soft);
+  background: var(--color-pink-100);
   color: var(--color-pink-deep);
 }
 
 .stat-card__body { min-width: 0; flex: 1; }
 .stat-card__label { margin: 0 0 2px; font-size: 0.85rem; color: var(--color-text-secondary); }
-.stat-card__value { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 2rem; letter-spacing: var(--tracking-tight); }
-.stat-card__caption { margin: 2px 0 0; font-size: 0.78rem; color: var(--color-text-secondary); }
+.stat-card__value { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 2rem; letter-spacing: var(--tracking-tight); color: var(--color-ink); }
+.stat-card__caption { margin: 2px 0 0; font-size: 0.78rem; color: var(--color-text-muted); }
 .stat-card .status-state--compact { align-items: flex-start; text-align: left; padding: 4px 0 0; }
 
 /* ---------- Two-column body ---------- */
@@ -159,7 +159,7 @@
   margin-bottom: var(--space-4);
 }
 
-.dashboard-panel__title { display: flex; align-items: center; gap: 8px; color: var(--color-primary); }
+.dashboard-panel__title { display: flex; align-items: center; gap: 8px; color: var(--color-ink); }
 .dashboard-panel__title h2 { font-size: 1.05rem; letter-spacing: var(--tracking-tight); }
 .dashboard-panel__title svg { color: var(--color-pink-deep); }
 
@@ -175,13 +175,13 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-pink-deep);
-  background: var(--color-pink-soft);
+  background: var(--color-pink-50);
   text-decoration: none;
   padding: 6px 14px;
   border-radius: var(--radius-pill);
   transition: background-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
-.dashboard-panel__link:hover { background: var(--color-pink-elegant); color: var(--color-primary); }
+.dashboard-panel__link:hover { background: var(--color-pink-100); color: var(--color-primary); }
 .dashboard-panel__link:active { transform: scale(0.95); }
 
 /* ---------- Activity list ---------- */
@@ -196,17 +196,20 @@
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast) var(--ease-premium);
 }
-.activity-item:hover { background: var(--color-bg); }
+/* Pearl, not page-bg cream — the card is already white, so hovering with
+   --color-bg would just repaint it the page's own background color. The
+   pearl surface reads as a distinct, intentional third tone. */
+.activity-item:hover { background: var(--color-surface-pearl); }
 .activity-item + .activity-item { border-top: 1px solid var(--color-border); }
 
 .activity-item__system-avatar {
   width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
   background: var(--color-pink-soft);
 }
-.activity-item__body { min-width: 0; }
+.activity-item__body { min-width: 0; color: var(--color-ink); }
 .activity-item__body p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
 .activity-item__branch { color: var(--color-text-secondary); }
-.activity-item__time { margin-top: 2px !important; font-size: 0.76rem; color: var(--color-text-secondary); }
+.activity-item__time { margin-top: 2px !important; font-size: 0.76rem; color: var(--color-text-muted); }
 
 /* ---------- Quick links ---------- */
 
@@ -219,10 +222,10 @@
   padding: var(--space-2) var(--space-2);
   border-radius: var(--radius-md);
   text-decoration: none;
-  color: var(--color-primary);
+  color: var(--color-ink);
   transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
-.quick-link:hover { background: var(--color-pink-soft); }
+.quick-link:hover { background: var(--color-pink-100); }
 .quick-link:active { transform: scale(0.96); }
 
 .quick-link__icon {

@@ -1,11 +1,44 @@
 :root {
   --color-primary: #18181B;
+  /* Softened near-black, ~6% lighter than --color-primary along the same
+     neutral-warm hue (not a hue shift) — for large reading-text blocks
+     (headings, body copy) so they don't read as "printed" pure black.
+     --color-primary stays reserved for brand chrome: the hero/sidebar dark
+     panel, icons, and anywhere true near-black brand weight is wanted. */
+  --color-ink: #26262A;
   --color-bg: #F7F3F1;
   --color-white: #FFFFFF;
+  /* A near-white "pearl" surface that sits between --color-bg and
+     --color-white — lets a hover/nested surface read as intentionally
+     different from both the page background and a white card, without
+     reaching for a shadow or border to do that job. */
+  --color-surface-pearl: #FBF8F6;
+
   --color-pink-soft: #F4D9DC;
   --color-pink-elegant: #DFA8B2;
   --color-pink-deep: #A85C70;
+
+  /* Pink tint/shade ramp, anchored on the three brand pinks above
+     (50/100/300/500/700/800 are new interpolated steps; 200/400/600 alias
+     the existing soft/elegant/deep tones so nothing that already reads
+     "brand pink" changes). Gives hover/active/subtle-background states a
+     real range instead of reusing the same 3 values everywhere. Every step
+     stays within the existing rose/mauve hue — no new hue introduced. */
+  --color-pink-50: #FDF4F5;
+  --color-pink-100: #F9E7E9;
+  --color-pink-200: var(--color-pink-soft);
+  --color-pink-300: #EBC2C8;
+  --color-pink-400: var(--color-pink-elegant);
+  --color-pink-500: #C98A99;
+  --color-pink-600: var(--color-pink-deep);
+  --color-pink-700: #8A4A5C;
+  --color-pink-800: #6C3A48;
+
   --color-text-secondary: #6F6868;
+  /* A tertiary text tier lighter than --color-text-secondary, for
+     timestamps/fine-print-level text that should recede further than a
+     caption but stay legible — same warm-gray hue, just lighter. */
+  --color-text-muted: #9C9492;
   --color-border: #E7DDDA;
   --color-accent: #9FFF00;
 
