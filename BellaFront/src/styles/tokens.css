@@ -37,4 +37,10 @@
   --transition-base: 240ms;
   --transition-slow: 400ms;
   --duration-entrance: 0.8s;
+
+  /* Sidebar rail widths, shared by Sidebar.tsx and AppShell so the
+     expand/collapse transition always animates between the same two
+     values instead of a hardcoded px creeping out of sync. */
+  --sidebar-width-expanded: 240px;
+  --sidebar-width-collapsed: 72px;
 }

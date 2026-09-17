@@ -9,5 +9,7 @@
   animation: fade-in-up 0.5s var(--ease-premium) both;
 }
 .status-state--error { color: var(--color-pink-deep); }
+.status-state--compact { padding: var(--space-3) var(--space-1); gap: 6px; }
+.status-state--compact p { margin: 0; font-size: 0.82rem; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

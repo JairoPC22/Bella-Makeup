@@ -4,6 +4,7 @@ import { PermissionRoute } from "../components/auth/PermissionRoute";
 import { AppShell } from "../components/layout/AppShell";
 import { StatusState } from "../components/common/StatusState";
 import { LoginPage } from "../pages/auth/LoginPage";
+import { DashboardPage } from "../pages/dashboard/DashboardPage";
 import { ProfilePage } from "../pages/profile/ProfilePage";
 import { UsersPage } from "../pages/users/UsersPage";
 import { RolesPage } from "../pages/roles/RolesPage";
@@ -29,7 +30,7 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: "/", element: <ProfilePage /> },
+          { path: "/", element: <DashboardPage /> },
           { path: "/perfil", element: <ProfilePage /> },
           { path: "/acceso-denegado", element: <AccessDeniedPage /> },
           {

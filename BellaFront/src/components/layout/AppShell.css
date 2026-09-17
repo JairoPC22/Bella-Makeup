@@ -1,41 +1,8 @@
 .app-shell { display: flex; min-height: 100vh; }
-.sidebar {
-  width: 240px;
-  background: var(--color-white);
-  border-right: 1px solid var(--color-border);
-  padding: var(--space-4) var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.sidebar__brand {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.3rem;
-  letter-spacing: -0.01em;
-  margin-bottom: var(--space-4);
-}
-.sidebar__link {
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
-  color: var(--color-primary); text-decoration: none; font-size: 0.95rem;
-  box-shadow: inset 3px 0 0 0 transparent;
-  transition: background-color var(--transition-base) var(--ease-premium),
-    color var(--transition-base) var(--ease-premium),
-    box-shadow var(--transition-base) var(--ease-premium),
-    transform var(--transition-fast) var(--ease-premium);
-}
-.sidebar__link svg { transition: color var(--transition-base) var(--ease-premium); flex-shrink: 0; }
-.sidebar__link:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); }
-.sidebar__link:active { transform: scale(0.98); }
-.sidebar__link--active { background: var(--color-pink-soft); color: var(--color-pink-deep); font-weight: 600; box-shadow: inset 3px 0 0 0 var(--color-pink-deep); }
-.app-shell__main { flex: 1; display: flex; flex-direction: column; }
+.app-shell__main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .topbar { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-white); }
 .app-shell__content { padding: var(--space-5); flex: 1; }
 .app-shell__page { animation: fade-in-up 0.45s var(--ease-premium) both; }
 @media (max-width: 768px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
-  .sidebar__brand { display: none; }
-  .sidebar__link--active { box-shadow: inset 0 -3px 0 0 var(--color-pink-deep); }
 }

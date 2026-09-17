@@ -4,6 +4,8 @@ import "./StatusState.css";
 interface StatusStateProps {
   kind: "loading" | "empty" | "error";
   message?: string;
+  /** Smaller footprint for use inside cards/widgets instead of a full page. */
+  compact?: boolean;
 }
 
 const DEFAULTS: Record<StatusStateProps["kind"], string> = {
@@ -12,11 +14,11 @@ const DEFAULTS: Record<StatusStateProps["kind"], string> = {
   error: "Ocurrió un error. Intenta de nuevo.",
 };
 
-export function StatusState({ kind, message }: StatusStateProps) {
+export function StatusState({ kind, message, compact }: StatusStateProps) {
   const Icon = kind === "loading" ? Loader2 : kind === "empty" ? Inbox : AlertTriangle;
   return (
-    <div className={`status-state status-state--${kind}`}>
-      <Icon size={28} className={kind === "loading" ? "spin" : undefined} />
+    <div className={`status-state status-state--${kind}${compact ? " status-state--compact" : ""}`}>
+      <Icon size={compact ? 18 : 28} className={kind === "loading" ? "spin" : undefined} />
       <p>{message ?? DEFAULTS[kind]}</p>
     </div>
   );
