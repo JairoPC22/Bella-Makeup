@@ -36,12 +36,7 @@ export async function uploadProductImage(productId: string, file: Express.Multer
 
   await resizeInPlace(file.path);
 
-  const existingCount = await productImageRepository.countImagesForProduct(productId);
-  const image = await productImageRepository.createImage({
-    product: { connect: { id: productId } },
-    url: toRelativeUrl(file.filename),
-    isPrimary: existingCount === 0,
-  });
+  const image = await productImageRepository.createImageWithAutoPrimary(productId, toRelativeUrl(file.filename));
 
   await logAudit({
     userId: actorId,

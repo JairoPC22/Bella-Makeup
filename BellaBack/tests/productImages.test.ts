@@ -136,6 +136,45 @@ describe("Product images", () => {
     expect(oldPrimary?.isPrimary).toBe(false);
   });
 
+  it("never ends up with two primary images when two uploads race for the same brand-new product", async () => {
+    // Dedicated product with zero images so both concurrent requests start
+    // from the same "first upload" decision point (existingCount === 0).
+    const raceProduct = await prisma.product.create({
+      data: { sku: `PIMG-RACE-${Date.now()}`, name: "Producto de prueba concurrencia", price: 50 },
+    });
+
+    try {
+      const [bufferA, bufferB] = await Promise.all([makeJpeg(50, 50), makeJpeg(50, 50)]);
+
+      // Fired together (not awaited one at a time) so both requests are
+      // genuinely in flight at once — supertest opens a real ephemeral
+      // server per call, so these interleave through multer's disk I/O and
+      // the Prisma/Postgres round trips exactly like two real concurrent
+      // clients would.
+      const [resA, resB] = await Promise.all([
+        request(app)
+          .post(`/api/products/${raceProduct.id}/images`)
+          .set("Cookie", [cookie])
+          .attach("image", bufferA, "race-a.jpg"),
+        request(app)
+          .post(`/api/products/${raceProduct.id}/images`)
+          .set("Cookie", [cookie])
+          .attach("image", bufferB, "race-b.jpg"),
+      ]);
+
+      expect(resA.status).toBe(201);
+      expect(resB.status).toBe(201);
+      createdFiles.push(savedPathFor(resA.body.url), savedPathFor(resB.body.url));
+
+      const rows = await prisma.productImage.findMany({ where: { productId: raceProduct.id } });
+      expect(rows).toHaveLength(2);
+      const primaries = rows.filter((r) => r.isPrimary);
+      expect(primaries).toHaveLength(1);
+    } finally {
+      await prisma.product.delete({ where: { id: raceProduct.id } }).catch(() => {});
+    }
+  });
+
   it("resizes images wider than 1200px down to 1200px without upscaling smaller images", async () => {
     const wideBuffer = await makeJpeg(2000, 100);
     const wide = await request(app)
