@@ -6,6 +6,7 @@ import * as inventoryController from "../controllers/inventoryController";
 const router = Router();
 
 router.get("/", requireAuth, requirePermission("inventory.view"), inventoryController.list);
+router.post("/adjust", requireAuth, requirePermission("inventory.adjust"), inventoryController.adjust);
 router.get("/:productId/movements", requireAuth, requirePermission("inventory.view"), inventoryController.movements);
 
 export default router;
