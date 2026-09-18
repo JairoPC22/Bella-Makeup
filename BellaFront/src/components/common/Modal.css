@@ -81,8 +81,12 @@
   font-weight: 500;
   color: var(--color-text-secondary);
 }
-.modal__body input,
-.modal__body select {
+/* .modal__body select is deliberately NOT styled here — the sitewide
+   select treatment in global.css (chevron, appearance:none, focus ring)
+   already covers it with the same tokens used below, so modal selects
+   (Rol, Sucursales, Responsable) stay visually identical to every other
+   select in the app without a duplicate/conflicting rule here. */
+.modal__body input {
   padding: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -92,8 +96,7 @@
   background: var(--color-white);
   transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
 }
-.modal__body input:focus,
-.modal__body select:focus {
+.modal__body input:focus {
   outline: none;
   border-color: var(--color-pink-elegant);
   box-shadow: var(--shadow-focus);
@@ -102,6 +105,59 @@
   background: var(--color-bg);
   color: var(--color-text-secondary);
 }
+/* Branch assignment block inside UserFormModal — checkboxes rather than a
+   multi-select, since a checklist reads clearer than a scrollable listbox
+   for a handful of branches and makes the "todas las sucursales" shortcut
+   an obvious sibling option rather than a special multi-select value. */
+.modal__body .user-form__branches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+.modal__body .user-form__branches-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+.modal__body .user-form__branch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-divider-soft);
+}
+.modal__body .user-form__branch-option {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  color: var(--color-primary) !important;
+  cursor: pointer;
+}
+.modal__body .user-form__branch-option--all {
+  font-weight: 600 !important;
+  color: var(--color-pink-deep) !important;
+}
+.modal__body .user-form__branch-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-pink-deep);
+  cursor: pointer;
+}
+.modal__body .user-form__branch-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
 /* Form-level error banners (UserFormModal/BranchFormModal), styled to
    match the premium error treatment introduced in the login redesign
    instead of rendering as unstyled black text. */
@@ -120,10 +176,16 @@
   line-height: 1.4;
 }
 
+/* Full-width, centered submit — reads cleaner than a left-aligned button
+   floating under a column of full-width fields, and matches the "one
+   clear primary action" pattern of the rest of the modal form. */
 .modal__body button[type="submit"] {
-  align-self: flex-start;
-  margin-top: var(--space-1);
-  padding: var(--space-2) var(--space-4);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-2);
+  padding: var(--space-2_5) var(--space-4);
   background: var(--color-pink-deep);
   color: var(--color-white);
   border: none;

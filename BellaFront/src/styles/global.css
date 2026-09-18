@@ -53,6 +53,48 @@ button {
   animation-delay: var(--stagger-delay, 0ms);
 }
 
+/* ---------- Sitewide native <select> styling ----------
+   CSS-only custom treatment (per the "don't build a full listbox" scope
+   decision) applied to every native <select> in the app — role dropdowns,
+   branch/manager pickers, audit filters, etc. — so they match the input
+   system instead of the browser default. `appearance: none` removes the
+   native arrow/box chrome; the chevron is redrawn via a background-image
+   data URI (data URIs can't reference CSS custom properties, so its
+   stroke color is the literal hex of --color-text-secondary rather than a
+   new invented color). Multi-selects (select[multiple], e.g. the Users
+   table's branch assignment) keep native listbox rendering — a single
+   trailing chevron doesn't make sense on a scrollable multi-row box — but
+   still inherit the shared border/radius/token treatment below. */
+select {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: calc(var(--space-3) + 22px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  background-size: 16px;
+}
+select:hover { border-color: var(--color-pink-elegant); }
+select:focus {
+  outline: none;
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-focus);
+}
+select:disabled { background-color: var(--color-bg); color: var(--color-text-secondary); cursor: not-allowed; }
+select option { font-family: var(--font-body); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
