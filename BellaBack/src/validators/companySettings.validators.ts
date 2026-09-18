@@ -7,4 +7,6 @@ export const updateCompanySettingsSchema = z.object({
   logoUrl: z.string().optional(),
   currency: z.string().optional(),
   socialLinks: z.record(z.string(), z.string()).optional(),
+  description: z.string().max(500).optional(),
+  businessHours: z.string().max(200).optional(),
 });

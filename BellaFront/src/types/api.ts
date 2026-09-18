@@ -45,6 +45,8 @@ export interface CompanySettings {
   socialLinks?: Record<string, string> | null;
   logoUrl?: string | null;
   currency: string;
+  description?: string | null;
+  businessHours?: string | null;
 }
 
 export interface AuditLogEntry {
