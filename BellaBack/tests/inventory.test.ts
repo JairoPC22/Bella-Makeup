@@ -210,6 +210,34 @@ describe("Inventory movement service + query endpoints", () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].stock).toBe(50);
     });
+
+    it("tracks stock per variant independently of the product's variant-less row and other variants", async () => {
+      const variantProduct = await prisma.product.create({
+        data: { sku: `INV-VARIANT-${Date.now()}`, name: "Producto con variantes", price: 40, minStock: 5 },
+      });
+      productIds.push(variantProduct.id);
+      const variantX = await prisma.productVariant.create({
+        data: { productId: variantProduct.id, name: "X", sku: `INV-VARIANT-${Date.now()}-X`, minStock: 4 },
+      });
+      const variantY = await prisma.productVariant.create({
+        data: { productId: variantProduct.id, name: "Y", sku: `INV-VARIANT-${Date.now()}-Y`, minStock: 4 },
+      });
+
+      await applyMovement({ productId: variantProduct.id, variantId: variantX.id, branchId: branchA.id, type: "PURCHASE", quantity: 10 });
+      await applyMovement({ productId: variantProduct.id, variantId: variantY.id, branchId: branchA.id, type: "PURCHASE", quantity: 3 });
+
+      const rowX = await prisma.inventory.findFirst({ where: { productId: variantProduct.id, variantId: variantX.id, branchId: branchA.id } });
+      const rowY = await prisma.inventory.findFirst({ where: { productId: variantProduct.id, variantId: variantY.id, branchId: branchA.id } });
+      expect(rowX?.stock).toBe(10);
+      expect(rowY?.stock).toBe(3);
+
+      // A movement against variantX must not be able to oversell variantY's stock.
+      await expect(
+        applyMovement({ productId: variantProduct.id, variantId: variantY.id, branchId: branchA.id, type: "SALE", quantity: -4 })
+      ).rejects.toThrow(AppError);
+      const rowYAfter = await prisma.inventory.findFirst({ where: { productId: variantProduct.id, variantId: variantY.id, branchId: branchA.id } });
+      expect(rowYAfter?.stock).toBe(3);
+    });
   });
 
   describe("GET /api/inventory", () => {
@@ -262,6 +290,29 @@ describe("Inventory movement service + query endpoints", () => {
       const row = res.body.find((r: any) => r.productId === lowStockProduct.id);
       expect(row.stock).toBe(50);
       expect(row.status).toBe("AVAILABLE");
+    });
+
+    it("uses the variant's own minStock (not the product's) to compute status for a variant row", async () => {
+      // Product minStock is 10 (would read LOW at stock=6), but the variant
+      // has its own minStock of 4 (stock=6 is comfortably AVAILABLE under
+      // the variant's own threshold). This proves the controller reads
+      // `row.variant?.minStock ?? row.product.minStock`, not just the
+      // product's minStock unconditionally.
+      const variantProduct = await prisma.product.create({
+        data: { sku: `INV-STATUS-VARIANT-${Date.now()}`, name: "Producto variante status", price: 40, minStock: 10 },
+      });
+      productIds.push(variantProduct.id);
+      const variant = await prisma.productVariant.create({
+        data: { productId: variantProduct.id, name: "Unica", sku: `INV-STATUS-VARIANT-${Date.now()}-U`, minStock: 4 },
+      });
+      await applyMovement({ productId: variantProduct.id, variantId: variant.id, branchId: branchA.id, type: "PURCHASE", quantity: 6 });
+
+      const res = await request(app).get(`/api/inventory?branchId=${branchA.id}`).set("Cookie", [cookie]);
+      expect(res.status).toBe(200);
+      const row = res.body.find((r: any) => r.variantId === variant.id);
+      expect(row).toBeDefined();
+      expect(row.stock).toBe(6);
+      expect(row.status).toBe("AVAILABLE"); // 6 > minStock(4) under variant's own threshold
     });
   });
 
