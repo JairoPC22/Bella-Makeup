@@ -11,6 +11,7 @@ import roleRoutes from "./routes/role.routes";
 import branchRoutes from "./routes/branch.routes";
 import categoryRoutes from "./routes/category.routes";
 import brandRoutes from "./routes/brand.routes";
+import productRoutes from "./routes/product.routes";
 import productImageRoutes from "./routes/productImage.routes";
 import userRoutes from "./routes/user.routes";
 import profileRoutes from "./routes/profile.routes";
@@ -48,6 +49,7 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/brands", brandRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/products", productImageRoutes); // routes internally define "/:productId/images..."
 app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
