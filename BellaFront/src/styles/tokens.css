@@ -1,45 +1,71 @@
 :root {
-  --color-primary: #18181B;
-  /* Softened near-black, ~6% lighter than --color-primary along the same
-     neutral-warm hue (not a hue shift) — for large reading-text blocks
-     (headings, body copy) so they don't read as "printed" pure black.
-     --color-primary stays reserved for brand chrome: the hero/sidebar dark
-     panel, icons, and anywhere true near-black brand weight is wanted. */
-  --color-ink: #26262A;
-  --color-bg: #F7F3F1;
+  /* Palette rebuilt on Apple's own color system (per client's explicit
+     instruction), keeping this project's existing token NAMES so every
+     component that already consumes them updates automatically — only the
+     values changed, not the variable names. */
+
+  /* --color-primary keeps its original role in THIS codebase: near-black
+     "ink" for large chrome surfaces (sidebar rail, login brand panel),
+     default text color, and headline color — exactly what Apple's own
+     `ink` token (#1d1d1f) is for. Apple's Action Blue is NOT used for large
+     surfaces anywhere in Apple's own system (their nav bar is a thin 44px
+     strip, never a full sidebar) — it is reserved for actual interactive
+     elements. That role lives on --color-pink-deep below (buttons/CTAs),
+     keeping the existing per-component CSS working without a full rewrite. */
+  --color-primary: #1D1D1F;
+  --color-ink: #1D1D1F;
+  /* Action Blue — the single interactive accent: every button, every link,
+     every focus signal that isn't --color-primary chrome. Consumed via
+     --color-pink-deep (see the ramp below) so every existing button/CTA
+     declaration in the codebase repaints without a per-file rewrite. */
+  --color-primary-focus: #0071E3;
+  /* Sky Link Blue — used for inline links/accents on dark surfaces, where
+     Action Blue would disappear against a near-black background. */
+  --color-primary-on-dark: #2997FF;
+  /* Parchment — Apple's signature off-white page background. */
+  --color-bg: #F5F5F7;
   --color-white: #FFFFFF;
-  /* A near-white "pearl" surface that sits between --color-bg and
-     --color-white — lets a hover/nested surface read as intentionally
-     different from both the page background and a white card, without
-     reaching for a shadow or border to do that job. */
-  --color-surface-pearl: #FBF8F6;
+  /* Pearl — a near-white secondary surface, one step lighter than the
+     parchment background, for a card/hover surface that reads as
+     intentionally different without reaching for a shadow or border. */
+  --color-surface-pearl: #FAFAFC;
 
-  --color-pink-soft: #F4D9DC;
-  --color-pink-elegant: #DFA8B2;
-  --color-pink-deep: #A85C70;
-
-  /* Pink tint/shade ramp, anchored on the three brand pinks above
-     (50/100/300/500/700/800 are new interpolated steps; 200/400/600 alias
-     the existing soft/elegant/deep tones so nothing that already reads
-     "brand pink" changes). Gives hover/active/subtle-background states a
-     real range instead of reusing the same 3 values everywhere. Every step
-     stays within the existing rose/mauve hue — no new hue introduced. */
-  --color-pink-50: #FDF4F5;
-  --color-pink-100: #F9E7E9;
+  /* Blue tint/shade ramp for hover/active/subtle-background states —
+     mirrors the structure this project already established, just built on
+     Action Blue instead of the prior rose hue. Kept under the existing
+     --color-pink-* names so every component that already consumes them
+     (buttons, badges, active nav states, chips) repaints automatically. */
+  --color-pink-50: #EAF3FC;
+  --color-pink-100: #D6E8FA;
+  --color-pink-soft: #ADD1F5;
   --color-pink-200: var(--color-pink-soft);
-  --color-pink-300: #EBC2C8;
+  --color-pink-300: #7AB3EE;
+  --color-pink-elegant: #2997FF;
   --color-pink-400: var(--color-pink-elegant);
-  --color-pink-500: #C98A99;
+  --color-pink-500: #1F7FE0;
+  --color-pink-deep: #0066CC;
   --color-pink-600: var(--color-pink-deep);
-  --color-pink-700: #8A4A5C;
-  --color-pink-800: #6C3A48;
+  --color-pink-700: #004C99;
+  --color-pink-800: #003666;
 
-  --color-text-secondary: #6F6868;
+  /* Dark surface tiles, for any future full-bleed dark section (Apple's
+     alternating light/dark tile rhythm) — not consumed anywhere yet, held
+     in reserve for when a page wants a dark band. */
+  --color-surface-tile-1: #272729;
+  --color-surface-tile-2: #2A2A2C;
+  --color-surface-tile-3: #252527;
+  --color-surface-black: #000000;
+
+  --color-text-secondary: #6E6E73;
   /* A tertiary text tier lighter than --color-text-secondary, for
      timestamps/fine-print-level text that should recede further than a
-     caption but stay legible — same warm-gray hue, just lighter. */
-  --color-text-muted: #9C9492;
-  --color-border: #E7DDDA;
+     caption but stay legible. */
+  --color-text-muted: #86868B;
+  --color-border: #E0E0E0;
+  --color-divider-soft: #F0F0F0;
+
+  /* Bella Makeup's own rare, high-impact highlight — Apple's system has no
+     equivalent token, kept exactly as-is, still used sparingly. */
   --color-accent: #9FFF00;
 
   --font-heading: "Outfit", sans-serif;
@@ -61,19 +87,20 @@
   --radius-xl: 28px;
   --radius-pill: 9999px;
 
-  /* Negative letter-spacing tokens for display/headline sizes, per the
-     Apple analysis's "tight tracking at large sizes" principle. Only
-     meant for text set roughly 17px/1.05rem and up — never apply at
-     caption/fine-print sizes (Apple's own rule: never below 12-14px). */
+  /* Negative letter-spacing tokens for display/headline sizes, per Apple's
+     "tight tracking at large sizes" principle. Only meant for text set
+     roughly 17px/1.05rem and up — never apply at caption/fine-print sizes. */
   --tracking-tight: -0.02em;
   --tracking-tighter: -0.03em;
 
-  /* Shadows tinted with the brand's deep-rose hue instead of flat black,
-     so elevation reads as warm/premium rather than generic UI chrome. */
-  --shadow-sm: 0 1px 2px rgba(168, 92, 112, 0.08);
-  --shadow-md: 0 8px 24px rgba(168, 92, 112, 0.12), 0 2px 6px rgba(24, 24, 27, 0.05);
-  --shadow-lg: 0 24px 64px rgba(168, 92, 112, 0.16), 0 6px 16px rgba(24, 24, 27, 0.06);
-  --shadow-focus: 0 0 0 3px rgba(223, 168, 178, 0.4);
+  /* Apple uses almost no shadow — elevation comes from surface-color
+     change, not chrome. What shadow remains here is neutral/ink-tinted
+     (not color-tinted) and reserved for the rare moment something needs
+     real weight, consistent with that restraint. */
+  --shadow-sm: 0 1px 2px rgba(29, 29, 31, 0.06);
+  --shadow-md: 0 8px 24px rgba(29, 29, 31, 0.10), 0 2px 6px rgba(29, 29, 31, 0.04);
+  --shadow-lg: 0 24px 64px rgba(29, 29, 31, 0.14), 0 6px 16px rgba(29, 29, 31, 0.05);
+  --shadow-focus: 0 0 0 3px rgba(0, 102, 204, 0.35);
 
   /* Motion: one easing curve, one entrance convention, reused everywhere. */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);

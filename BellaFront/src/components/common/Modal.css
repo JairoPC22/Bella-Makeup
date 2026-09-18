@@ -112,8 +112,8 @@
   gap: 8px;
   margin: 0;
   padding: var(--space-2) var(--space-3);
-  background: rgba(168, 92, 112, 0.08);
-  border: 1px solid rgba(168, 92, 112, 0.2);
+  background: rgba(0, 102, 204, 0.08);
+  border: 1px solid rgba(0, 102, 204, 0.2);
   border-radius: var(--radius-sm);
   color: var(--color-pink-deep);
   font-size: 0.88rem;
@@ -124,14 +124,14 @@
   align-self: flex-start;
   margin-top: var(--space-1);
   padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
+  background: var(--color-pink-deep);
   color: var(--color-white);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-weight: 600;
   transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
-.modal__body button[type="submit"]:hover:not(:disabled) { background: #2c2c31; }
+.modal__body button[type="submit"]:hover:not(:disabled) { background: var(--color-primary-focus); }
 .modal__body button[type="submit"]:active:not(:disabled) { transform: scale(0.98); }
 .modal__body button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
