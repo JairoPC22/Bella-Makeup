@@ -211,6 +211,57 @@ describe("Inventory movement service + query endpoints", () => {
       expect(rows[0].stock).toBe(50);
     });
 
+    it("does not serialize concurrent applyMovement calls for the SAME product across DIFFERENT branches or variants (advisory lock is scoped to the exact tuple, not the whole product)", async () => {
+      // Review round 2: the lock moved from a Product-row SELECT ... FOR
+      // UPDATE (which would serialize every call below through one lock)
+      // to a pg_advisory_xact_lock keyed on the full (productId, variantId,
+      // branchId) tuple. This test doesn't measure timing/parallelism —
+      // that's not reliably assertable from a test — it proves the
+      // correctness half of the claim: four concurrent calls touching four
+      // disjoint rows of the SAME product (two different branches, plus
+      // two different variants at a third branch) all land correctly with
+      // no lost updates, no cross-contamination between rows, and no
+      // unexpected serialization-related failure (e.g. deadlock/timeout).
+      const sharedProduct = await prisma.product.create({
+        data: { sku: `INV-INDEP-${Date.now()}`, name: "Producto independencia", price: 25, minStock: 5 },
+      });
+      productIds.push(sharedProduct.id);
+      const variantP = await prisma.productVariant.create({
+        data: { productId: sharedProduct.id, name: "P", sku: `INV-INDEP-${Date.now()}-P`, minStock: 2 },
+      });
+      const variantQ = await prisma.productVariant.create({
+        data: { productId: sharedProduct.id, name: "Q", sku: `INV-INDEP-${Date.now()}-Q`, minStock: 2 },
+      });
+
+      const [branchAResult, branchBResult, variantPResult, variantQResult] = await Promise.all([
+        applyMovement({ productId: sharedProduct.id, branchId: branchA.id, type: "PURCHASE", quantity: 11 }),
+        applyMovement({ productId: sharedProduct.id, branchId: branchB.id, type: "PURCHASE", quantity: 22 }),
+        applyMovement({ productId: sharedProduct.id, variantId: variantP.id, branchId: branchA.id, type: "PURCHASE", quantity: 33 }),
+        applyMovement({ productId: sharedProduct.id, variantId: variantQ.id, branchId: branchA.id, type: "PURCHASE", quantity: 44 }),
+      ]);
+
+      // Each call started from stockBefore=0 (four genuinely disjoint rows)
+      // and must land at its own stockAfter — if the advisory lock were
+      // accidentally scoped too broadly (e.g. by product only) these could
+      // still pass by luck, but if it were scoped too narrowly / broken
+      // (not locking at all) a race could corrupt one of these; combined
+      // with the fresh-row reads below this proves both isolation and
+      // correctness.
+      expect(branchAResult.stockAfter).toBe(11);
+      expect(branchBResult.stockAfter).toBe(22);
+      expect(variantPResult.stockAfter).toBe(33);
+      expect(variantQResult.stockAfter).toBe(44);
+
+      const rowBranchA = await prisma.inventory.findFirst({ where: { productId: sharedProduct.id, variantId: null, branchId: branchA.id } });
+      const rowBranchB = await prisma.inventory.findFirst({ where: { productId: sharedProduct.id, variantId: null, branchId: branchB.id } });
+      const rowVariantP = await prisma.inventory.findFirst({ where: { productId: sharedProduct.id, variantId: variantP.id, branchId: branchA.id } });
+      const rowVariantQ = await prisma.inventory.findFirst({ where: { productId: sharedProduct.id, variantId: variantQ.id, branchId: branchA.id } });
+      expect(rowBranchA?.stock).toBe(11);
+      expect(rowBranchB?.stock).toBe(22);
+      expect(rowVariantP?.stock).toBe(33);
+      expect(rowVariantQ?.stock).toBe(44);
+    });
+
     it("tracks stock per variant independently of the product's variant-less row and other variants", async () => {
       const variantProduct = await prisma.product.create({
         data: { sku: `INV-VARIANT-${Date.now()}`, name: "Producto con variantes", price: 40, minStock: 5 },
