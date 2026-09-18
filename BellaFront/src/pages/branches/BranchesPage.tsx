@@ -6,20 +6,28 @@ import { PermissionGate } from "../../components/auth/PermissionGate";
 import { BranchFormModal } from "./BranchFormModal";
 import { ApiError } from "../../services/apiClient";
 import * as branchService from "../../services/branchService";
-import type { Branch } from "../../types/api";
+import * as userService from "../../services/userService";
+import type { Branch, User } from "../../types/api";
 import "./BranchesPage.css";
 
 export function BranchesPage() {
   const [branches, setBranches] = useState<Branch[] | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [actionError, setActionError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | undefined>(undefined);
 
   useEffect(() => {
+    // The users list only feeds the "Responsable" dropdown inside the
+    // branches.manage-gated create/edit modal — it's fetched independently
+    // so a user without users.view (not the case for any seeded role today,
+    // but not guaranteed forever) still sees the branches list load fine;
+    // the manager dropdown just falls back to an empty option set.
     branchService.listBranches()
       .then((b) => { setBranches(b); setStatus("ready"); })
       .catch(() => setStatus("error"));
+    userService.listUsers().then(setUsers).catch(() => {});
   }, []);
 
   function upsert(branch: Branch) {
@@ -83,6 +91,7 @@ export function BranchesPage() {
         onClose={() => setModalOpen(false)}
         onSaved={upsert}
         editingBranch={editingBranch}
+        users={users}
       />
     </div>
   );
