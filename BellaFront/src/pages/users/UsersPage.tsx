@@ -127,6 +127,7 @@ export function UsersPage() {
         onClose={() => setModalOpen(false)}
         onSaved={upsertUser}
         roles={roles}
+        branches={branches}
         editingUser={editingUser}
       />
     </div>

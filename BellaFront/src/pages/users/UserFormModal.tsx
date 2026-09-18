@@ -1,17 +1,18 @@
 import { type FormEvent, useState } from "react";
 import { Modal } from "../../components/common/Modal";
 import * as userService from "../../services/userService";
-import type { Role, User } from "../../types/api";
+import type { Branch, Role, User } from "../../types/api";
 
 interface UserFormModalProps {
   open: boolean;
   onClose: () => void;
   onSaved: (user: User) => void;
   roles: Role[];
+  branches: Branch[];
   editingUser?: User;
 }
 
-export function UserFormModal({ open, onClose, onSaved, roles, editingUser }: UserFormModalProps) {
+export function UserFormModal({ open, onClose, onSaved, roles, branches, editingUser }: UserFormModalProps) {
   const [form, setForm] = useState({
     firstName: editingUser?.firstName ?? "",
     lastName: editingUser?.lastName ?? "",
@@ -21,8 +22,18 @@ export function UserFormModal({ open, onClose, onSaved, roles, editingUser }: Us
     password: "",
     roleId: editingUser?.roleId ?? roles[0]?.id ?? "",
   });
+  // Branch assignment is a separate concern/endpoint from the user record
+  // itself (assignBranches, PUT /users/:id/branches) but the client asked
+  // for it to be set right here at creation time instead of only via the
+  // Users table's row-level multi-select after the fact.
+  const [allBranches, setAllBranches] = useState(editingUser?.allBranches ?? false);
+  const [branchIds, setBranchIds] = useState<string[]>(editingUser?.branches.map((b) => b.id) ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleBranch(id: string) {
+    setBranchIds((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -32,7 +43,11 @@ export function UserFormModal({ open, onClose, onSaved, roles, editingUser }: Us
       const saved = editingUser
         ? await userService.updateUser(editingUser.id, form)
         : await userService.createUser(form);
-      onSaved(saved);
+      // Branch assignment isn't part of createUser/updateUser's payload on
+      // this backend — it's its own endpoint, so it's called as a
+      // follow-up request right after the user record itself is saved.
+      const withBranches = await userService.assignBranches(saved.id, branchIds, allBranches);
+      onSaved(withBranches);
       onClose();
     } catch {
       setError("No se pudo guardar el usuario.");
@@ -57,6 +72,26 @@ export function UserFormModal({ open, onClose, onSaved, roles, editingUser }: Us
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         </label>
+
+        <div className="user-form__branches">
+          <span className="user-form__branches-label">Sucursales</span>
+          <label className="user-form__branch-option user-form__branch-option--all">
+            <input type="checkbox" checked={allBranches} onChange={(e) => setAllBranches(e.target.checked)} />
+            Todas las sucursales
+          </label>
+          {!allBranches && (
+            <div className="user-form__branch-list">
+              {branches.length === 0 && <p className="user-form__branch-empty">No hay sucursales registradas.</p>}
+              {branches.map((b) => (
+                <label key={b.id} className="user-form__branch-option">
+                  <input type="checkbox" checked={branchIds.includes(b.id)} onChange={() => toggleBranch(b.id)} />
+                  {b.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         {error && <p className="user-form__error">{error}</p>}
         <button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>
       </form>
