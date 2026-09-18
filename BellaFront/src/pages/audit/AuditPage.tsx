@@ -72,7 +72,7 @@ export function AuditPage() {
 
   return (
     <div className="audit-page">
-      <h1>Auditoría</h1>
+      <h1>Actividad reciente</h1>
 
       <div className="audit-filters">
         <select value={module} onChange={(e) => { setModule(e.target.value); setPage(1); }}>

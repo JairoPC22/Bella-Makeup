@@ -55,7 +55,7 @@ function moduleOf(code: string): string {
 const MODULE_LABELS: Record<string, string> = {
   products: "Productos", inventory: "Inventario", sales: "Ventas", discounts: "Descuentos",
   users: "Usuarios", roles: "Roles", branches: "Sucursales", purchases: "Compras",
-  reports: "Reportes", audit: "Auditoría", ecommerce: "Tienda en línea", orders: "Pedidos",
+  reports: "Reportes", audit: "Actividad reciente", ecommerce: "Tienda en línea", orders: "Pedidos",
   settings: "Configuración",
 };
 

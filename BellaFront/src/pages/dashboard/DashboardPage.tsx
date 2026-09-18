@@ -8,7 +8,10 @@ import {
   Settings,
   UserRound,
   ArrowUpRight,
-  History,
+  PackageSearch,
+  Droplet,
+  Sparkles,
+  Gem,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePermission } from "../../hooks/usePermission";
@@ -18,55 +21,23 @@ import { StatusState } from "../../components/common/StatusState";
 import * as branchService from "../../services/branchService";
 import * as userService from "../../services/userService";
 import * as roleService from "../../services/roleService";
-import { listAudit } from "../../services/auditService";
-import type { AuditLogEntry, Branch, Role, User } from "../../types/api";
+import * as inventoryService from "../../services/inventoryService";
+import type { Branch, InventoryRow, Role, User } from "../../types/api";
 import "./DashboardPage.css";
 
 type FetchStatus = "idle" | "loading" | "ready" | "error";
 
-// Compact label map for the audit feed shown on this page — mirrors the
-// codes AuditPage already labels, kept as its own local copy since this
-// page only needs a subset and shouldn't reach into another page's module.
-const ACTION_LABELS: Record<string, string> = {
-  "auth.login": "inició sesión",
-  "auth.logout": "cerró sesión",
-  "profile.update": "actualizó su perfil",
-  "profile.change_password": "cambió su contraseña",
-  "profile.change_avatar": "cambió su avatar",
-  "users.create": "creó un usuario",
-  "users.update": "actualizó un usuario",
-  "users.enable": "habilitó un usuario",
-  "users.disable": "deshabilitó un usuario",
-  "users.assign_branches": "asignó sucursales",
-  "branches.create": "creó una sucursal",
-  "branches.update": "actualizó una sucursal",
-  "branches.activate": "activó una sucursal",
-  "branches.deactivate": "desactivó una sucursal",
-  "settings.update": "actualizó la configuración",
-};
-
-function actionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Buenos días";
-  if (hour < 19) return "Buenas tardes";
-  return "Buenas noches";
-}
-
-function formatRelativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const diffSec = Math.round(diffMs / 1000);
-  if (diffSec < 45) return "hace un momento";
-  const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `hace ${diffMin} minuto${diffMin === 1 ? "" : "s"}`;
-  const diffHour = Math.round(diffMin / 60);
-  if (diffHour < 24) return `hace ${diffHour} hora${diffHour === 1 ? "" : "s"}`;
-  const diffDay = Math.round(diffHour / 24);
-  if (diffDay < 7) return `hace ${diffDay} día${diffDay === 1 ? "" : "s"}`;
-  return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+// Time-of-day-aware, casual-but-elegant greeting copy — replaces the old
+// generic "Buenas tardes, {name}" that ran regardless of how late/early it
+// actually was. Four bands instead of the previous three so genuine late-
+// night use ("Trabajando de noche...") reads differently from a normal
+// evening shift.
+function getGreeting(hour: number, name: string): { title: string; subtitle: string } {
+  if (hour < 5) return { title: `Trabajando de madrugada, ${name}`, subtitle: "Que rindas y descanses pronto." };
+  if (hour < 12) return { title: `Buenos días, ${name}`, subtitle: "Que tengas una jornada ligera." };
+  if (hour < 18) return { title: `Buenas tardes, ${name}`, subtitle: "Vamos con buen ritmo hoy." };
+  if (hour < 22) return { title: `Buenas noches, ${name}`, subtitle: "Cerrando el día con calma." };
+  return { title: `Trabajando de noche, ${name}`, subtitle: "Que pases buena noche." };
 }
 
 const today = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
@@ -76,6 +47,28 @@ const today = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "nu
 // hatch through `unknown` rather than a direct assertion.
 function staggerStyle(ms: number): CSSProperties {
   return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
+
+// A small, self-contained CSS/SVG-layered "abstract beauty" visual for the
+// hero — three softly blurred gradient orbs drifting at different speeds
+// (parallax-style depth from layering + blur, not literal 3D geometry),
+// a slow-rotating ring, and two lucide glyphs (a serum droplet as the
+// centerpiece, a twinkle accent) with drop-shadows for lift. No new
+// dependency, no canvas/WebGL — every animation here uses `animation`/
+// `transition`, so the existing sitewide `prefers-reduced-motion` rule in
+// global.css automatically freezes it for users who need that.
+function DashboardVisual() {
+  return (
+    <div className="dashboard-visual" aria-hidden="true">
+      <span className="dashboard-visual__orb dashboard-visual__orb--a" />
+      <span className="dashboard-visual__orb dashboard-visual__orb--b" />
+      <span className="dashboard-visual__orb dashboard-visual__orb--c" />
+      <span className="dashboard-visual__ring" />
+      <Gem className="dashboard-visual__icon dashboard-visual__icon--gem" size={16} strokeWidth={1.75} />
+      <Droplet className="dashboard-visual__icon dashboard-visual__icon--droplet" size={34} strokeWidth={1.5} />
+      <Sparkles className="dashboard-visual__icon dashboard-visual__icon--sparkle" size={18} strokeWidth={1.75} />
+    </div>
+  );
 }
 
 interface StatCardProps {
@@ -119,10 +112,13 @@ const QUICK_LINKS: QuickLink[] = [
   { to: "/usuarios", label: "Usuarios", description: "Gestiona cuentas y roles del equipo", icon: Users, permission: "users.view" },
   { to: "/sucursales", label: "Sucursales", description: "Consulta y edita puntos de venta", icon: Building2, permission: "branches.view" },
   { to: "/roles", label: "Roles", description: "Permisos y accesos por rol", icon: ShieldCheck, permission: "roles.view" },
-  { to: "/auditoria", label: "Auditoría", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
+  { to: "/auditoria", label: "Actividad reciente", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
   { to: "/configuracion", label: "Configuración", description: "Datos generales de la empresa", icon: Settings, permission: "settings.manage" },
   { to: "/perfil", label: "Mi perfil", description: "Tus datos y preferencias", icon: UserRound, permission: null },
 ];
+
+const STOCK_STATUS_LABEL: Record<string, string> = { LOW: "Bajo", CRITICAL: "Crítico", OUT: "Agotado" };
+const STOCK_STATUS_ORDER: Record<string, number> = { OUT: 0, CRITICAL: 1, LOW: 2 };
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -130,7 +126,7 @@ export function DashboardPage() {
   const canViewBranches = usePermission("branches.view");
   const canViewUsers = usePermission("users.view");
   const canViewRoles = usePermission("roles.view");
-  const canViewAudit = usePermission("audit.view");
+  const canViewInventory = usePermission("inventory.view");
 
   const [branches, setBranches] = useState<Branch[] | null>(null);
   const [branchesStatus, setBranchesStatus] = useState<FetchStatus>(canViewBranches ? "loading" : "idle");
@@ -141,8 +137,8 @@ export function DashboardPage() {
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [rolesStatus, setRolesStatus] = useState<FetchStatus>(canViewRoles ? "loading" : "idle");
 
-  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[] | null>(null);
-  const [auditStatus, setAuditStatus] = useState<FetchStatus>(canViewAudit ? "loading" : "idle");
+  const [inventory, setInventory] = useState<InventoryRow[] | null>(null);
+  const [inventoryStatus, setInventoryStatus] = useState<FetchStatus>(canViewInventory ? "loading" : "idle");
 
   useEffect(() => {
     if (!canViewBranches) return;
@@ -169,11 +165,12 @@ export function DashboardPage() {
   }, [canViewRoles]);
 
   useEffect(() => {
-    if (!canViewAudit) return;
-    listAudit({ page: 1, pageSize: 8 })
-      .then((res) => { setAuditEntries(res.items); setAuditStatus("ready"); })
-      .catch(() => setAuditStatus("error"));
-  }, [canViewAudit]);
+    if (!canViewInventory) return;
+    inventoryService
+      .listInventory()
+      .then((rows) => { setInventory(rows); setInventoryStatus("ready"); })
+      .catch(() => setInventoryStatus("error"));
+  }, [canViewInventory]);
 
   const activeBranches = branches?.filter((b) => b.status === "ACTIVE").length ?? null;
   const activeUsers = users?.filter((u) => u.status === "ACTIVE").length ?? null;
@@ -182,24 +179,41 @@ export function DashboardPage() {
   const hasAnyStat = canViewBranches || canViewUsers || canViewRoles;
   const visibleQuickLinks = QUICK_LINKS; // permission gating happens per-item via PermissionGate
 
+  const lowStockRows = (inventory ?? [])
+    .filter((row) => row.status === "LOW" || row.status === "CRITICAL" || row.status === "OUT")
+    .sort((a, b) => STOCK_STATUS_ORDER[a.status] - STOCK_STATUS_ORDER[b.status] || a.stock - b.stock);
+  const lowStockCounts = {
+    OUT: lowStockRows.filter((r) => r.status === "OUT").length,
+    CRITICAL: lowStockRows.filter((r) => r.status === "CRITICAL").length,
+    LOW: lowStockRows.filter((r) => r.status === "LOW").length,
+  };
+  const lowStockVisible = lowStockRows.slice(0, 6);
+
+  const hour = new Date().getHours();
+  const greeting = getGreeting(hour, user?.displayName ?? "de nuevo");
+
   return (
     <div className="dashboard-page">
       <header className="dashboard-hero animate-in">
-        <div className="dashboard-hero__glow" aria-hidden="true" />
-        <div className="dashboard-hero__grid" aria-hidden="true" />
-        <div className="dashboard-hero__content">
+        <div className="dashboard-hero__text">
           <p className="dashboard-hero__eyebrow">{today}</p>
-          <h1 className="dashboard-hero__title">{getGreeting()}, {user?.displayName ?? "de nuevo"}</h1>
-          <p className="dashboard-hero__subtitle">
-            {user?.role.name ?? "Sin rol"}
-            {user?.allBranches ? " · Acceso a todas las sucursales" : ""}
-          </p>
+          <h1 className="dashboard-hero__title">{greeting.title}</h1>
+          <p className="dashboard-hero__subtitle">{greeting.subtitle}</p>
+          {user && (
+            <p className="dashboard-hero__meta">
+              {user.role.name}
+              {user.allBranches ? " · Acceso a todas las sucursales" : ""}
+            </p>
+          )}
         </div>
-        {user && (
-          <div className="dashboard-hero__avatar">
-            <Avatar avatarStyle={user.avatarStyle} avatarSeed={user.avatarSeed} displayName={user.displayName} size="lg" />
-          </div>
-        )}
+        <div className="dashboard-hero__side">
+          <DashboardVisual />
+          {user && (
+            <div className="dashboard-hero__avatar">
+              <Avatar avatarStyle={user.avatarStyle} avatarSeed={user.avatarSeed} displayName={user.displayName} size="lg" />
+            </div>
+          )}
+        </div>
       </header>
 
       {hasAnyStat && (
@@ -241,40 +255,44 @@ export function DashboardPage() {
       )}
 
       <div className="dashboard-body">
-        <PermissionGate code="audit.view">
-          <section className="dashboard-panel dashboard-panel--activity animate-in" style={{ animationDelay: "180ms" }}>
+        <PermissionGate code="inventory.view">
+          <section className="dashboard-panel dashboard-panel--stock animate-in" style={{ animationDelay: "180ms" }}>
             <header className="dashboard-panel__header">
               <div className="dashboard-panel__title">
-                <History size={17} />
-                <h2>Actividad reciente</h2>
+                <PackageSearch size={17} />
+                <h2>Inventario bajo</h2>
               </div>
-              <Link to="/auditoria" className="dashboard-panel__link">Ver todo <ArrowUpRight size={14} /></Link>
             </header>
 
-            {auditStatus === "loading" && <StatusState kind="loading" />}
-            {auditStatus === "error" && <StatusState kind="error" message="No se pudo cargar la actividad reciente." />}
-            {auditStatus === "ready" && auditEntries?.length === 0 && (
-              <StatusState kind="empty" message="Todavía no hay actividad registrada." />
+            {inventoryStatus === "loading" && <StatusState kind="loading" />}
+            {inventoryStatus === "error" && <StatusState kind="error" message="No se pudo cargar el inventario." />}
+            {inventoryStatus === "ready" && lowStockRows.length === 0 && (
+              <StatusState kind="empty" message="Todo el inventario está en niveles saludables." />
             )}
-            {auditStatus === "ready" && auditEntries && auditEntries.length > 0 && (
-              <ul className="activity-list">
-                {auditEntries.map((entry, i) => (
-                  <li key={entry.id} className="activity-item animate-in-stagger" style={staggerStyle(Math.min(i, 8) * 40)}>
-                    {entry.user ? (
-                      <Avatar avatarStyle={entry.user.avatarStyle} avatarSeed={entry.user.avatarSeed} displayName={entry.user.displayName} size="sm" />
-                    ) : (
-                      <div className="activity-item__system-avatar" aria-hidden="true" />
-                    )}
-                    <div className="activity-item__body">
-                      <p>
-                        <strong>{entry.user?.displayName ?? "Sistema"}</strong> {actionLabel(entry.action)}
-                        {entry.branch ? <span className="activity-item__branch"> · {entry.branch.name}</span> : null}
-                      </p>
-                      <p className="activity-item__time">{formatRelativeTime(entry.createdAt)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            {inventoryStatus === "ready" && lowStockRows.length > 0 && (
+              <>
+                <div className="stock-summary">
+                  <span className="stock-chip stock-chip--out">{lowStockCounts.OUT} agotado{lowStockCounts.OUT === 1 ? "" : "s"}</span>
+                  <span className="stock-chip stock-chip--critical">{lowStockCounts.CRITICAL} crítico{lowStockCounts.CRITICAL === 1 ? "" : "s"}</span>
+                  <span className="stock-chip stock-chip--low">{lowStockCounts.LOW} bajo{lowStockCounts.LOW === 1 ? "" : "s"}</span>
+                </div>
+                <ul className="stock-list">
+                  {lowStockVisible.map((row, i) => (
+                    <li key={row.id} className="stock-item animate-in-stagger" style={staggerStyle(Math.min(i, 8) * 40)}>
+                      <div className="stock-item__body">
+                        <p className="stock-item__name">{row.product.name}{row.variant ? ` · ${row.variant.name}` : ""}</p>
+                        <p className="stock-item__branch">{row.branch.name}</p>
+                      </div>
+                      <span className={`stock-badge stock-badge--${row.status.toLowerCase()}`}>
+                        {STOCK_STATUS_LABEL[row.status]} · {row.stock}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {lowStockRows.length > lowStockVisible.length && (
+                  <p className="stock-list__more">+{lowStockRows.length - lowStockVisible.length} producto{lowStockRows.length - lowStockVisible.length === 1 ? "" : "s"} más con inventario bajo</p>
+                )}
+              </>
             )}
           </section>
         </PermissionGate>

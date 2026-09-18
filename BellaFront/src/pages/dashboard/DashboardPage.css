@@ -5,51 +5,22 @@
   max-width: 1280px;
 }
 
-/* ---------- Hero ---------- */
+/* ---------- Hero ----------
+   Deliberately discreet: no solid dark background card, no shadow, no
+   glow/grid decoration on a filled panel — just generous whitespace and a
+   hairline bottom divider, so the page opens quietly instead of with a
+   heavy block of chrome. */
 
 .dashboard-hero {
-  /* This is the one deliberate shadow on the page — reserved for the
-     hero/welcome card, per the Apple-analysis principle that a real soft
-     shadow belongs on a single featured element, not on every card. Every
-     other surface below (stat cards, panels) is flat: a border and a
-     surface-color change do the separating instead. */
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  background: var(--color-primary);
-  color: var(--color-white);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6) var(--space-5);
-  box-shadow: var(--shadow-lg);
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.dashboard-hero__glow {
-  position: absolute;
-  inset: -35% auto auto -10%;
-  width: 55%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(41, 151, 255, 0.32) 0%, rgba(0, 102, 204, 0.16) 45%, transparent 70%);
-  filter: blur(10px);
-  pointer-events: none;
-}
-
-.dashboard-hero__grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.45;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse at 20% 0%, rgba(0, 0, 0, 0.9), transparent 70%);
-}
-
-.dashboard-hero__content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 6px; }
+.dashboard-hero__text { display: flex; flex-direction: column; gap: 4px; }
 
 .dashboard-hero__eyebrow {
   margin: 0;
@@ -57,36 +28,149 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-pink-elegant);
+  color: var(--color-pink-deep);
 }
 
 .dashboard-hero__title {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: clamp(1.6rem, 1.4vw + 1.2rem, 2.25rem);
+  font-size: clamp(1.5rem, 1.2vw + 1.15rem, 2.05rem);
   letter-spacing: var(--tracking-tight);
-  color: var(--color-white);
+  color: var(--color-ink);
 }
 
 .dashboard-hero__subtitle {
-  margin: 0;
-  color: rgba(247, 243, 241, 0.72);
-  font-size: 1.05rem;
-  /* The one deliberate "weight 300" moment on this page (Apple's "weight
-     300 is real and rare" — a light-atmosphere cue for a single airy read,
-     not a default). Inter 300 imported specifically for this. */
+  margin: 2px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
   font-weight: 300;
 }
 
-.dashboard-hero__avatar {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  padding: 4px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-pink-elegant), var(--color-pink-deep));
+.dashboard-hero__meta {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
 }
-.dashboard-hero__avatar img { display: block; border: 3px solid var(--color-primary) !important; }
+
+.dashboard-hero__side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.dashboard-hero__avatar {
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--color-pink-soft);
+}
+.dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
+
+/* ---------- Hero visual ----------
+   A small, self-contained "abstract beauty" composition: three softly
+   blurred gradient orbs drifting at slightly different speeds/radii (depth
+   via layering + blur, not literal 3D), a slow-rotating dashed ring, and
+   two lucide glyphs with drop-shadows for lift. Frozen automatically under
+   prefers-reduced-motion by the existing sitewide rule in global.css
+   (it only targets animation/transition durations, which is all this
+   uses). A subtle hover lift adds a touch of interactivity without needing
+   JS-driven pointer tracking. */
+
+.dashboard-visual {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  display: none;
+}
+@media (min-width: 560px) {
+  .dashboard-visual { display: block; }
+}
+
+.dashboard-visual__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(6px);
+  opacity: 0.85;
+}
+.dashboard-visual__orb--a {
+  width: 60px; height: 60px;
+  top: 4px; left: 8px;
+  background: radial-gradient(circle at 35% 35%, var(--color-pink-100), var(--color-pink-elegant) 70%, transparent 100%);
+  animation: dashboard-orb-float-a 7s var(--ease-premium) infinite;
+}
+.dashboard-visual__orb--b {
+  width: 42px; height: 42px;
+  bottom: 6px; right: 4px;
+  background: radial-gradient(circle at 40% 40%, var(--color-pink-50), var(--color-pink-deep) 75%, transparent 100%);
+  opacity: 0.7;
+  animation: dashboard-orb-float-b 8.5s var(--ease-premium) infinite;
+}
+.dashboard-visual__orb--c {
+  width: 30px; height: 30px;
+  top: 30px; right: 18px;
+  background: radial-gradient(circle at 40% 40%, #ffffff, var(--color-primary-on-dark) 80%, transparent 100%);
+  opacity: 0.55;
+  animation: dashboard-orb-float-c 6s var(--ease-premium) infinite;
+}
+
+.dashboard-visual__ring {
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--color-pink-200);
+  opacity: 0.6;
+  animation: dashboard-ring-spin 22s linear infinite;
+}
+
+.dashboard-visual__icon {
+  position: absolute;
+  color: var(--color-pink-deep);
+  filter: drop-shadow(0 4px 8px rgba(0, 102, 204, 0.25));
+}
+.dashboard-visual__icon--droplet {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-primary-focus);
+  animation: dashboard-icon-bob 5s var(--ease-premium) infinite;
+}
+.dashboard-visual__icon--sparkle {
+  top: 2px; right: 10px;
+  animation: dashboard-icon-twinkle 3.2s var(--ease-premium) infinite;
+}
+.dashboard-visual__icon--gem {
+  bottom: 8px; left: 4px;
+  opacity: 0.85;
+  animation: dashboard-icon-bob 6.5s var(--ease-premium) infinite reverse;
+}
+
+.dashboard-visual:hover .dashboard-visual__ring { opacity: 0.9; }
+
+@keyframes dashboard-orb-float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4px, -6px) scale(1.06); }
+}
+@keyframes dashboard-orb-float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-5px, 5px) scale(0.94); }
+}
+@keyframes dashboard-orb-float-c {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(3px, 4px); }
+}
+@keyframes dashboard-ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes dashboard-icon-bob {
+  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+  50% { transform: translate(-50%, -50%) translateY(-3px); }
+}
+@keyframes dashboard-icon-twinkle {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
 
 /* ---------- Stat grid ---------- */
 
@@ -97,10 +181,6 @@
 }
 
 .stat-card {
-  /* Flat by default — a hairline border does the separating, not a
-     shadow (the hero above is the one place a real shadow belongs). A
-     faint shadow only appears on hover, as an interaction cue, and even
-     then it's the smallest token in the scale. */
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -141,9 +221,6 @@
 }
 
 .dashboard-panel {
-  /* Flat utility card: white surface + hairline border, no shadow — the
-     same "structural card" grammar as Roles/Branches, and consistent with
-     reserving the one real shadow for the hero above. */
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -163,53 +240,48 @@
 .dashboard-panel__title h2 { font-size: 1.05rem; letter-spacing: var(--tracking-tight); }
 .dashboard-panel__title svg { color: var(--color-pink-deep); }
 
-.dashboard-panel__link {
-  /* Pill shape: this is the one place on the page that reads as a real
-     "go do a thing" action rather than a structural row, so it gets the
-     Apple-style pill treatment the rest of the dashboard deliberately
-     doesn't use — small, ghost-filled, not a mismatch with the app's
-     mostly-rectangular button language elsewhere. */
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.82rem;
+/* ---------- Low-stock widget ---------- */
+
+.stock-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--space-3); }
+.stock-chip {
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-pink-deep);
-  background: var(--color-pink-50);
-  text-decoration: none;
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
-  transition: background-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
 }
-.dashboard-panel__link:hover { background: var(--color-pink-100); color: var(--color-primary); }
-.dashboard-panel__link:active { transform: scale(0.95); }
+.stock-chip--out { background: #FBE5E1; color: #B3261E; }
+.stock-chip--critical { background: #FDEEE3; color: #C05621; }
+.stock-chip--low { background: var(--color-pink-50); color: var(--color-pink-deep); }
 
-/* ---------- Activity list ---------- */
-
-.activity-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-
-.activity-item {
+.stock-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.stock-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-1);
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast) var(--ease-premium);
 }
-/* Pearl, not page-bg cream — the card is already white, so hovering with
-   --color-bg would just repaint it the page's own background color. The
-   pearl surface reads as a distinct, intentional third tone. */
-.activity-item:hover { background: var(--color-surface-pearl); }
-.activity-item + .activity-item { border-top: 1px solid var(--color-border); }
+.stock-item:hover { background: var(--color-surface-pearl); }
+.stock-item + .stock-item { border-top: 1px solid var(--color-border); }
+.stock-item__body { min-width: 0; }
+.stock-item__name { margin: 0; font-size: 0.9rem; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stock-item__branch { margin: 2px 0 0; font-size: 0.76rem; color: var(--color-text-muted); }
 
-.activity-item__system-avatar {
-  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-  background: var(--color-pink-soft);
+.stock-badge {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
 }
-.activity-item__body { min-width: 0; color: var(--color-ink); }
-.activity-item__body p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
-.activity-item__branch { color: var(--color-text-secondary); }
-.activity-item__time { margin-top: 2px !important; font-size: 0.76rem; color: var(--color-text-muted); }
+.stock-badge--out { background: #B3261E; color: var(--color-white); }
+.stock-badge--critical { background: #FDEEE3; color: #C05621; }
+.stock-badge--low { background: var(--color-pink-50); color: var(--color-pink-deep); }
+
+.stock-list__more { margin: var(--space-2) 0 0; font-size: 0.78rem; color: var(--color-text-muted); text-align: center; }
 
 /* ---------- Quick links ---------- */
 
@@ -263,5 +335,5 @@
 
 @media (max-width: 640px) {
   .dashboard-hero { flex-direction: column; align-items: flex-start; }
-  .dashboard-hero__avatar { align-self: flex-end; }
+  .dashboard-hero__side { align-self: flex-end; }
 }

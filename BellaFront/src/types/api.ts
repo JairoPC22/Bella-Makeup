@@ -49,6 +49,15 @@ export interface CompanySettings {
   businessHours?: string | null;
 }
 
+export interface InventoryRow {
+  id: string;
+  stock: number;
+  status: "AVAILABLE" | "LOW" | "CRITICAL" | "OUT";
+  product: { id: string; name: string };
+  variant?: { id: string; name: string } | null;
+  branch: { id: string; name: string };
+}
+
 export interface AuditLogEntry {
   id: string;
   action: string;
