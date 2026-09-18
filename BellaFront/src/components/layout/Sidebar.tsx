@@ -86,7 +86,6 @@ export function Sidebar() {
         <span className="sidebar__link-icon">
           {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
         </span>
-        <span className="sidebar__toggle-label">Colapsar</span>
       </button>
     </aside>
   );
