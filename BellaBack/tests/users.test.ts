@@ -7,12 +7,16 @@ import { signAccessToken } from "../src/utils/jwt";
 
 describe("Users CRUD + branch assignment", () => {
   let cookie: string;
+  let adminRoleId: string;
   let cashierRoleId: string;
   let branchId: string;
   let createdUserId: string | undefined;
+  let selfAdminId: string;
+  let otherAdminId: string;
 
   beforeAll(async () => {
     const adminRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" } });
+    adminRoleId = adminRole.id;
     const cashierRole = await prisma.role.findUniqueOrThrow({ where: { code: "cashier" } });
     cashierRoleId = cashierRole.id;
 
@@ -31,6 +35,18 @@ describe("Users CRUD + branch assignment", () => {
       },
     });
     cookie = `access_token=${signAccessToken({ sub: admin.id, roleId: adminRole.id })}`;
+    selfAdminId = admin.id;
+
+    const otherAdmin = await prisma.user.upsert({
+      where: { username: "users_test_other_admin" },
+      update: {},
+      create: {
+        firstName: "Other", lastName: "Admin", displayName: "Other Admin",
+        username: "users_test_other_admin", email: "users_test_other_admin@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id, allBranches: true,
+      },
+    });
+    otherAdminId = otherAdmin.id;
 
     // The user created inside the test below goes through POST /api/users, which has
     // no upsert semantics, and username/email are unique columns. A leftover row from
@@ -106,5 +122,48 @@ describe("Users CRUD + branch assignment", () => {
       .set("Cookie", [cookie])
       .send({ displayName: "No existe" });
     expect(res.status).toBe(404);
+  });
+
+  it("refuses to let an admin change their own role (self-demotion protection)", async () => {
+    const res = await request(app)
+      .put(`/api/users/${selfAdminId}`)
+      .set("Cookie", [cookie])
+      .send({ roleId: cashierRoleId });
+    expect(res.status).toBe(400);
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: selfAdminId } });
+    expect(after.roleId).toBe(adminRoleId);
+  });
+
+  it("refuses to let an admin change another admin's role", async () => {
+    const res = await request(app)
+      .put(`/api/users/${otherAdminId}`)
+      .set("Cookie", [cookie])
+      .send({ roleId: cashierRoleId });
+    expect(res.status).toBe(400);
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: otherAdminId } });
+    expect(after.roleId).toBe(adminRoleId);
+  });
+
+  it("still allows non-role edits to an admin account", async () => {
+    const res = await request(app)
+      .put(`/api/users/${otherAdminId}`)
+      .set("Cookie", [cookie])
+      .send({ phone: "555-000-1111" });
+    expect(res.status).toBe(200);
+    expect(res.body.phone).toBe("555-000-1111");
+  });
+
+  it("allows changing a non-admin user's role normally", async () => {
+    // Sanity check: the admin-role guard must not accidentally block role
+    // changes for everyone — only accounts that are CURRENTLY admin.
+    const viewerRole = await prisma.role.findUniqueOrThrow({ where: { code: "viewer" } });
+    const res = await request(app)
+      .put(`/api/users/${createdUserId}`)
+      .set("Cookie", [cookie])
+      .send({ roleId: viewerRole.id });
+    expect(res.status).toBe(200);
+    expect(res.body.role.code).toBe("viewer");
   });
 });

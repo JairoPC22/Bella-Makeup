@@ -23,6 +23,20 @@ export async function createUser(input: any, actorId: string) {
 }
 
 export async function updateUser(id: string, input: any, actorId: string) {
+  // Admin accounts are protected from role changes entirely — neither an
+  // admin editing their own account (self-demotion) nor a different admin
+  // editing someone else's admin account can change `roleId`, regardless of
+  // what the new value would be. Without this, any admin could accidentally
+  // (or a compromised admin session could deliberately) strip admin access
+  // from the system with no in-app recovery path, the same class of risk
+  // the roles-permissions endpoint already guards against.
+  if (input.roleId !== undefined) {
+    const existing = await userRepository.findUserById(id);
+    if (existing?.role.code === "admin" && input.roleId !== existing.roleId) {
+      throw new AppError(400, "No se puede cambiar el rol de una cuenta de Administrador.");
+    }
+  }
+
   await userRepository.updateUser(id, input);
   const user = await userRepository.findUserById(id);
   await logAudit({ userId: actorId, action: "users.update", module: "users", entityType: "user", entityId: id, details: { changes: input } });

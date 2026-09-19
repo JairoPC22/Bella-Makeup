@@ -16,6 +16,12 @@
   animation: fade-in-up 0.6s var(--ease-premium) both;
   transition: border-color var(--transition-base) var(--ease-premium);
 }
+/* The "Actividad reciente" card sits outside .settings-form as its own
+   sibling section (it's a navigation link, not a saveable field, so it
+   isn't part of the form) — .settings-form's internal flex `gap` doesn't
+   reach a sibling after the form closes, which without this rule left it
+   touching the Guardar cambios button directly. */
+.settings-form + .settings-section { margin-top: var(--space-4); }
 .settings-section:nth-of-type(2) { animation-delay: 60ms; }
 .settings-section:nth-of-type(3) { animation-delay: 120ms; }
 
