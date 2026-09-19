@@ -24,7 +24,14 @@ export const productImageUpload = multer({
   },
 });
 
-const ALLOWED_MESSAGE_ATTACHMENT_MIME = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
+const ALLOWED_MESSAGE_ATTACHMENT_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
 
 export const UPLOADS_MESSAGES_DIR = path.resolve(process.cwd(), "uploads/messages");
 
@@ -39,7 +46,7 @@ export const messageAttachmentUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_MESSAGE_ATTACHMENT_MIME.has(file.mimetype)) {
-      return cb(new AppError(400, "Formato de archivo no permitido (solo JPG, PNG, WEBP o PDF)"));
+      return cb(new AppError(400, "Formato de archivo no permitido (solo JPG, PNG, WEBP, PDF o Excel)"));
     }
     cb(null, true);
   },

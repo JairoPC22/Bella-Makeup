@@ -1,18 +1,29 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Plus, Paperclip, Send, X, FileText, Image as ImageIcon, Search } from "lucide-react";
+import { Plus, Paperclip, Send, X, FileText, FileSpreadsheet, Image as ImageIcon, Search } from "lucide-react";
 import { Modal } from "../../components/common/Modal";
+import { AttachmentPreviewModal } from "../../components/common/AttachmentPreviewModal";
 import { StatusState } from "../../components/common/StatusState";
 import { Avatar } from "../../components/common/Avatar";
 import { useAuth } from "../../hooks/useAuth";
 import { ApiError } from "../../services/apiClient";
 import * as messageService from "../../services/messageService";
-import { buildAttachmentUrl } from "../../services/messageService";
-import type { Conversation, Message, MessagingParty } from "../../types/api";
+import type { Conversation, Message, MessageAttachment, MessagingParty } from "../../types/api";
 import "./MessagesPage.css";
 
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ACCEPTED_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+const EXCEL_MIME = new Set([
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
 
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -45,6 +56,7 @@ function branchCaption(party: Pick<MessagingParty, "allBranches" | "branches">):
 function AttachmentIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("image/")) return <ImageIcon size={14} />;
   if (mimeType === "application/pdf") return <FileText size={14} />;
+  if (EXCEL_MIME.has(mimeType)) return <FileSpreadsheet size={14} />;
   return <Paperclip size={14} />;
 }
 
@@ -65,6 +77,7 @@ export function MessagesPage() {
   const [sending, setSending] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<MessageAttachment | null>(null);
   const [peopleSearch, setPeopleSearch] = useState("");
   const [startingUserId, setStartingUserId] = useState<string | null>(null);
   const [newConvError, setNewConvError] = useState<string | null>(null);
@@ -123,7 +136,7 @@ export function MessagesPage() {
     }
     for (const f of incoming) {
       if (!ACCEPTED_MIME.includes(f.type)) {
-        setComposeError(`Formato no permitido para "${f.name}". Solo JPG, PNG, WEBP o PDF.`);
+        setComposeError(`Formato no permitido para "${f.name}". Solo JPG, PNG, WEBP, PDF o Excel.`);
         return;
       }
       if (f.size > MAX_FILE_SIZE) {
@@ -303,10 +316,15 @@ export function MessagesPage() {
                           {m.attachments.length > 0 && (
                             <div className="message-bubble__attachments">
                               {m.attachments.map((a) => (
-                                <a key={a.id} href={buildAttachmentUrl(a.url)} download className="attachment-chip">
+                                <button
+                                  key={a.id}
+                                  type="button"
+                                  className="attachment-chip"
+                                  onClick={() => setPreviewAttachment(a)}
+                                >
                                   <AttachmentIcon mimeType={a.mimeType} />
                                   <span>{a.fileName}</span>
-                                </a>
+                                </button>
                               ))}
                             </div>
                           )}
@@ -347,7 +365,7 @@ export function MessagesPage() {
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    accept="image/jpeg,image/png,image/webp,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     style={{ display: "none" }}
                     onChange={(e) => { handleFilesSelected(e.target.files); e.target.value = ""; }}
                   />
@@ -412,6 +430,12 @@ export function MessagesPage() {
           </ul>
         </div>
       </Modal>
+
+      <AttachmentPreviewModal
+        attachment={previewAttachment}
+        open={previewAttachment !== null}
+        onClose={() => setPreviewAttachment(null)}
+      />
     </div>
   );
 }

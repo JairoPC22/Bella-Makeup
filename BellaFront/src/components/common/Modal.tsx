@@ -3,7 +3,22 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import "./Modal.css";
 
-export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  /** Optional extra class on the `.modal` card itself — e.g. to widen it
+   * past the default 480px for content (like attachment previews) that
+   * needs more room than a typical form modal. */
+  className?: string;
+}) {
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
   const rafRef = useRef<number | undefined>(undefined);
@@ -50,7 +65,10 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
       onClick={onClose}
       onTransitionEnd={handleOverlayTransitionEnd}
     >
-      <div className={`modal${visible ? " modal--visible" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`modal${visible ? " modal--visible" : ""}${className ? ` ${className}` : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal__header">
           <h2>{title}</h2>
           <button onClick={onClose} aria-label="Cerrar"><X size={18} /></button>

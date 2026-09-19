@@ -1,0 +1,140 @@
+/* Widens the shared .modal card (normally capped at 480px for form-style
+   modals) enough to comfortably fit an image, an embedded PDF, or an Excel
+   table, while still respecting the base .modal max-height/scroll rules. */
+.attachment-preview-modal {
+  max-width: 800px;
+  width: 100%;
+}
+
+.attachment-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.attachment-preview__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.attachment-preview__size {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.attachment-preview__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.attachment-preview__download:hover { background: var(--color-primary-focus); }
+
+/* ---------- Image preview ---------- */
+.attachment-preview__image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+.attachment-preview__image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- PDF preview ---------- */
+.attachment-preview__pdf-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.attachment-preview__new-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-size: 0.82rem;
+  color: var(--color-pink-deep);
+  text-decoration: none;
+}
+.attachment-preview__new-tab:hover { text-decoration: underline; }
+.attachment-preview__pdf {
+  width: 100%;
+  height: 75vh;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ---------- Excel preview ---------- */
+.attachment-preview__excel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.attachment-preview__excel-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+.attachment-preview__excel-scroll {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-pink-soft) transparent;
+}
+.attachment-preview__excel-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.attachment-preview__excel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.attachment-preview__excel-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-pink-soft);
+  border-radius: var(--radius-pill);
+}
+.attachment-preview__excel-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-pink-elegant);
+}
+.attachment-preview__excel-table {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  width: max-content;
+  min-width: 100%;
+}
+.attachment-preview__excel-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--color-divider-soft);
+  white-space: nowrap;
+  color: var(--color-primary);
+}
+.attachment-preview__excel-table tr:nth-child(even) td {
+  background: var(--color-surface-pearl);
+}
+.attachment-preview__excel-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.attachment-preview__excel-truncated {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+  .attachment-preview-modal { max-width: 100%; }
+  .attachment-preview__pdf { height: 60vh; }
+}

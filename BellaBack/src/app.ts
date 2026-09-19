@@ -41,9 +41,35 @@ app.use(cookieParser());
 // the response, and it's invisible to curl since CORP is only enforced by
 // browsers. Scoped override to "cross-origin" for this static route only,
 // so the rest of the API keeps helmet's stricter default.
+//
+// Same story for helmet()'s default Content-Security-Policy, which includes
+// "frame-ancestors 'self'" — that blocks the frontend from embedding a
+// /uploads file (e.g. a message attachment PDF) in an <iframe>, since the
+// frontend runs on a different origin/port than this API. Real Chrome
+// enforces this (confirmed via a real Chrome-channel Playwright run — the
+// default Playwright/headless Chromium doesn't ship a PDF viewer at all, so
+// it never surfaces this particular failure and silently no-ops instead).
+// Disabling just the frame-ancestors directive for this static route (like
+// the CORP override above) is enough: everything under /uploads is a plain
+// static file (image/pdf/xlsx), never HTML/JS, so there's no clickjacking
+// surface here for frame-ancestors to protect in the first place.
+//
+// helmet()'s frameguard middleware sets the legacy "X-Frame-Options:
+// SAMEORIGIN" header too, which blocks cross-origin framing independently
+// of (and in addition to) the CSP frame-ancestors directive above — modern
+// browsers honor CSP frame-ancestors when present, but older ones fall back
+// to X-Frame-Options, so both have to be cleared for the <iframe> PDF embed
+// to render in every browser. There's no helmet sub-middleware that "unsets"
+// X-Frame-Options (xFrameOptions() always sets a value), so it's removed
+// directly once helmet has already set it.
 app.use(
   "/uploads",
   helmet.crossOriginResourcePolicy({ policy: "cross-origin" }),
+  helmet.contentSecurityPolicy({ useDefaults: true, directives: { frameAncestors: null } }),
+  (_req, res, next) => {
+    res.removeHeader("X-Frame-Options");
+    next();
+  },
   express.static(path.resolve(process.cwd(), "uploads"))
 );
 if (env.NODE_ENV !== "test") app.use(morgan("dev"));
