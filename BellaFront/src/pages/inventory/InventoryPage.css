@@ -5,6 +5,20 @@
 .inventory-page__title svg { color: var(--color-pink-deep); }
 .inventory-page__title h1 { margin: 0; }
 
+/* Same visual treatment as CompanySettingsPage.css's .settings-page__subtitle
+   — a one-line clarifying caption under the title, not a new pattern. */
+.inventory-page__subtitle { margin: 2px 0 0; color: var(--color-text-secondary); font-size: 0.92rem; }
+.inventory-page__subtitle a { color: var(--color-pink-deep); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.inventory-page__subtitle a:hover { color: var(--color-primary-focus); }
+
+/* "Estado" column header info affordance — a native title attribute is
+   sufficient here per this task's own guidance (no tooltip/popover
+   component exists in this codebase yet, and building one just for this
+   would be over-engineering). tabIndex makes it keyboard-reachable. */
+.inventory-table__th-info { display: inline-flex; align-items: center; gap: 4px; }
+.inventory-table__info-icon { display: inline-flex; color: var(--color-text-muted); cursor: help; border-radius: var(--radius-sm); }
+.inventory-table__info-icon:hover, .inventory-table__info-icon:focus-visible { color: var(--color-pink-deep); outline: none; }
+
 /* ---------- Filter bar — same layout convention as AuditPage's
    .audit-filters, plus a search input styled like MessagesPage's
    .people-picker__search. ---------- */

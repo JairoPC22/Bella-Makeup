@@ -369,6 +369,48 @@
   line-height: 1.35;
 }
 
+/* Inline "+ Nueva categoría" / "+ Nueva marca" affordance next to the
+   Categoría/Marca selects — swaps in place for a text input + confirm/
+   cancel pair rather than opening a modal-within-a-modal. Buttons echo the
+   existing .product-form__variant-add (dashed, muted) and
+   .product-form__variant-remove (bordered, danger-on-hover) treatments so
+   this reads as part of the same design language. */
+.modal__body .product-form__select-with-add { display: flex; gap: 6px; align-items: center; }
+.modal__body .product-form__select-with-add select { flex: 1 1 auto; min-width: 0; }
+.modal__body .product-form__add-inline {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: none; border: 1px dashed var(--color-border); border-radius: var(--radius-sm);
+  color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
+}
+.modal__body .product-form__add-inline:hover { border-color: var(--color-pink-elegant); color: var(--color-pink-deep); background: var(--color-pink-50); }
+
+.modal__body .product-form__inline-create { display: flex; gap: 6px; align-items: center; }
+.modal__body .product-form__inline-create input { flex: 1 1 auto; min-width: 0; }
+.modal__body .product-form__inline-confirm,
+.modal__body .product-form__inline-cancel {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0;
+  border-radius: var(--radius-sm); cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.modal__body .product-form__inline-confirm {
+  background: var(--color-pink-deep); border: none; color: var(--color-white);
+}
+.modal__body .product-form__inline-confirm:hover:not(:disabled) { background: var(--color-primary-focus); }
+.modal__body .product-form__inline-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.modal__body .product-form__inline-cancel {
+  background: none; border: 1px solid var(--color-border); color: var(--color-text-secondary);
+}
+.modal__body .product-form__inline-cancel:hover { border-color: #B3261E; color: #B3261E; background: #FBE5E1; }
+.modal__body .product-form__inline-error {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: #B3261E;
+}
+
 .modal__body .product-form__variants-empty {
   margin: 0;
   font-size: 0.82rem;

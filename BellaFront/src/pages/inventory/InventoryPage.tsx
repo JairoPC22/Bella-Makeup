@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { PackageSearch, SlidersHorizontal, History, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PackageSearch, SlidersHorizontal, History, Search, Info } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import * as branchService from "../../services/branchService";
@@ -83,6 +84,14 @@ export function InventoryPage() {
         </div>
       </div>
 
+      <p className="inventory-page__subtitle">
+        El inventario muestra el stock de cada producto por sucursal. Para crear o editar productos, ve a{" "}
+        <PermissionGate code="products.view" fallback="Productos">
+          <Link to="/productos">Productos</Link>
+        </PermissionGate>
+        .
+      </p>
+
       <div className="inventory-filters">
         <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
           <option value="">Todas las sucursales</option>
@@ -121,7 +130,19 @@ export function InventoryPage() {
               <th>Variante</th>
               <th>Sucursal</th>
               <th>Stock</th>
-              <th>Estado</th>
+              <th>
+                <span className="inventory-table__th-info">
+                  Estado
+                  <span
+                    className="inventory-table__info-icon"
+                    tabIndex={0}
+                    title="Disponible: stock por encima del mínimo. Bajo: stock igual o menor al mínimo. Crítico: stock igual o menor a la mitad del mínimo. Agotado: sin existencias."
+                    aria-label="Cómo se calcula el estado del stock: Disponible (por encima del mínimo), Bajo (en el mínimo o por debajo), Crítico (en la mitad del mínimo o por debajo), Agotado (sin existencias)."
+                  >
+                    <Info size={14} />
+                  </span>
+                </span>
+              </th>
               <th></th>
             </tr>
           </thead>

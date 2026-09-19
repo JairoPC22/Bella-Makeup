@@ -1,9 +1,11 @@
 import { type FormEvent, useState } from "react";
-import { Plus, X, AlertTriangle, CheckCircle2, Info, DollarSign, Boxes, Layers, Image as ImageIcon } from "lucide-react";
+import { Plus, X, Check, AlertTriangle, CheckCircle2, Info, DollarSign, Boxes, Layers, Image as ImageIcon } from "lucide-react";
 import { Modal } from "../../components/common/Modal";
 import { ImageUploader } from "../../components/common/ImageUploader";
 import { ApiError } from "../../services/apiClient";
 import * as productService from "../../services/productService";
+import * as categoryService from "../../services/categoryService";
+import * as brandService from "../../services/brandService";
 import type { Brand, Category, Product } from "../../types/api";
 
 interface ProductFormModalProps {
@@ -12,6 +14,11 @@ interface ProductFormModalProps {
   onSaved: (product: Product) => void;
   categories: Category[];
   brands: Brand[];
+  /** Bubbles a newly-created category/brand up to ProductsPage so its own
+   *  filter-bar selects (which share this same state) pick it up right
+   *  away, without a manual refetch or page reload. */
+  onCategoryCreated: (category: Category) => void;
+  onBrandCreated: (brand: Brand) => void;
   editingProduct?: Product;
 }
 
@@ -29,7 +36,7 @@ function emptyVariantRow(): VariantRow {
   return { key: crypto.randomUUID(), name: "", sku: "", barcode: "", price: "", minStock: "0", maxStock: "" };
 }
 
-export function ProductFormModal({ open, onClose, onSaved, categories, brands, editingProduct }: ProductFormModalProps) {
+export function ProductFormModal({ open, onClose, onSaved, categories, brands, onCategoryCreated, onBrandCreated, editingProduct }: ProductFormModalProps) {
   const [form, setForm] = useState({
     sku: editingProduct?.sku ?? "",
     barcode: editingProduct?.barcode ?? "",
@@ -58,6 +65,55 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, e
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
+
+  // Inline "+ Nueva categoría" / "+ Nueva marca" affordance — swaps the
+  // <select> for a text input + confirm/cancel in place, rather than
+  // opening a modal-within-a-modal.
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
+  const [creatingBrand, setCreatingBrand] = useState(false);
+  const [newBrandName, setNewBrandName] = useState("");
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandError, setBrandError] = useState<string | null>(null);
+
+  async function handleCreateCategory() {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCategorySaving(true);
+    setCategoryError(null);
+    try {
+      const created = await categoryService.createCategory(name);
+      onCategoryCreated(created);
+      setForm((prev) => ({ ...prev, categoryId: created.id }));
+      setCreatingCategory(false);
+      setNewCategoryName("");
+    } catch (err) {
+      setCategoryError(err instanceof ApiError ? err.message : "No se pudo crear la categoría.");
+    } finally {
+      setCategorySaving(false);
+    }
+  }
+
+  async function handleCreateBrand() {
+    const name = newBrandName.trim();
+    if (!name) return;
+    setBrandSaving(true);
+    setBrandError(null);
+    try {
+      const created = await brandService.createBrand(name);
+      onBrandCreated(created);
+      setForm((prev) => ({ ...prev, brandId: created.id }));
+      setCreatingBrand(false);
+      setNewBrandName("");
+    } catch (err) {
+      setBrandError(err instanceof ApiError ? err.message : "No se pudo crear la marca.");
+    } finally {
+      setBrandSaving(false);
+    }
+  }
 
   function addVariantRow() {
     setVariantRows((prev) => [...prev, emptyVariantRow()]);
@@ -171,16 +227,108 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, e
             </div>
             <div className="product-form__row">
               <label>Categoría
-                <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-                  <option value="">Sin categoría</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                {!creatingCategory ? (
+                  <div className="product-form__select-with-add">
+                    <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+                      <option value="">Sin categoría</option>
+                      {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className="product-form__add-inline"
+                      onClick={() => { setCreatingCategory(true); setNewCategoryName(""); setCategoryError(null); }}
+                      aria-label="Nueva categoría"
+                      title="Nueva categoría"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="product-form__inline-create">
+                    <input
+                      autoFocus
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Nombre de la categoría"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleCreateCategory(); }
+                        if (e.key === "Escape") { e.preventDefault(); setCreatingCategory(false); setCategoryError(null); }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="product-form__inline-confirm"
+                      onClick={handleCreateCategory}
+                      disabled={categorySaving || !newCategoryName.trim()}
+                      aria-label="Confirmar nueva categoría"
+                      title="Confirmar"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="product-form__inline-cancel"
+                      onClick={() => { setCreatingCategory(false); setCategoryError(null); }}
+                      aria-label="Cancelar"
+                      title="Cancelar"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                {categoryError && <span className="product-form__inline-error">{categoryError}</span>}
               </label>
               <label>Marca
-                <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
-                  <option value="">Sin marca</option>
-                  {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
+                {!creatingBrand ? (
+                  <div className="product-form__select-with-add">
+                    <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
+                      <option value="">Sin marca</option>
+                      {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className="product-form__add-inline"
+                      onClick={() => { setCreatingBrand(true); setNewBrandName(""); setBrandError(null); }}
+                      aria-label="Nueva marca"
+                      title="Nueva marca"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="product-form__inline-create">
+                    <input
+                      autoFocus
+                      value={newBrandName}
+                      onChange={(e) => setNewBrandName(e.target.value)}
+                      placeholder="Nombre de la marca"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleCreateBrand(); }
+                        if (e.key === "Escape") { e.preventDefault(); setCreatingBrand(false); setBrandError(null); }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="product-form__inline-confirm"
+                      onClick={handleCreateBrand}
+                      disabled={brandSaving || !newBrandName.trim()}
+                      aria-label="Confirmar nueva marca"
+                      title="Confirmar"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="product-form__inline-cancel"
+                      onClick={() => { setCreatingBrand(false); setBrandError(null); }}
+                      aria-label="Cancelar"
+                      title="Cancelar"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                {brandError && <span className="product-form__inline-error">{brandError}</span>}
               </label>
             </div>
             <label>Descripción<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>

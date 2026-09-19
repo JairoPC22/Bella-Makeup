@@ -1,4 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
@@ -91,6 +92,18 @@ export function ProductsPage() {
     return primary ? productService.buildProductImageUrl(primary.url) : null;
   }
 
+  // Lets ProductFormModal's inline "+ Nueva categoría"/"+ Nueva marca"
+  // affordance bubble the newly-created row back up here, so this page's
+  // own filter-bar selects (and the modal's own selects, since they share
+  // this same state as props) pick it up immediately — no manual refetch
+  // or page reload needed.
+  function handleCategoryCreated(category: Category) {
+    setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
+  }
+  function handleBrandCreated(brand: Brand) {
+    setBrands((prev) => [...prev, brand].sort((a, b) => a.name.localeCompare(b.name)));
+  }
+
   return (
     <div className="products-page">
       <div className="products-page__header animate-in">
@@ -104,6 +117,14 @@ export function ProductsPage() {
           </button>
         </PermissionGate>
       </div>
+
+      <p className="products-page__subtitle">
+        El catálogo de productos es compartido por todas las sucursales. El stock de cada producto por sucursal se gestiona en{" "}
+        <PermissionGate code="inventory.view" fallback="Inventario">
+          <Link to="/inventario">Inventario</Link>
+        </PermissionGate>
+        .
+      </p>
 
       {actionError && <p className="products-page__error">{actionError}</p>}
 
@@ -197,6 +218,8 @@ export function ProductsPage() {
         onSaved={upsertProduct}
         categories={categories}
         brands={brands}
+        onCategoryCreated={handleCategoryCreated}
+        onBrandCreated={handleBrandCreated}
         editingProduct={editingProduct}
       />
     </div>
