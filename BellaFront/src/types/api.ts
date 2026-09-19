@@ -62,6 +62,45 @@ export interface InventoryRow {
   branch: { id: string; name: string };
 }
 
+export interface MessageAttachment {
+  id: string;
+  fileName: string;
+  url: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface BranchMessage {
+  id: string;
+  conversationId: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
+  fromBranch: { id: string; name: string };
+  attachments: MessageAttachment[];
+}
+
+// lastActivityAt is the most recent lastLoginAt among every user who can
+// act as this branch (explicit UserBranch assignment, union any
+// allBranches:true user) — null if nobody matching either group has ever
+// logged in.
+export interface MessagingBranch {
+  id: string;
+  name: string;
+  lastActivityAt: string | null;
+}
+
+export interface Conversation {
+  id: string;
+  branchAId: string;
+  branchBId: string;
+  branchA: MessagingBranch;
+  branchB: MessagingBranch;
+  createdAt: string;
+  updatedAt: string;
+  messages: BranchMessage[];
+}
+
 export interface AuditLogEntry {
   id: string;
   action: string;

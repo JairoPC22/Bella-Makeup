@@ -11,6 +11,7 @@ import { RolesPage } from "../pages/roles/RolesPage";
 import { BranchesPage } from "../pages/branches/BranchesPage";
 import { CompanySettingsPage } from "../pages/settings/CompanySettingsPage";
 import { AuditPage } from "../pages/audit/AuditPage";
+import { MessagesPage } from "../pages/messages/MessagesPage";
 import { AccessDeniedPage } from "../pages/errors/AccessDeniedPage";
 
 function NotFoundPage() {
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
           {
             element: <PermissionRoute code="audit.view" />,
             children: [{ path: "/auditoria", element: <AuditPage /> }],
+          },
+          {
+            element: <PermissionRoute code="messages.view" />,
+            children: [{ path: "/mensajes", element: <MessagesPage /> }],
           },
         ],
       },

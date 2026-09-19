@@ -18,6 +18,7 @@ import profileRoutes from "./routes/profile.routes";
 import companySettingsRoutes from "./routes/companySettings.routes";
 import auditRoutes from "./routes/audit.routes";
 import inventoryRoutes from "./routes/inventory.routes";
+import messageRoutes from "./routes/message.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -57,6 +58,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/company-settings", companySettingsRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/messages", messageRoutes);
 app.use(errorHandler);
 
 export default app;

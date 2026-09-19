@@ -48,6 +48,8 @@ const PERMISSIONS: Array<{ code: string; description: string }> = [
   { code: "orders.view", description: "Ver pedidos online" },
   { code: "orders.update", description: "Actualizar pedidos online" },
   { code: "settings.manage", description: "Gestionar configuración de la empresa" },
+  { code: "messages.view", description: "Ver mensajes entre sucursales" },
+  { code: "messages.send", description: "Enviar mensajes entre sucursales" },
 ];
 
 const ROLES: Array<{ code: string; name: string; description: string; permissions: string[] }> = [
@@ -67,6 +69,7 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
       "products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive",
       "sales.view", "sales.cancel", "sales.return", "discounts.authorize",
       "users.view", "branches.view", "purchases.view", "purchases.receive", "reports.view", "audit.view",
+      "messages.view", "messages.send",
     ],
   },
   {
@@ -74,32 +77,32 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     name: "Vendedor / Cajero",
     description:
       "Realiza ventas mediante POS, consulta productos y genera tickets. No puede modificar configuraciones administrativas ni realizar ajustes de inventario sin autorización.",
-    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply"],
+    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply", "messages.view", "messages.send"],
   },
   {
     code: "warehouse",
     name: "Almacenista",
     description:
       "Gestiona entradas, salidas, inventarios físicos, movimientos de mercancía y transferencias autorizadas.",
-    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive"],
+    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "messages.view", "messages.send"],
   },
   {
     code: "purchasing",
     name: "Compras",
     description: "Gestiona proveedores, órdenes/compras y recepción de mercancía.",
-    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "inventory.view"],
+    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "inventory.view", "messages.view", "messages.send"],
   },
   {
     code: "online_store_admin",
     name: "Administrador de tienda online",
     description: "Gestiona catálogo online, productos publicados, pedidos y operaciones relacionadas con ecommerce.",
-    permissions: ["products.view", "ecommerce.manage", "orders.view", "orders.update", "inventory.view"],
+    permissions: ["products.view", "ecommerce.manage", "orders.view", "orders.update", "inventory.view", "messages.view", "messages.send"],
   },
   {
     code: "viewer",
     name: "Consulta / Reportes",
     description: "Puede consultar información y reportes autorizados sin modificar operaciones críticas.",
-    permissions: ["products.view", "inventory.view", "sales.view", "reports.view", "branches.view"],
+    permissions: ["products.view", "inventory.view", "sales.view", "reports.view", "branches.view", "messages.view"],
   },
 ];
 
