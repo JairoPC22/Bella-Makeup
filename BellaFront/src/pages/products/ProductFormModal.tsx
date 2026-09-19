@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Plus, X, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Plus, X, AlertTriangle, CheckCircle2, Info, DollarSign, Boxes, Layers, Image as ImageIcon } from "lucide-react";
 import { Modal } from "../../components/common/Modal";
 import { ImageUploader } from "../../components/common/ImageUploader";
 import { ApiError } from "../../services/apiClient";
@@ -154,98 +154,176 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, e
           </p>
         )}
 
-        <label>Nombre<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-        <label>SKU<input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required /></label>
-        <label>Código de barras<input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} /></label>
-        <label>Descripción<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-
-        <label>Categoría
-          <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-            <option value="">Sin categoría</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </label>
-        <label>Marca
-          <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
-            <option value="">Sin marca</option>
-            {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </label>
-
-        <div className="product-form__row">
-          <label>Costo<input type="number" min="0" step="0.01" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} required /></label>
-          <label>Precio<input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></label>
-        </div>
-        <div className="product-form__row">
-          <label>Precio promocional<input type="number" min="0" step="0.01" value={form.promoPrice} onChange={(e) => setForm({ ...form, promoPrice: e.target.value })} /></label>
-          <label>Tasa de impuesto<input type="number" min="0" step="0.01" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })} required /></label>
-        </div>
-        <div className="product-form__row">
-          <label>Stock mínimo<input type="number" min="0" step="1" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} required /></label>
-          <label>Stock máximo<input type="number" min="0" step="1" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} /></label>
-        </div>
-
-        {isExistingProduct && (
-          <label>Estado
-            <select
-              value={product!.status}
-              disabled={statusSaving}
-              onChange={(e) => handleStatusChange(e.target.value as Product["status"])}
-            >
-              <option value="ACTIVE">Activo</option>
-              <option value="INACTIVE">Inactivo</option>
-            </select>
-          </label>
-        )}
-
-        <div className="product-form__variants">
-          <span className="product-form__variants-label">Variantes</span>
-
-          {isExistingProduct ? (
-            <>
-              {product!.variants.length === 0 ? (
-                <p className="product-form__variants-empty">Este producto no tiene variantes.</p>
-              ) : (
-                <ul className="product-form__variants-readonly">
-                  {product!.variants.map((v) => (
-                    <li key={v.id}>
-                      <span className="product-form__variant-name">{v.name}</span>
-                      <span className="product-form__variant-sku">{v.sku}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="product-form__variants-note">
-                Las variantes se definen al crear el producto y no se pueden modificar después en esta versión.
-              </p>
-            </>
-          ) : (
-            <>
-              {variantRows.map((row) => (
-                <div key={row.key} className="product-form__variant-row">
-                  <input placeholder="Nombre" value={row.name} onChange={(e) => updateVariantRow(row.key, "name", e.target.value)} required />
-                  <input placeholder="SKU" value={row.sku} onChange={(e) => updateVariantRow(row.key, "sku", e.target.value)} required />
-                  <input placeholder="Código de barras" value={row.barcode} onChange={(e) => updateVariantRow(row.key, "barcode", e.target.value)} />
-                  <input placeholder="Precio" type="number" min="0" step="0.01" value={row.price} onChange={(e) => updateVariantRow(row.key, "price", e.target.value)} />
-                  <input placeholder="Stock mín." type="number" min="0" step="1" value={row.minStock} onChange={(e) => updateVariantRow(row.key, "minStock", e.target.value)} />
-                  <input placeholder="Stock máx." type="number" min="0" step="1" value={row.maxStock} onChange={(e) => updateVariantRow(row.key, "maxStock", e.target.value)} />
-                  <button type="button" className="product-form__variant-remove" onClick={() => removeVariantRow(row.key)} aria-label="Quitar variante">
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              <button type="button" className="product-form__variant-add" onClick={addVariantRow}>
-                <Plus size={14} /> Agregar variante
-              </button>
-            </>
-          )}
-        </div>
-
-        {isExistingProduct && (
-          <div className="product-form__images">
-            <span className="product-form__images-label">Imágenes</span>
-            <ImageUploader productId={product!.id} images={product!.images} onImagesChange={handleImagesChange} />
+        {/* ---------- Información básica ---------- */}
+        <section className="product-form__section">
+          <header className="product-form__section-header">
+            <Info size={16} />
+            <div>
+              <h3>Información básica</h3>
+              <p>Nombre, identificadores y clasificación del producto.</p>
+            </div>
+          </header>
+          <div className="product-form__section-body">
+            <label>Nombre<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
+            <div className="product-form__row">
+              <label>SKU<input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required /></label>
+              <label>Código de barras<input value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} /></label>
+            </div>
+            <div className="product-form__row">
+              <label>Categoría
+                <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+                  <option value="">Sin categoría</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </label>
+              <label>Marca
+                <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
+                  <option value="">Sin marca</option>
+                  {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <label>Descripción<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           </div>
+        </section>
+
+        {/* ---------- Precios y costos ---------- */}
+        <section className="product-form__section">
+          <header className="product-form__section-header">
+            <DollarSign size={16} />
+            <div>
+              <h3>Precios y costos</h3>
+              <p>Lo que cuesta producirlo y lo que paga la clienta.</p>
+            </div>
+          </header>
+          <div className="product-form__section-body">
+            <div className="product-form__row">
+              <label>Costo<input type="number" min="0" step="0.01" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} required /></label>
+              <label>Precio<input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></label>
+            </div>
+            <div className="product-form__row">
+              <label>
+                Precio promocional
+                <input type="number" min="0" step="0.01" placeholder="Opcional" value={form.promoPrice} onChange={(e) => setForm({ ...form, promoPrice: e.target.value })} />
+                <span className="product-form__hint">Opcional. Solo se usa si es menor al precio regular.</span>
+              </label>
+              <label>
+                Tasa de impuesto
+                <input type="number" min="0" step="0.01" placeholder="0" value={form.taxRate} onChange={(e) => setForm({ ...form, taxRate: e.target.value })} required />
+                <span className="product-form__hint">Porcentaje (%) aplicado sobre el precio.</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------- Inventario ---------- */}
+        <section className="product-form__section">
+          <header className="product-form__section-header">
+            <Boxes size={16} />
+            <div>
+              <h3>Inventario</h3>
+              <p>Umbrales que activan las alertas de stock en el módulo de Inventario.</p>
+            </div>
+          </header>
+          <div className="product-form__section-body">
+            <div className="product-form__row">
+              <label>
+                Stock mínimo
+                <input type="number" min="0" step="1" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} required />
+                <span className="product-form__hint">Por debajo de este número se marca como bajo/crítico.</span>
+              </label>
+              <label>
+                Stock máximo
+                <input type="number" min="0" step="1" placeholder="Opcional" value={form.maxStock} onChange={(e) => setForm({ ...form, maxStock: e.target.value })} />
+                <span className="product-form__hint">Opcional. Tope de referencia para reabastecer.</span>
+              </label>
+            </div>
+
+            {isExistingProduct && (
+              <label>Estado
+                <select
+                  value={product!.status}
+                  disabled={statusSaving}
+                  onChange={(e) => handleStatusChange(e.target.value as Product["status"])}
+                >
+                  <option value="ACTIVE">Activo</option>
+                  <option value="INACTIVE">Inactivo</option>
+                </select>
+              </label>
+            )}
+          </div>
+        </section>
+
+        {/* ---------- Variantes ---------- */}
+        <section className="product-form__section">
+          <header className="product-form__section-header">
+            <Layers size={16} />
+            <div>
+              <h3>Variantes</h3>
+              <p>{isExistingProduct ? "Las variantes de este producto." : "Opcional. Ej. distintos tonos o tamaños."}</p>
+            </div>
+          </header>
+          <div className="product-form__section-body">
+            {isExistingProduct ? (
+              <>
+                {product!.variants.length === 0 ? (
+                  <p className="product-form__variants-empty">Este producto no tiene variantes.</p>
+                ) : (
+                  <ul className="product-form__variants-readonly">
+                    {product!.variants.map((v) => (
+                      <li key={v.id}>
+                        <span className="product-form__variant-name">{v.name}</span>
+                        <span className="product-form__variant-sku">{v.sku}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="product-form__variants-note">
+                  Las variantes se definen al crear el producto y no se pueden modificar después en esta versión.
+                </p>
+              </>
+            ) : (
+              <>
+                {variantRows.map((row, idx) => (
+                  <div key={row.key} className="product-form__variant-card">
+                    <div className="product-form__variant-card-header">
+                      <span>Variante {idx + 1}</span>
+                      <button type="button" className="product-form__variant-remove" onClick={() => removeVariantRow(row.key)} aria-label="Quitar variante">
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="product-form__variant-card-grid">
+                      <label>Nombre<input value={row.name} onChange={(e) => updateVariantRow(row.key, "name", e.target.value)} required /></label>
+                      <label>SKU<input value={row.sku} onChange={(e) => updateVariantRow(row.key, "sku", e.target.value)} required /></label>
+                      <label>Código de barras<input value={row.barcode} onChange={(e) => updateVariantRow(row.key, "barcode", e.target.value)} /></label>
+                      <label>Precio<input type="number" min="0" step="0.01" placeholder="Opcional" value={row.price} onChange={(e) => updateVariantRow(row.key, "price", e.target.value)} /></label>
+                      <label>Stock mín.<input type="number" min="0" step="1" value={row.minStock} onChange={(e) => updateVariantRow(row.key, "minStock", e.target.value)} /></label>
+                      <label>Stock máx.<input type="number" min="0" step="1" placeholder="Opcional" value={row.maxStock} onChange={(e) => updateVariantRow(row.key, "maxStock", e.target.value)} /></label>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" className="product-form__variant-add" onClick={addVariantRow}>
+                  <Plus size={14} /> Agregar variante
+                </button>
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* ---------- Imágenes ---------- */}
+        {isExistingProduct && (
+          <section className="product-form__section">
+            <header className="product-form__section-header">
+              <ImageIcon size={16} />
+              <div>
+                <h3>Imágenes</h3>
+                <p>La primera imagen marcada como principal es la que se ve en la lista.</p>
+              </div>
+            </header>
+            <div className="product-form__section-body">
+              <ImageUploader productId={product!.id} images={product!.images} onImagesChange={handleImagesChange} />
+            </div>
+          </section>
         )}
 
         {error && <p className="product-form__error"><AlertTriangle size={14} /> {error}</p>}

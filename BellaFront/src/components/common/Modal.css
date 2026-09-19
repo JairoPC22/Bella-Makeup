@@ -290,7 +290,17 @@
    "variants can't be edited after creation" backend limitation), and the
    ImageUploader section that only ever renders once the product has a real
    id. ---------- */
-.modal__body .product-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+/* min-width: 0 on the grid items (and their inputs/selects) is required —
+   without it, a 1fr grid track defaults to minmax(auto, 1fr), so the track
+   won't shrink below its content's intrinsic min-content width (a native
+   <input>/<select> has a real, sometimes-wide intrinsic minimum), and the
+   second column silently overflows the modal even though every input LOOKS
+   like it's sized to fit. This was the actual mechanism behind the
+   horizontal scroll, not just the 7-column variant row. */
+.modal__body .product-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); min-width: 0; }
+.modal__body .product-form__row > label { min-width: 0; }
+.modal__body .product-form__row input,
+.modal__body .product-form__row select { min-width: 0; }
 .modal__body .product-form__success {
   display: flex; align-items: center; gap: 8px;
   margin: 0; padding: var(--space-2) var(--space-3);
@@ -301,23 +311,64 @@
   font-size: 0.85rem;
 }
 
-.modal__body .product-form__variants,
-.modal__body .product-form__images {
+/* Labeled sub-sections (Información básica / Precios y costos / Inventario
+   / Variantes / Imágenes), visually echoing CompanySettingsPage.tsx's
+   .settings-section pattern (bordered card, icon + heading + one-line
+   description) at a scale that fits the 480px modal instead of that page's
+   760px container — same visual language, smaller footprint. Grouping the
+   ~12 fields this way is what turns "one long wall of inputs" into a
+   handful of clearly-labeled, scannable chunks. */
+.modal__body .product-form__section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-2_5);
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-bg);
+  min-width: 0;
 }
-.modal__body .product-form__variants-label,
-.modal__body .product-form__images-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+.modal__body .product-form__section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-divider-soft);
+  color: var(--color-pink-deep);
+}
+.modal__body .product-form__section-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  letter-spacing: var(--tracking-tight);
+}
+.modal__body .product-form__section-header p {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  font-weight: 400;
   color: var(--color-text-secondary);
-  margin-bottom: 2px;
+  line-height: 1.35;
 }
+.modal__body .product-form__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2_5);
+}
+.modal__body .product-form__section-body label {
+  color: var(--color-text-secondary);
+}
+.modal__body .product-form__section-body input,
+.modal__body .product-form__section-body select,
+.modal__body .product-form__section-body textarea {
+  background: var(--color-white);
+}
+.modal__body .product-form__hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
 .modal__body .product-form__variants-empty {
   margin: 0;
   font-size: 0.82rem;
@@ -349,20 +400,52 @@
 .modal__body .product-form__variant-name { color: var(--color-ink); font-weight: 500; }
 .modal__body .product-form__variant-sku { color: var(--color-text-muted); font-size: 0.78rem; }
 
-.modal__body .product-form__variant-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr auto;
+/* Each variant is its own small bordered card (name/sku/barcode/price/
+   minStock/maxStock in a 2-column internal grid, remove button in the
+   header) instead of packing all 6 fields + a remove button into one
+   7-column horizontal row — the old .product-form__variant-row grid
+   (1.2fr 1.2fr 1fr 0.8fr 0.8fr 0.8fr auto) was what caused the modal's
+   horizontal scroll: 7 columns can't fit inside a 480px-wide modal no
+   matter how small the inputs get. A stacked card per variant fits at any
+   modal width and reads far more clearly than a row of unlabeled inputs. */
+.modal__body .product-form__variant-card {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  align-items: center;
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
 }
-.modal__body .product-form__variant-row input {
+.modal__body .product-form__variant-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.modal__body .product-form__variant-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 8px;
+}
+.modal__body .product-form__variant-card-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.modal__body .product-form__variant-card-grid input {
   min-width: 0;
   padding: 6px;
   font-size: 0.82rem;
 }
 .modal__body .product-form__variant-remove {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; flex-shrink: 0;
+  width: 22px; height: 22px; flex-shrink: 0;
   background: none; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   color: var(--color-text-secondary); cursor: pointer;
   transition: border-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
@@ -395,5 +478,5 @@
 
 @media (max-width: 640px) {
   .modal__body .product-form__row { grid-template-columns: 1fr; }
-  .modal__body .product-form__variant-row { grid-template-columns: 1fr 1fr; }
+  .modal__body .product-form__variant-card-grid { grid-template-columns: 1fr; }
 }

@@ -34,7 +34,18 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
-app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+// helmet()'s default Cross-Origin-Resource-Policy is "same-origin", which
+// silently blocks <img>/attachment loads from the frontend's own origin
+// (e.g. localhost:5174 fetching localhost:4000/uploads/...) even though the
+// request itself succeeds with a 200 — the browser just refuses to render
+// the response, and it's invisible to curl since CORP is only enforced by
+// browsers. Scoped override to "cross-origin" for this static route only,
+// so the rest of the API keeps helmet's stricter default.
+app.use(
+  "/uploads",
+  helmet.crossOriginResourcePolicy({ policy: "cross-origin" }),
+  express.static(path.resolve(process.cwd(), "uploads"))
+);
 if (env.NODE_ENV !== "test") app.use(morgan("dev"));
 
 const loginLimiter = rateLimit({

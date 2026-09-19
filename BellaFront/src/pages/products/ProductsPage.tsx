@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
@@ -14,6 +14,14 @@ import "./ProductsPage.css";
 const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
 type FetchStatus = "loading" | "ready" | "error";
+
+// Same --stagger-delay custom-property pattern as DashboardPage.tsx's
+// staggerStyle — paired with the sitewide .animate-in-stagger utility in
+// global.css so table rows fade/slide in one after another instead of all
+// at once, consistent with how the rest of the app already animates lists.
+function staggerStyle(ms: number): CSSProperties {
+  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -85,7 +93,7 @@ export function ProductsPage() {
 
   return (
     <div className="products-page">
-      <div className="products-page__header">
+      <div className="products-page__header animate-in">
         <div className="products-page__title">
           <Package size={22} />
           <h1>Productos</h1>
@@ -99,7 +107,7 @@ export function ProductsPage() {
 
       {actionError && <p className="products-page__error">{actionError}</p>}
 
-      <div className="products-filters">
+      <div className="products-filters animate-in" style={{ animationDelay: "80ms" }}>
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="">Todas las categorías</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -145,10 +153,10 @@ export function ProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((p) => {
+            {products.map((p, i) => {
               const imageUrl = primaryImageUrl(p);
               return (
-                <tr key={p.id}>
+                <tr key={p.id} className="animate-in-stagger" style={staggerStyle(Math.min(i, 10) * 35)}>
                   <td>
                     <div className="products-table__thumb">
                       {imageUrl ? <img src={imageUrl} alt="" /> : <ImageOff size={18} />}

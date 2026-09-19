@@ -43,8 +43,19 @@
   animation: fade-in-up 0.6s var(--ease-premium) both;
 }
 .products-table th, .products-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; vertical-align: middle; }
-.products-table tbody tr { transition: background-color var(--transition-base) var(--ease-premium); }
-.products-table tbody tr:hover { background: var(--color-bg); }
+/* Subtle hover-lift (translateY + shadow), same feel as .stat-card:hover /
+   .role-card:hover elsewhere in the app, adapted for a table row: relative
+   positioning + a soft box-shadow reads as "lifted" without the row
+   overlapping its table borders. */
+.products-table tbody tr {
+  position: relative;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-fast) var(--ease-premium);
+}
+.products-table tbody tr:hover {
+  background: var(--color-bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 .products-table tbody tr:last-child td { border-bottom: none; }
 
 .products-table__thumb {
