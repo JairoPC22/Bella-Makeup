@@ -14,99 +14,160 @@ function savedPathFor(url: string): string {
   return path.resolve(UPLOADS_DIR, path.basename(url));
 }
 
-describe("Branch messaging", () => {
-  let adminCookie: string;
-  let branchA: { id: string; name: string };
-  let branchB: { id: string; name: string };
-  let branchC: { id: string; name: string };
-  let outsiderCookie: string;
+describe("User-to-user messaging", () => {
+  let userACookie: string;
+  let userA: { id: string };
+  let userB: { id: string };
+  let userC: { id: string };
+  let disabledUser: { id: string };
+  let userCCookie: string;
   const createdFiles: string[] = [];
+  const testUsernames = [
+    "messages_test_user_a",
+    "messages_test_user_b",
+    "messages_test_user_c",
+    "messages_test_disabled",
+    "messages_test_viewer",
+  ];
 
   beforeAll(async () => {
+    // Use the admin role for the primary actors (userA/userB/userC): it's
+    // guaranteed to hold messages.view/messages.send and, unlike cashier,
+    // isn't at risk of having those permissions clobbered by
+    // tests/roles.test.ts's "restore the seeded cashier permission set"
+    // step (that restore uses a hardcoded pre-messaging-feature permission
+    // list for cashier specifically, which runs earlier in the same
+    // singleFork suite). Mirrors the pre-pivot branch-messaging test's own
+    // choice of admin for its acting users, for the same reason.
     const adminRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" } });
-    const admin = await prisma.user.upsert({
-      where: { username: "messages_test_admin" },
+
+    const a = await prisma.user.upsert({
+      where: { username: "messages_test_user_a" },
       update: {},
       create: {
-        firstName: "Messages", lastName: "Admin", displayName: "Messages Admin",
-        username: "messages_test_admin", email: "messages_test_admin@bellamakeup.demo",
+        firstName: "User", lastName: "A", displayName: "User A",
+        username: "messages_test_user_a", email: "messages_test_user_a@bellamakeup.demo",
         passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id, allBranches: true,
       },
     });
-    adminCookie = `access_token=${signAccessToken({ sub: admin.id, roleId: adminRole.id })}`;
+    userA = { id: a.id };
+    userACookie = `access_token=${signAccessToken({ sub: a.id, roleId: adminRole.id })}`;
 
-    branchA = await prisma.branch.create({ data: { name: `Msg Branch A ${Date.now()}` } });
-    branchB = await prisma.branch.create({ data: { name: `Msg Branch B ${Date.now()}` } });
-    branchC = await prisma.branch.create({ data: { name: `Msg Branch C ${Date.now()}` } });
-
-    // Branch-scoped user with access to neither branchA nor branchB — only
-    // assigned to the unrelated branchC. allBranches is false so hasBranchAccess
-    // falls through to the UserBranch lookup, which finds nothing for A/B.
-    const cashierRole = await prisma.role.findUniqueOrThrow({ where: { code: "cashier" } });
-    const outsider = await prisma.user.upsert({
-      where: { username: "messages_test_outsider" },
+    const b = await prisma.user.upsert({
+      where: { username: "messages_test_user_b" },
       update: {},
       create: {
-        firstName: "Out", lastName: "Sider", displayName: "Out Sider",
-        username: "messages_test_outsider", email: "messages_test_outsider@bellamakeup.demo",
-        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: cashierRole.id, allBranches: false,
+        firstName: "User", lastName: "B", displayName: "User B",
+        username: "messages_test_user_b", email: "messages_test_user_b@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id, allBranches: true,
       },
     });
-    await prisma.userBranch.upsert({
-      where: { userId_branchId: { userId: outsider.id, branchId: branchC.id } },
+    userB = { id: b.id };
+
+    // A third user, unrelated to any A<->B conversation — used to verify
+    // that a non-participant gets 403 on both GET and POST.
+    const c = await prisma.user.upsert({
+      where: { username: "messages_test_user_c" },
       update: {},
-      create: { userId: outsider.id, branchId: branchC.id },
+      create: {
+        firstName: "User", lastName: "C", displayName: "User C",
+        username: "messages_test_user_c", email: "messages_test_user_c@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id, allBranches: true,
+      },
     });
-    outsiderCookie = `access_token=${signAccessToken({ sub: outsider.id, roleId: cashierRole.id })}`;
+    userC = { id: c.id };
+    userCCookie = `access_token=${signAccessToken({ sub: c.id, roleId: adminRole.id })}`;
+
+    const disabled = await prisma.user.upsert({
+      where: { username: "messages_test_disabled" },
+      update: { status: "DISABLED" },
+      create: {
+        firstName: "User", lastName: "Disabled", displayName: "User Disabled",
+        username: "messages_test_disabled", email: "messages_test_disabled@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id,
+        allBranches: true, status: "DISABLED",
+      },
+    });
+    disabledUser = { id: disabled.id };
   });
 
   afterAll(async () => {
     for (const filePath of createdFiles) {
       await fs.promises.unlink(filePath).catch(() => {});
     }
-    await prisma.branchMessage.deleteMany({
-      where: { conversation: { OR: [{ branchAId: branchA.id }, { branchBId: branchA.id }, { branchAId: branchB.id }, { branchBId: branchB.id }, { branchAId: branchC.id }, { branchBId: branchC.id }] } },
+    const testUserIds = [userA.id, userB.id, userC.id, disabledUser.id];
+    await prisma.message.deleteMany({
+      where: { conversation: { OR: [{ userAId: { in: testUserIds } }, { userBId: { in: testUserIds } }] } },
     }).catch(() => {});
-    await prisma.branchConversation.deleteMany({
-      where: { OR: [{ branchAId: branchA.id }, { branchBId: branchA.id }, { branchAId: branchB.id }, { branchBId: branchB.id }, { branchAId: branchC.id }, { branchBId: branchC.id }] },
+    await prisma.conversation.deleteMany({
+      where: { OR: [{ userAId: { in: testUserIds } }, { userBId: { in: testUserIds } }] },
     }).catch(() => {});
-    await prisma.userBranch.deleteMany({ where: { branchId: { in: [branchA.id, branchB.id, branchC.id] } } }).catch(() => {});
-    await prisma.user.deleteMany({ where: { username: { in: ["messages_test_admin", "messages_test_outsider"] } } }).catch(() => {});
-    await prisma.branch.deleteMany({ where: { id: { in: [branchA.id, branchB.id, branchC.id] } } }).catch(() => {});
+    await prisma.user.deleteMany({ where: { username: { in: testUsernames } } }).catch(() => {});
   });
 
-  it("normalizes an unordered branch pair: starting from A->B and B->A returns the same conversation", async () => {
+  it("normalizes an unordered user pair: starting from A->B and B->A returns the same conversation", async () => {
     const first = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     expect(first.status).toBe(201);
 
+    // Now start from B's side (B -> A) using B's own cookie.
+    const bRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" } });
+    const userBCookie = `access_token=${signAccessToken({ sub: userB.id, roleId: bRole.id })}`;
     const second = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchB.id, toBranchId: branchA.id });
+      .set("Cookie", [userBCookie])
+      .send({ otherUserId: userA.id });
     expect(second.status).toBe(201);
 
     expect(second.body.id).toBe(first.body.id);
   });
 
-  it("rejects GET and POST messages for a user with access to neither branch", async () => {
+  it("never leaks the raw userA/userB rows (incl. passwordHash) in the startConversation response", async () => {
+    const res = await request(app)
+      .post("/api/messages/conversations")
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
+    expect(res.status).toBe(201);
+    expect(res.body.userA).toBeUndefined();
+    expect(res.body.userB).toBeUndefined();
+    expect(res.body.otherUser).toBeDefined();
+    expect(res.body.otherUser.id).toBe(userB.id);
+    expect(res.body.otherUser.passwordHash).toBeUndefined();
+  });
+
+  it("rejects starting a conversation with yourself with 400", async () => {
+    const res = await request(app)
+      .post("/api/messages/conversations")
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userA.id });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects starting a conversation with a disabled user with 400", async () => {
+    const res = await request(app)
+      .post("/api/messages/conversations")
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: disabledUser.id });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects GET and POST messages for a user who isn't a participant", async () => {
     const conv = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     const conversationId = conv.body.id;
 
     const getRes = await request(app)
       .get(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [outsiderCookie]);
+      .set("Cookie", [userCCookie]);
     expect(getRes.status).toBe(403);
 
     const postRes = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [outsiderCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userCCookie])
       .field("body", "Hola");
     expect(postRes.status).toBe(403);
   });
@@ -114,51 +175,35 @@ describe("Branch messaging", () => {
   it("sends a text-only message and retrieves it via GET", async () => {
     const conv = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     const conversationId = conv.body.id;
 
     const send = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userACookie])
       .field("body", "Hola desde A");
     expect(send.status).toBe(201);
     expect(send.body.body).toBe("Hola desde A");
+    expect(send.body.author.id).toBe(userA.id);
 
     const list = await request(app)
       .get(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie]);
+      .set("Cookie", [userACookie]);
     expect(list.status).toBe(200);
     expect(list.body.some((m: any) => m.id === send.body.id)).toBe(true);
-  });
-
-  it("rejects a fromBranchId that isn't one of the conversation's two branches with 400", async () => {
-    const conv = await request(app)
-      .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
-    const conversationId = conv.body.id;
-
-    const send = await request(app)
-      .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchC.id)
-      .field("body", "No debería funcionar");
-    expect(send.status).toBe(400);
   });
 
   it("rejects an empty body with zero attachments with 400", async () => {
     const conv = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     const conversationId = conv.body.id;
 
     const send = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userACookie])
       .field("body", "   ");
     expect(send.status).toBe(400);
   });
@@ -166,14 +211,13 @@ describe("Branch messaging", () => {
   it("uploads an attachment and returns it in the message's attachments array", async () => {
     const conv = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     const conversationId = conv.body.id;
 
     const send = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userACookie])
       .field("body", "Con adjunto")
       .attach("attachments", Buffer.from("fake-png-bytes"), { filename: "test.png", contentType: "image/png" });
 
@@ -202,7 +246,7 @@ describe("Branch messaging", () => {
     const res = await request(app)
       .post("/api/messages/conversations")
       .set("Cookie", [viewerCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .send({ otherUserId: userB.id });
     expect(res.status).toBe(403);
 
     await prisma.user.deleteMany({ where: { username: "messages_test_viewer" } });
@@ -211,14 +255,13 @@ describe("Branch messaging", () => {
   it("deleteExpiredMessages() removes messages older than 30 days (and their attachment files) while keeping recent ones", async () => {
     const conv = await request(app)
       .post("/api/messages/conversations")
-      .set("Cookie", [adminCookie])
-      .send({ fromBranchId: branchA.id, toBranchId: branchB.id });
+      .set("Cookie", [userACookie])
+      .send({ otherUserId: userB.id });
     const conversationId = conv.body.id;
 
     const oldMsg = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userACookie])
       .field("body", "Mensaje viejo")
       .attach("attachments", Buffer.from("old-file-bytes"), { filename: "old.png", contentType: "image/png" });
     expect(oldMsg.status).toBe(201);
@@ -227,21 +270,20 @@ describe("Branch messaging", () => {
 
     const recentMsg = await request(app)
       .post(`/api/messages/conversations/${conversationId}/messages`)
-      .set("Cookie", [adminCookie])
-      .field("fromBranchId", branchA.id)
+      .set("Cookie", [userACookie])
       .field("body", "Mensaje reciente");
     expect(recentMsg.status).toBe(201);
 
     const thirtyOneDaysAgo = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
-    await prisma.branchMessage.update({ where: { id: oldMsg.body.id }, data: { createdAt: thirtyOneDaysAgo } });
+    await prisma.message.update({ where: { id: oldMsg.body.id }, data: { createdAt: thirtyOneDaysAgo } });
 
     await deleteExpiredMessages();
 
-    const oldRow = await prisma.branchMessage.findUnique({ where: { id: oldMsg.body.id } });
+    const oldRow = await prisma.message.findUnique({ where: { id: oldMsg.body.id } });
     expect(oldRow).toBeNull();
     expect(fs.existsSync(oldFilePath)).toBe(false);
 
-    const recentRow = await prisma.branchMessage.findUnique({ where: { id: recentMsg.body.id } });
+    const recentRow = await prisma.message.findUnique({ where: { id: recentMsg.body.id } });
     expect(recentRow).not.toBeNull();
   });
 });

@@ -5,6 +5,18 @@ import { prisma } from "../src/config/prisma";
 import { hashPassword } from "../src/utils/password";
 import { signAccessToken } from "../src/utils/jwt";
 
+// The seeded "cashier" permission set (prisma/seed.ts) — kept as one
+// constant instead of repeating the literal array at each restore point.
+// A prior version of this file hardcoded the pre-messaging-feature set
+// (missing messages.view/messages.send) at three separate call sites; the
+// "restore" ones silently stripped those two permissions from cashier every
+// run, and the "diff" one asserted a removed:[] that would only hold by
+// accident once the strip had already happened earlier in the same run.
+const CASHIER_SEEDED_PERMISSIONS = [
+  "products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply",
+  "messages.view", "messages.send",
+];
+
 describe("GET /api/roles", () => {
   let cookie: string;
 
@@ -69,7 +81,7 @@ describe("PUT /api/roles/:id/permissions", () => {
     await request(app)
       .put(`/api/roles/${cashierRole.id}/permissions`)
       .set("Cookie", [cookie])
-      .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply"] });
+      .send({ permissions: CASHIER_SEEDED_PERMISSIONS });
   });
 
   it("rejects unknown permission codes with 400", async () => {
@@ -144,7 +156,7 @@ describe("PUT /api/roles/:id/permissions", () => {
     await request(app)
       .put(`/api/roles/${cashierRole.id}/permissions`)
       .set("Cookie", [cookie])
-      .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply", "reports.view"] });
+      .send({ permissions: [...CASHIER_SEEDED_PERMISSIONS, "reports.view"] });
 
     const entry = await prisma.auditLog.findFirst({
       where: { action: "roles.update_permissions", entityId: cashierRole.id },
@@ -159,7 +171,7 @@ describe("PUT /api/roles/:id/permissions", () => {
     await request(app)
       .put(`/api/roles/${cashierRole.id}/permissions`)
       .set("Cookie", [cookie])
-      .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply"] });
+      .send({ permissions: CASHIER_SEEDED_PERMISSIONS });
   });
 });
 

@@ -6,7 +6,7 @@ export async function runMessageRetentionJob(): Promise<void> {
   try {
     const count = await deleteExpiredMessages();
     if (count > 0) {
-      console.log(`[messageRetention] deleted ${count} branch message(s) older than 30 days`);
+      console.log(`[messageRetention] deleted ${count} message(s) older than 30 days`);
     }
   } catch (err) {
     console.error("[messageRetention] cleanup run failed:", err);

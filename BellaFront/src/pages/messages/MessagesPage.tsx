@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Plus, Paperclip, Send, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Plus, Paperclip, Send, X, FileText, Image as ImageIcon, Search } from "lucide-react";
 import { Modal } from "../../components/common/Modal";
 import { StatusState } from "../../components/common/StatusState";
 import { Avatar } from "../../components/common/Avatar";
@@ -7,7 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { ApiError } from "../../services/apiClient";
 import * as messageService from "../../services/messageService";
 import { buildAttachmentUrl } from "../../services/messageService";
-import type { Conversation, BranchMessage, MessagingBranch, Branch } from "../../types/api";
+import type { Conversation, Message, MessagingParty } from "../../types/api";
 import "./MessagesPage.css";
 
 const MAX_FILES = 3;
@@ -27,15 +27,19 @@ function formatRelativeTime(iso: string): string {
   return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
 }
 
-function conversationLabel(conv: Conversation): string {
-  return `${conv.branchA.name} ↔ ${conv.branchB.name}`;
-}
-
 // Reuses formatRelativeTime (same helper used for message timestamps) so
 // "last seen" and message times read consistently instead of introducing a
 // second relative-time implementation.
-function lastSeenText(lastActivityAt: string | null): string {
-  return lastActivityAt ? `última conexión ${formatRelativeTime(lastActivityAt).toLowerCase()}` : "nunca ha iniciado sesión";
+function lastSeenText(lastLoginAt: string | null): string {
+  return lastLoginAt ? `última conexión ${formatRelativeTime(lastLoginAt).toLowerCase()}` : "nunca ha iniciado sesión";
+}
+
+// Branch is now purely display context for "the other person" — computed
+// live from their own allBranches/branches, never stored per-message.
+function branchCaption(party: Pick<MessagingParty, "allBranches" | "branches">): string {
+  if (party.allBranches) return "Todas las sucursales";
+  if (party.branches.length === 0) return "Sin sucursal asignada";
+  return party.branches.map((b) => b.name).join(", ");
 }
 
 function AttachmentIcon({ mimeType }: { mimeType: string }) {
@@ -44,34 +48,26 @@ function AttachmentIcon({ mimeType }: { mimeType: string }) {
   return <Paperclip size={14} />;
 }
 
-function branchesForUser(user: { allBranches: boolean; branches: Branch[] } | null, all: MessagingBranch[]): MessagingBranch[] {
-  if (!user) return [];
-  if (user.allBranches) return all;
-  return user.branches.map((b) => ({ id: b.id, name: b.name }));
-}
-
 export function MessagesPage() {
   const { user } = useAuth();
 
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [conversationsStatus, setConversationsStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [messagingBranches, setMessagingBranches] = useState<MessagingBranch[]>([]);
+  const [messagingUsers, setMessagingUsers] = useState<MessagingParty[]>([]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<BranchMessage[] | null>(null);
+  const [messages, setMessages] = useState<Message[] | null>(null);
   const [messagesStatus, setMessagesStatus] = useState<"loading" | "ready" | "error">("loading");
 
   const [composeBody, setComposeBody] = useState("");
   const [composeFiles, setComposeFiles] = useState<File[]>([]);
-  const [composeFromBranchId, setComposeFromBranchId] = useState("");
   const [composeError, setComposeError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [newConvToBranchId, setNewConvToBranchId] = useState("");
-  const [newConvFromBranchId, setNewConvFromBranchId] = useState("");
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [startingUserId, setStartingUserId] = useState<string | null>(null);
   const [newConvError, setNewConvError] = useState<string | null>(null);
-  const [creatingConv, setCreatingConv] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadScrollRef = useRef<HTMLDivElement>(null);
@@ -80,7 +76,7 @@ export function MessagesPage() {
     messageService.listConversations()
       .then((list) => { setConversations(list); setConversationsStatus("ready"); })
       .catch(() => setConversationsStatus("error"));
-    messageService.listMessagingBranches().then(setMessagingBranches).catch(() => {});
+    messageService.listMessagingUsers().then(setMessagingUsers).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -97,25 +93,19 @@ export function MessagesPage() {
     }
   }, [messages]);
 
-  const accessibleBranches = useMemo(() => branchesForUser(user, messagingBranches), [user, messagingBranches]);
-
   const selectedConversation = conversations?.find((c) => c.id === selectedId) ?? null;
 
-  const accessibleForSelected = useMemo(() => {
-    if (!selectedConversation) return [];
-    const candidates = [selectedConversation.branchA, selectedConversation.branchB];
-    if (user?.allBranches) return candidates;
-    const ownIds = new Set((user?.branches ?? []).map((b) => b.id));
-    return candidates.filter((b) => ownIds.has(b.id));
-  }, [selectedConversation, user]);
+  const filteredPeople = useMemo(() => {
+    const q = peopleSearch.trim().toLowerCase();
+    if (!q) return messagingUsers;
+    return messagingUsers.filter((p) => {
+      const haystack = [p.displayName, p.role.name, ...p.branches.map((b) => b.name)].join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [messagingUsers, peopleSearch]);
 
   function selectConversation(conv: Conversation) {
     setSelectedId(conv.id);
-    const candidates = [conv.branchA, conv.branchB];
-    const accessible = user?.allBranches
-      ? candidates
-      : candidates.filter((b) => (user?.branches ?? []).some((ub) => ub.id === b.id));
-    setComposeFromBranchId(accessible[0]?.id ?? "");
     setComposeBody("");
     setComposeFiles([]);
     setComposeError(null);
@@ -150,14 +140,13 @@ export function MessagesPage() {
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
-    if (!selectedId || !composeFromBranchId) return;
+    if (!selectedId) return;
     if (composeBody.trim().length === 0 && composeFiles.length === 0) return;
 
     setSending(true);
     setComposeError(null);
     try {
       const sent = await messageService.sendMessage(selectedId, {
-        fromBranchId: composeFromBranchId,
         body: composeBody,
         files: composeFiles,
       });
@@ -186,21 +175,16 @@ export function MessagesPage() {
   }
 
   function openNewConversationModal() {
-    setNewConvToBranchId("");
-    setNewConvFromBranchId(accessibleBranches.length === 1 ? accessibleBranches[0].id : "");
+    setPeopleSearch("");
     setNewConvError(null);
     setModalOpen(true);
   }
 
-  async function handleCreateConversation(e: FormEvent) {
-    e.preventDefault();
-    const fromId = accessibleBranches.length > 1 ? newConvFromBranchId : accessibleBranches[0]?.id;
-    if (!fromId || !newConvToBranchId) return;
-
-    setCreatingConv(true);
+  async function handleStartConversation(person: MessagingParty) {
+    setStartingUserId(person.id);
     setNewConvError(null);
     try {
-      const conv = await messageService.startConversation(fromId, newConvToBranchId);
+      const conv = await messageService.startConversation(person.id);
       const refreshed = await messageService.listConversations();
       setConversations(refreshed);
       const full = refreshed.find((c) => c.id === conv.id) ?? { ...conv, messages: [] };
@@ -209,12 +193,11 @@ export function MessagesPage() {
     } catch (err) {
       setNewConvError(err instanceof ApiError ? err.message : "No se pudo iniciar la conversación.");
     } finally {
-      setCreatingConv(false);
+      setStartingUserId(null);
     }
   }
 
-  const effectiveNewConvFromBranchId = accessibleBranches.length > 1 ? newConvFromBranchId : accessibleBranches[0]?.id ?? "";
-  const composeDisabled = sending || (composeBody.trim().length === 0 && composeFiles.length === 0) || !composeFromBranchId;
+  const composeDisabled = sending || (composeBody.trim().length === 0 && composeFiles.length === 0);
 
   return (
     <div className="messages-page">
@@ -235,6 +218,7 @@ export function MessagesPage() {
           {conversationsStatus === "ready" && conversations && conversations.length > 0 && (
             <ul className="messages-list__items">
               {conversations.map((conv) => {
+                const other = conv.otherUser;
                 const last = conv.messages?.[0];
                 const preview = last
                   ? last.body || (last.attachments.length > 0 ? `${last.attachments.length} archivo(s) adjunto(s)` : "")
@@ -246,12 +230,19 @@ export function MessagesPage() {
                       className={`messages-list__item${conv.id === selectedId ? " messages-list__item--active" : ""}`}
                       onClick={() => selectConversation(conv)}
                     >
-                      <p className="messages-list__pair">{conversationLabel(conv)}</p>
-                      <p className="messages-list__lastseen">
-                        {conv.branchA.name}: {lastSeenText(conv.branchA.lastActivityAt)} · {conv.branchB.name}: {lastSeenText(conv.branchB.lastActivityAt)}
-                      </p>
-                      <p className="messages-list__preview">{preview}</p>
-                      <span className="messages-list__time">{formatRelativeTime(conv.updatedAt)}</span>
+                      <Avatar avatarStyle={other.avatarStyle} avatarSeed={other.avatarSeed} displayName={other.displayName} size="md" />
+                      <div className="messages-list__item-text">
+                        <div className="messages-list__item-row">
+                          <p className="messages-list__name">{other.displayName}</p>
+                          <span className="messages-list__time">{formatRelativeTime(conv.updatedAt)}</span>
+                        </div>
+                        <p className="messages-list__caption">
+                          <span className="messages-list__role-badge">{other.role.name}</span>
+                          <span className="messages-list__dot">·</span>
+                          <span className="messages-list__caption-branch">{branchCaption(other)}</span>
+                        </p>
+                        <p className="messages-list__preview">{preview}</p>
+                      </div>
                     </button>
                   </li>
                 );
@@ -267,8 +258,27 @@ export function MessagesPage() {
             </div>
           )}
 
-          {selectedId && (
+          {selectedId && selectedConversation && (
             <>
+              <div className="messages-thread__header">
+                <Avatar
+                  avatarStyle={selectedConversation.otherUser.avatarStyle}
+                  avatarSeed={selectedConversation.otherUser.avatarSeed}
+                  displayName={selectedConversation.otherUser.displayName}
+                  size="sm"
+                />
+                <div className="messages-thread__header-text">
+                  <p className="messages-thread__header-name">{selectedConversation.otherUser.displayName}</p>
+                  <p className="messages-thread__header-caption">
+                    <span className="messages-list__role-badge">{selectedConversation.otherUser.role.name}</span>
+                    <span className="messages-list__dot">·</span>
+                    {branchCaption(selectedConversation.otherUser)}
+                    <span className="messages-list__dot">·</span>
+                    {lastSeenText(selectedConversation.otherUser.lastLoginAt)}
+                  </p>
+                </div>
+              </div>
+
               <div className="messages-thread__scroll" ref={threadScrollRef}>
                 {messagesStatus === "loading" && <StatusState kind="loading" />}
                 {messagesStatus === "error" && <StatusState kind="error" message="No se pudieron cargar los mensajes." />}
@@ -276,51 +286,38 @@ export function MessagesPage() {
                   <StatusState kind="empty" message="Todavía no hay mensajes en esta conversación." />
                 )}
                 {messagesStatus === "ready" &&
-                  messages?.map((m) => (
-                    <div key={m.id} className="message-bubble">
-                      <div className="message-bubble__meta">
-                        <Avatar
-                          avatarStyle={m.author?.avatarStyle ?? "adventurer"}
-                          avatarSeed={m.author?.avatarSeed ?? m.id}
-                          displayName={m.author?.displayName ?? "Usuario"}
-                          size="sm"
-                        />
-                        <div className="message-bubble__meta-text">
-                          <span className="message-bubble__author">{m.author?.displayName ?? "Usuario eliminado"}</span>
-                          <span className="message-bubble__sep">·</span>
-                          <span className="message-bubble__branch">{m.fromBranch.name}</span>
-                          <span className="message-bubble__sep">·</span>
+                  messages?.map((m) => {
+                    const mine = m.author.id === user?.id;
+                    return (
+                      <div key={m.id} className={`message-row${mine ? " message-row--mine" : " message-row--theirs"}`}>
+                        {!mine && (
+                          <Avatar
+                            avatarStyle={m.author.avatarStyle}
+                            avatarSeed={m.author.avatarSeed}
+                            displayName={m.author.displayName}
+                            size="sm"
+                          />
+                        )}
+                        <div className={`message-bubble${mine ? " message-bubble--mine" : " message-bubble--theirs"}`}>
+                          {m.body && <p className="message-bubble__body">{m.body}</p>}
+                          {m.attachments.length > 0 && (
+                            <div className="message-bubble__attachments">
+                              {m.attachments.map((a) => (
+                                <a key={a.id} href={buildAttachmentUrl(a.url)} download className="attachment-chip">
+                                  <AttachmentIcon mimeType={a.mimeType} />
+                                  <span>{a.fileName}</span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
                           <span className="message-bubble__time">{formatRelativeTime(m.createdAt)}</span>
                         </div>
                       </div>
-                      {m.body && <p className="message-bubble__body">{m.body}</p>}
-                      {m.attachments.length > 0 && (
-                        <div className="message-bubble__attachments">
-                          {m.attachments.map((a) => (
-                            <a key={a.id} href={buildAttachmentUrl(a.url)} download className="attachment-chip">
-                              <AttachmentIcon mimeType={a.mimeType} />
-                              <span>{a.fileName}</span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
 
               <form className="messages-compose" onSubmit={handleSend}>
-                {accessibleForSelected.length > 1 && (
-                  <select
-                    className="messages-compose__from"
-                    value={composeFromBranchId}
-                    onChange={(e) => setComposeFromBranchId(e.target.value)}
-                  >
-                    {accessibleForSelected.map((b) => (
-                      <option key={b.id} value={b.id}>Enviar como {b.name}</option>
-                    ))}
-                  </select>
-                )}
-
                 {composeError && <p className="messages-compose__error">{composeError}</p>}
 
                 {composeFiles.length > 0 && (
@@ -372,38 +369,48 @@ export function MessagesPage() {
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Nueva conversación">
-        <form onSubmit={handleCreateConversation}>
-          {accessibleBranches.length > 1 && (
-            <label>
-              Enviar como
-              <select
-                value={newConvFromBranchId}
-                onChange={(e) => setNewConvFromBranchId(e.target.value)}
-                required
-              >
-                <option value="">Selecciona tu sucursal</option>
-                {accessibleBranches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label>
-            Sucursal destino
-            <select value={newConvToBranchId} onChange={(e) => setNewConvToBranchId(e.target.value)} required>
-              <option value="">Selecciona una sucursal</option>
-              {messagingBranches
-                .filter((b) => b.id !== effectiveNewConvFromBranchId)
-                .map((b) => (
-                  <option key={b.id} value={b.id}>{b.name} — {lastSeenText(b.lastActivityAt)}</option>
-                ))}
-            </select>
-          </label>
+        <div className="people-picker">
+          <div className="people-picker__search">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, rol o sucursal..."
+              value={peopleSearch}
+              onChange={(e) => setPeopleSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+
           {newConvError && <p className="messages-page__modal-error">{newConvError}</p>}
-          <button type="submit" disabled={creatingConv || !newConvToBranchId || !effectiveNewConvFromBranchId}>
-            {creatingConv ? "Creando..." : "Iniciar conversación"}
-          </button>
-        </form>
+
+          <ul className="people-picker__list">
+            {filteredPeople.length === 0 && (
+              <li className="people-picker__empty">Nadie coincide con tu búsqueda.</li>
+            )}
+            {filteredPeople.map((person) => (
+              <li key={person.id}>
+                <button
+                  type="button"
+                  className="people-picker__row"
+                  onClick={() => handleStartConversation(person)}
+                  disabled={startingUserId !== null}
+                >
+                  <Avatar avatarStyle={person.avatarStyle} avatarSeed={person.avatarSeed} displayName={person.displayName} size="md" />
+                  <div className="people-picker__row-text">
+                    <p className="people-picker__name">{person.displayName}</p>
+                    <p className="people-picker__caption">
+                      <span className="messages-list__role-badge">{person.role.name}</span>
+                      <span className="messages-list__dot">·</span>
+                      {branchCaption(person)}
+                    </p>
+                    <p className="people-picker__lastseen">{lastSeenText(person.lastLoginAt)}</p>
+                  </div>
+                  {startingUserId === person.id && <span className="people-picker__spinner" aria-hidden="true" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </Modal>
     </div>
   );

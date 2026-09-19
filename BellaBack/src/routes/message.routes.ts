@@ -21,10 +21,10 @@ router.post(
   messageAttachmentUpload.array("attachments", 3),
   messageController.sendMessage
 );
-// Deliberately not gated by branches.view: roles like cashier get
-// messages.view/messages.send but not branches.view in the seed, and still
-// need branch names to start a conversation. Keeps the payload minimal
-// (id + name only), not the full branch record.
-router.get("/branches", requireAuth, requirePermission("messages.view"), messageController.listBranches);
+// Deliberately not gated by users.view: roles like cashier get
+// messages.view/messages.send but not users.view in the seed, and still
+// need to see who they can message. Keeps the payload minimal (no
+// permissions/email/etc), not the full Users CRUD record.
+router.get("/users", requireAuth, requirePermission("messages.view"), messageController.listUsers);
 
 export default router;

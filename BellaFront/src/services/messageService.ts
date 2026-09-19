@@ -1,5 +1,5 @@
 import { apiFetch, ApiError } from "./apiClient";
-import type { Conversation, BranchMessage, MessagingBranch } from "../types/api";
+import type { Conversation, Message, MessagingParty } from "../types/api";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 // /uploads is served as a static root by the backend (see BellaBack's
@@ -14,19 +14,18 @@ export function buildAttachmentUrl(relativeUrl: string): string {
 
 export const listConversations = () => apiFetch<Conversation[]>("/messages/conversations");
 
-export const listMessagingBranches = () => apiFetch<MessagingBranch[]>("/messages/branches");
+export const listMessagingUsers = () => apiFetch<MessagingParty[]>("/messages/users");
 
-export const startConversation = (fromBranchId: string, toBranchId: string) =>
+export const startConversation = (otherUserId: string) =>
   apiFetch<Conversation>("/messages/conversations", {
     method: "POST",
-    body: JSON.stringify({ fromBranchId, toBranchId }),
+    body: JSON.stringify({ otherUserId }),
   });
 
 export const listMessages = (conversationId: string) =>
-  apiFetch<BranchMessage[]>(`/messages/conversations/${conversationId}/messages`);
+  apiFetch<Message[]>(`/messages/conversations/${conversationId}/messages`);
 
 export interface SendMessageInput {
-  fromBranchId: string;
   body: string;
   files: File[];
 }
@@ -38,9 +37,8 @@ export interface SendMessageInput {
 // there. No 401-refresh-retry here (unlike apiFetch): sending a message is a
 // rare, manual user action rather than a background poll, so a simple
 // version without that retry logic is an acceptable tradeoff.
-export async function sendMessage(conversationId: string, input: SendMessageInput): Promise<BranchMessage> {
+export async function sendMessage(conversationId: string, input: SendMessageInput): Promise<Message> {
   const formData = new FormData();
-  formData.append("fromBranchId", input.fromBranchId);
   formData.append("body", input.body);
   for (const file of input.files) {
     formData.append("attachments", file);
@@ -57,5 +55,5 @@ export async function sendMessage(conversationId: string, input: SendMessageInpu
     throw new ApiError(res.status, body.message ?? "Error de red");
   }
 
-  return res.json() as Promise<BranchMessage>;
+  return res.json() as Promise<Message>;
 }

@@ -70,35 +70,36 @@ export interface MessageAttachment {
   size: number;
 }
 
-export interface BranchMessage {
+// A person on the other end of a message/conversation — the sender is
+// always "whoever is logged in", so branch is display-only context here
+// (computed live from the user's own branches/allBranches), never stored
+// per-message.
+export interface MessagingParty {
+  id: string;
+  displayName: string;
+  avatarStyle: string;
+  avatarSeed: string;
+  role: { name: string };
+  allBranches: boolean;
+  branches: { id: string; name: string }[];
+  lastLoginAt: string | null;
+}
+
+export interface Message {
   id: string;
   conversationId: string;
   body: string;
   createdAt: string;
-  author: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
-  fromBranch: { id: string; name: string };
+  author: MessagingParty;
   attachments: MessageAttachment[];
-}
-
-// lastActivityAt is the most recent lastLoginAt among every user who can
-// act as this branch (explicit UserBranch assignment, union any
-// allBranches:true user) — null if nobody matching either group has ever
-// logged in.
-export interface MessagingBranch {
-  id: string;
-  name: string;
-  lastActivityAt: string | null;
 }
 
 export interface Conversation {
   id: string;
-  branchAId: string;
-  branchBId: string;
-  branchA: MessagingBranch;
-  branchB: MessagingBranch;
+  otherUser: MessagingParty;
   createdAt: string;
   updatedAt: string;
-  messages: BranchMessage[];
+  messages: Message[];
 }
 
 export interface AuditLogEntry {

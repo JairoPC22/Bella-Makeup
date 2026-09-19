@@ -22,7 +22,7 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: var(--space-3);
   background: var(--color-white);
   border: 1px solid var(--color-border);
@@ -44,27 +44,45 @@
 
 .messages-list__items { list-style: none; margin: 0; padding: var(--space-2); display: flex; flex-direction: column; gap: 4px; }
 .messages-list__item {
-  width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; display: flex; align-items: flex-start; gap: var(--space-2);
   background: none; border: none; border-radius: var(--radius-md); padding: var(--space-2_5) var(--space-3);
   cursor: pointer;
   transition: background-color var(--transition-fast) var(--ease-premium);
 }
 .messages-list__item:hover { background: var(--color-bg); }
 .messages-list__item--active { background: var(--color-pink-50); }
-.messages-list__pair { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--color-primary); }
-.messages-list__lastseen {
-  margin: 0; font-size: 0.72rem; color: var(--color-text-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.messages-list__item-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.messages-list__item-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.messages-list__name { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.messages-list__caption {
+  margin: 0; font-size: 0.72rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px;
 }
+.messages-list__caption-branch { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.messages-list__role-badge {
+  display: inline-flex; align-items: center; flex: 0 0 auto;
+  background: var(--color-pink-50); color: var(--color-pink-deep); font-weight: 600;
+  border-radius: var(--radius-pill); padding: 1px 8px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.02em;
+}
+.messages-list__dot { flex: 0 0 auto; color: var(--color-text-muted); }
 .messages-list__preview {
   margin: 0; font-size: 0.8rem; color: var(--color-text-secondary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.messages-list__time { font-size: 0.72rem; color: var(--color-text-muted); }
+.messages-list__time { flex: 0 0 auto; font-size: 0.72rem; color: var(--color-text-muted); }
 
 /* ---------- Thread ---------- */
 .messages-thread { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .messages-thread__empty { display: flex; align-items: center; justify-content: center; height: 100%; }
+
+.messages-thread__header {
+  flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border);
+}
+.messages-thread__header-text { min-width: 0; }
+.messages-thread__header-name { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--color-primary); }
+.messages-thread__header-caption {
+  margin: 0; font-size: 0.74rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
 
 .messages-thread__scroll {
   flex: 1 1 auto;
@@ -73,7 +91,7 @@
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2_5);
   scrollbar-width: thin;
   scrollbar-color: var(--color-pink-soft) transparent;
 }
@@ -82,23 +100,38 @@
 .messages-thread__scroll::-webkit-scrollbar-thumb { background-color: var(--color-pink-soft); border-radius: var(--radius-pill); }
 .messages-thread__scroll::-webkit-scrollbar-thumb:hover { background-color: var(--color-pink-elegant); }
 
+/* Each row holds the (optional) avatar + bubble, justified to the side that
+   matches who sent it — the single biggest usability/design upgrade over
+   the old all-left, undifferentiated bubble list. */
+.message-row { display: flex; align-items: flex-end; gap: var(--space-2); max-width: 100%; animation: fade-in-up 0.3s var(--ease-premium) both; }
+.message-row--theirs { justify-content: flex-start; }
+.message-row--mine { justify-content: flex-end; }
+
 .message-bubble {
-  max-width: 640px;
+  max-width: 520px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2_5) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.message-bubble--theirs {
   background: var(--color-surface-pearl);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  animation: fade-in-up 0.35s var(--ease-premium) both;
+  border-bottom-left-radius: 4px;
+  color: var(--color-primary);
 }
-.message-bubble__meta { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
-.message-bubble__meta-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font-size: 0.78rem; }
-.message-bubble__author { font-weight: 600; color: var(--color-primary); }
-.message-bubble__branch { color: var(--color-pink-deep); }
-.message-bubble__time { color: var(--color-text-muted); }
-.message-bubble__sep { color: var(--color-text-muted); }
-.message-bubble__body { margin: 0; font-size: 0.92rem; color: var(--color-primary); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.message-bubble--mine {
+  background: linear-gradient(135deg, var(--color-pink-deep), var(--color-pink-elegant));
+  border: 1px solid transparent;
+  border-bottom-right-radius: 4px;
+  color: var(--color-white);
+}
 
-.message-bubble__attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-2); }
+.message-bubble__body { margin: 0; font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.message-bubble__time { align-self: flex-end; font-size: 0.68rem; opacity: 0.7; }
+
+.message-bubble__attachments { display: flex; flex-wrap: wrap; gap: 6px; }
 .attachment-chip {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-pill);
@@ -106,6 +139,10 @@
   transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
 }
 .attachment-chip:hover { background: var(--color-pink-50); border-color: var(--color-pink-elegant); }
+.message-bubble--mine .attachment-chip {
+  background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.4); color: var(--color-white);
+}
+.message-bubble--mine .attachment-chip:hover { background: rgba(255, 255, 255, 0.28); }
 
 /* ---------- Compose bar ---------- */
 .messages-compose {
@@ -116,7 +153,6 @@
   flex-direction: column;
   gap: var(--space-2);
 }
-.messages-compose__from { align-self: flex-start; }
 .messages-compose__error {
   margin: 0; padding: var(--space-2) var(--space-3); background: rgba(0, 102, 204, 0.08);
   border: 1px solid rgba(0, 102, 204, 0.2); border-radius: var(--radius-sm);
@@ -162,6 +198,58 @@
 .messages-compose__send:hover:not(:disabled) { background: var(--color-primary-focus); }
 .messages-compose__send:active:not(:disabled) { transform: scale(0.94); }
 .messages-compose__send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- New-conversation people picker (inside Modal) ---------- */
+.people-picker { display: flex; flex-direction: column; gap: var(--space-3); }
+.people-picker__search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3); color: var(--color-text-muted);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.people-picker__search:focus-within { border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.people-picker__search input {
+  flex: 1 1 auto; border: none; outline: none; background: none;
+  font-family: var(--font-body); font-size: 0.92rem; color: var(--color-primary);
+}
+
+/* Scrollable list — same thin-scrollbar treatment established in
+   Modal.css's .user-form__branch-list, copied here scoped to this page's
+   own list rather than editing the shared Modal.css. */
+.people-picker__list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 360px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--color-pink-soft) transparent;
+}
+.people-picker__list::-webkit-scrollbar { width: 6px; }
+.people-picker__list::-webkit-scrollbar-track { background: transparent; }
+.people-picker__list::-webkit-scrollbar-thumb { background-color: var(--color-pink-soft); border-radius: var(--radius-pill); }
+.people-picker__list::-webkit-scrollbar-thumb:hover { background-color: var(--color-pink-elegant); }
+
+.people-picker__empty { padding: var(--space-3); text-align: center; color: var(--color-text-muted); font-size: 0.88rem; }
+
+.people-picker__row {
+  width: 100%; display: flex; align-items: center; gap: var(--space-2_5);
+  background: none; border: none; border-radius: var(--radius-md); padding: var(--space-2) var(--space-2_5);
+  cursor: pointer; text-align: left;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.people-picker__row:hover:not(:disabled) { background: var(--color-bg); }
+.people-picker__row:disabled { cursor: not-allowed; opacity: 0.6; }
+.people-picker__row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.people-picker__name { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--color-primary); }
+.people-picker__caption {
+  margin: 0; font-size: 0.74rem; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+.people-picker__lastseen { margin: 0; font-size: 0.72rem; color: var(--color-text-muted); }
+
+.people-picker__spinner {
+  flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--color-pink-soft); border-top-color: var(--color-pink-deep);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
   .messages-layout { grid-template-columns: 1fr; }

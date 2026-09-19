@@ -10,8 +10,8 @@ export async function listConversations(req: Request, res: Response, next: NextF
 
 export async function startConversation(req: Request, res: Response, next: NextFunction) {
   try {
-    const { fromBranchId, toBranchId } = startConversationSchema.parse(req.body);
-    const conversation = await messageService.startConversation(req.user!.id, fromBranchId, toBranchId);
+    const { otherUserId } = startConversationSchema.parse(req.body);
+    const conversation = await messageService.startConversation(req.user!.id, otherUserId);
     res.status(201).json(conversation);
   } catch (err) { next(err); }
 }
@@ -24,15 +24,15 @@ export async function listMessages(req: Request, res: Response, next: NextFuncti
 
 export async function sendMessage(req: Request, res: Response, next: NextFunction) {
   try {
-    const { fromBranchId, body } = sendMessageSchema.parse(req.body);
+    const { body } = sendMessageSchema.parse(req.body);
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
-    const message = await messageService.sendMessage(req.user!.id, req.params.id, { fromBranchId, body, files });
+    const message = await messageService.sendMessage(req.user!.id, req.params.id, { body, files });
     res.status(201).json(message);
   } catch (err) { next(err); }
 }
 
-export async function listBranches(_req: Request, res: Response, next: NextFunction) {
+export async function listUsers(req: Request, res: Response, next: NextFunction) {
   try {
-    res.json(await messageService.listMessagingBranches());
+    res.json(await messageService.listMessagingUsers(req.user!.id));
   } catch (err) { next(err); }
 }

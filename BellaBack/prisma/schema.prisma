@@ -65,9 +65,6 @@ model Branch {
   auditLogs    AuditLog[]
   inventory    Inventory[]
   inventoryMovements InventoryMovement[]
-  conversationsAsA BranchConversation[] @relation("ConversationsAsBranchA")
-  conversationsAsB BranchConversation[] @relation("ConversationsAsBranchB")
-  messagesSent     BranchMessage[]      @relation("MessagesSentAsBranch")
 
   @@map("branches")
 }
@@ -94,7 +91,9 @@ model User {
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   inventoryMovements InventoryMovement[]
-  branchMessages BranchMessage[]
+  conversationsAsA Conversation[] @relation("ConversationsAsUserA")
+  conversationsAsB Conversation[] @relation("ConversationsAsUserB")
+  messagesAuthored Message[]      @relation("MessagesAuthored")
 
   @@map("users")
 }
@@ -309,40 +308,38 @@ model InventoryAdjustment {
   @@map("inventory_adjustments")
 }
 
-model BranchConversation {
-  id         String   @id @default(uuid())
-  branchAId  String   @map("branch_a_id")
-  branchBId  String   @map("branch_b_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+model Conversation {
+  id        String   @id @default(uuid())
+  userAId   String   @map("user_a_id")
+  userBId   String   @map("user_b_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  branchA  Branch @relation("ConversationsAsBranchA", fields: [branchAId], references: [id], onDelete: Cascade)
-  branchB  Branch @relation("ConversationsAsBranchB", fields: [branchBId], references: [id], onDelete: Cascade)
-  messages BranchMessage[]
+  userA    User      @relation("ConversationsAsUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User      @relation("ConversationsAsUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages Message[]
 
-  @@unique([branchAId, branchBId])
-  @@map("branch_conversations")
+  @@unique([userAId, userBId])
+  @@map("conversations")
 }
 
-model BranchMessage {
+model Message {
   id             String   @id @default(uuid())
   conversationId String   @map("conversation_id")
-  authorId       String?  @map("author_id")
-  fromBranchId   String   @map("from_branch_id")
+  authorId       String   @map("author_id")
   body           String
   createdAt      DateTime @default(now()) @map("created_at")
 
-  conversation BranchConversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  author       User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  fromBranch   Branch                   @relation("MessagesSentAsBranch", fields: [fromBranchId], references: [id], onDelete: Cascade)
-  attachments  BranchMessageAttachment[]
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       User                @relation("MessagesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
 
-  @@map("branch_messages")
+  @@map("messages")
   @@index([conversationId, createdAt])
   @@index([createdAt])
 }
 
-model BranchMessageAttachment {
+model MessageAttachment {
   id        String   @id @default(uuid())
   messageId String   @map("message_id")
   fileName  String   @map("file_name")
@@ -351,7 +348,7 @@ model BranchMessageAttachment {
   size      Int
   createdAt DateTime @default(now()) @map("created_at")
 
-  message BranchMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@map("branch_message_attachments")
+  @@map("message_attachments")
 }
