@@ -247,24 +247,33 @@ describe("POST /api/roles and DELETE /api/roles/:id", () => {
   });
 
   it("refuses to delete a non-system role that still has users assigned", async () => {
+    // Unique code per run (not a fixed literal) so a prior run that got
+    // killed before its own cleanup ran (e.g. an OOM'd test process) never
+    // leaves behind a row that collides with this test on the next run.
+    const code = `temp_role_with_users_${Date.now()}`;
     const created = await request(app)
       .post("/api/roles")
       .set("Cookie", [cookie])
-      .send({ code: "temp_role_with_users", name: "Temp con usuarios", description: "x", permissions: [] });
+      .send({ code, name: "Temp con usuarios", description: "x", permissions: [] });
     expect(created.status).toBe(201);
 
-    await prisma.user.upsert({
-      where: { username: "roles_crud_test_member" },
-      update: { roleId: created.body.id },
-      create: {
-        firstName: "Member", lastName: "T", displayName: "Member T", username: "roles_crud_test_member",
-        email: "roles_crud_test_member@bellamakeup.demo", passwordHash: await hashPassword("Password#123"),
+    const username = `roles_crud_test_member_${Date.now()}`;
+    const member = await prisma.user.create({
+      data: {
+        firstName: "Member", lastName: "T", displayName: "Member T", username,
+        email: `${username}@bellamakeup.demo`, passwordHash: await hashPassword("Password#123"),
         avatarSeed: "seed", roleId: created.body.id, allBranches: true,
       },
     });
 
     const blocked = await request(app).delete(`/api/roles/${created.body.id}`).set("Cookie", [cookie]);
     expect(blocked.status).toBe(409);
+
+    // The role can't be deleted through the API while it still has a
+    // member (that's the behavior under test) — clean up directly via
+    // Prisma so this test doesn't leak rows into later runs.
+    await prisma.user.delete({ where: { id: member.id } });
+    await prisma.role.delete({ where: { id: created.body.id } });
   });
 
   it("rejects requests without roles.manage permission", async () => {

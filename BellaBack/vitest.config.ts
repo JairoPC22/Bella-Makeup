@@ -63,5 +63,15 @@ export default defineConfig({
     // more headroom rather than papering over flakes with retries.
     testTimeout: 15000,
     hookTimeout: 20000,
+    // Vitest's default worker pool spawns one process per CPU core, each
+    // loading its own Prisma engine — on a memory-constrained dev machine
+    // (observed: 6.9GB total RAM, most of it already claimed by Docker,
+    // the frontend/backend dev servers, and stray browser-automation
+    // processes) that default reliably OOM-crashes the whole run with
+    // "Fatal process out of memory: Zone" partway through. A single fork
+    // running all files sequentially is slower but never OOMs; correctness
+    // doesn't depend on file-level parallelism here.
+    pool: "forks",
+    poolOptions: { forks: { singleFork: true } },
   },
 });
