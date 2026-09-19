@@ -108,4 +108,57 @@ describe("PUT /api/roles/:id/permissions", () => {
       .send({ permissions: ["products.view"] });
     expect(res.status).toBe(403);
   });
+
+  // Review round 2 finding: nothing special-cased the "admin" role, and the
+  // schema allowed an empty permissions array (the "validate codes exist"
+  // check passes vacuously for []). PUT on admin's own role id with
+  // permissions omitting roles.manage would strip admin's ability to ever
+  // call this endpoint again — a system-wide lockout with no in-app
+  // recovery, since there's no "other admin" once roles.manage is gone.
+  it("refuses to strip roles.manage/roles.view from the admin role (would brick the system)", async () => {
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" }, include: { rolePermissions: { include: { permission: true } } } });
+    const originalCodes = adminRole.rolePermissions.map((rp) => rp.permission.code).sort();
+
+    const emptySet = await request(app)
+      .put(`/api/roles/${adminRole.id}/permissions`)
+      .set("Cookie", [cookie])
+      .send({ permissions: [] });
+    expect([400, 409]).toContain(emptySet.status);
+
+    const missingRolesManage = await request(app)
+      .put(`/api/roles/${adminRole.id}/permissions`)
+      .set("Cookie", [cookie])
+      .send({ permissions: originalCodes.filter((c) => c !== "roles.manage") });
+    expect([400, 409]).toContain(missingRolesManage.status);
+
+    // Confirm neither request actually mutated the role — read it back via
+    // the real GET endpoint, not just trust the HTTP status of the PUTs.
+    const list = await request(app).get("/api/roles").set("Cookie", [cookie]);
+    const adminAfter = list.body.find((r: any) => r.code === "admin");
+    expect(adminAfter.permissions.sort()).toEqual(originalCodes);
+  });
+
+  it("logs an audit entry with the added/removed permission diff, not just the resulting set", async () => {
+    const cashierRole = await prisma.role.findUniqueOrThrow({ where: { code: "cashier" } });
+
+    await request(app)
+      .put(`/api/roles/${cashierRole.id}/permissions`)
+      .set("Cookie", [cookie])
+      .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply", "reports.view"] });
+
+    const entry = await prisma.auditLog.findFirst({
+      where: { action: "roles.update_permissions", entityId: cashierRole.id },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(entry).not.toBeNull();
+    const details = entry!.details as any;
+    expect(details.added).toEqual(["reports.view"]);
+    expect(details.removed).toEqual([]);
+
+    // Restore the seeded cashier permission set.
+    await request(app)
+      .put(`/api/roles/${cashierRole.id}/permissions`)
+      .set("Cookie", [cookie])
+      .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply"] });
+  });
 });
