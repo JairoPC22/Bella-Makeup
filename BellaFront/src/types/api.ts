@@ -80,6 +80,15 @@ export interface ProductVariant {
   status: "ACTIVE" | "INACTIVE";
 }
 
+export interface ProductImage {
+  id: string;
+  productId: string;
+  url: string;
+  isPrimary: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -96,7 +105,7 @@ export interface Product {
   maxStock?: number | null;
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
-  images: { id: string; url: string; isPrimary: boolean; sortOrder: number }[];
+  images: ProductImage[];
   variants: ProductVariant[];
   category?: Category | null;
   brand?: Brand | null;

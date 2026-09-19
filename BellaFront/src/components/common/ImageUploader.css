@@ -1,0 +1,96 @@
+.image-uploader { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.image-uploader__empty {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; padding: var(--space-2) var(--space-3);
+  background: var(--color-bg); border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted); font-size: 0.85rem;
+}
+
+.image-uploader__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: var(--space-2);
+}
+
+.image-uploader__item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.image-uploader__thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.image-uploader__badge {
+  position: absolute; top: 4px; left: 4px;
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--color-pink-deep); color: var(--color-white);
+  font-size: 0.66rem; font-weight: 700;
+  padding: 2px 6px; border-radius: var(--radius-pill);
+}
+
+.image-uploader__actions {
+  position: absolute; inset: auto 0 0 0;
+  display: flex; justify-content: flex-end; gap: 4px;
+  padding: 4px;
+  background: linear-gradient(to top, rgba(24, 24, 27, 0.55), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-fast) var(--ease-premium);
+}
+.image-uploader__item:hover .image-uploader__actions,
+.image-uploader__item:focus-within .image-uploader__actions { opacity: 1; }
+
+.image-uploader__action {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+  background: var(--color-white); color: var(--color-text-secondary);
+  border: none; border-radius: var(--radius-sm); cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.image-uploader__action:hover:not(:disabled) { background: var(--color-pink-soft); color: var(--color-pink-deep); }
+.image-uploader__action:disabled { opacity: 0.6; cursor: not-allowed; }
+.image-uploader__action--danger:hover:not(:disabled) { background: #FBE5E1; color: #B3261E; }
+
+.image-uploader__confirm {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(24, 24, 27, 0.72);
+  color: var(--color-white);
+}
+.image-uploader__confirm p { margin: 0; font-size: 0.76rem; font-weight: 600; }
+.image-uploader__confirm-actions { display: flex; gap: 6px; }
+.image-uploader__confirm-actions button {
+  border: none; border-radius: var(--radius-sm); padding: 3px 10px;
+  font-size: 0.76rem; font-weight: 600; cursor: pointer;
+  background: var(--color-white); color: var(--color-ink);
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.image-uploader__confirm-actions button:first-child { background: #B3261E; color: var(--color-white); }
+.image-uploader__confirm-actions button:first-child:hover:not(:disabled) { background: #942018; }
+.image-uploader__confirm-actions button:last-child:hover:not(:disabled) { background: var(--color-pink-soft); }
+.image-uploader__confirm-actions button:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.image-uploader__input { display: none; }
+.image-uploader__add {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm); padding: 6px 12px;
+  font-size: 0.85rem; color: var(--color-text-secondary); cursor: pointer;
+  transition: border-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
+}
+.image-uploader__add:hover:not(:disabled) { border-color: var(--color-pink-elegant); color: var(--color-pink-deep); background: var(--color-pink-50); }
+.image-uploader__add:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.image-uploader__error {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 0; padding: var(--space-2) var(--space-3);
+  background: rgba(0, 102, 204, 0.08);
+  border: 1px solid rgba(0, 102, 204, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-pink-deep);
+  font-size: 0.82rem; line-height: 1.4;
+}
