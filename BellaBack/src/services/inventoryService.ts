@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { AppError } from "../utils/AppError";
 import { createMovement } from "../repositories/inventoryMovementRepository";
@@ -85,8 +86,17 @@ export function inventoryLockKey(productId: string, variantId: string | undefine
 //     duplicate rows for variant-less products (see
 //     prisma/seed.ts's own findFirst-then-create workaround for the same
 //     issue).
-export async function applyMovement(input: ApplyMovementInput) {
-  return prisma.$transaction(async (tx) => {
+// `tx` is an optional externally-owned Prisma transaction client. When
+// provided (e.g. checkout composing several applyMovement calls alongside
+// Sale/SaleItem creation into ONE atomic transaction — see saleService),
+// this function participates in that outer transaction instead of opening
+// its own, so a failure partway through (e.g. item 3 of 5 oversells) rolls
+// back everything the caller has done so far, not just this call's own
+// writes. When omitted, behavior is 100% unchanged from before: a fresh
+// `prisma.$transaction` is opened here exactly as always, so every existing
+// call site (inventoryAdjustmentService, tests) needs no changes.
+export async function applyMovement(input: ApplyMovementInput, tx?: Prisma.TransactionClient) {
+  const run = async (client: Prisma.TransactionClient) => {
     const lockKey = inventoryLockKey(input.productId, input.variantId, input.branchId);
     // $executeRaw (not $queryRaw): pg_advisory_xact_lock returns `void`,
     // which Prisma's result deserializer can't map to a Prisma type when
@@ -94,13 +104,13 @@ export async function applyMovement(input: ApplyMovementInput) {
     // 'void'"). $executeRaw just runs the statement and returns the
     // affected-row count, which is exactly what's needed here — the lock
     // is acquired as a side effect, its return value is irrelevant.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
+    await client.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey})`;
 
     const whereRow = input.variantId
       ? { productId: input.productId, variantId: input.variantId, branchId: input.branchId }
       : { productId: input.productId, variantId: null, branchId: input.branchId };
 
-    const existing = await tx.inventory.findFirst({ where: whereRow });
+    const existing = await client.inventory.findFirst({ where: whereRow });
     const stockBefore = existing?.stock ?? 0;
     const stockAfter = stockBefore + input.quantity;
 
@@ -109,9 +119,9 @@ export async function applyMovement(input: ApplyMovementInput) {
     }
 
     if (existing) {
-      await tx.inventory.update({ where: { id: existing.id }, data: { stock: stockAfter } });
+      await client.inventory.update({ where: { id: existing.id }, data: { stock: stockAfter } });
     } else {
-      await tx.inventory.create({
+      await client.inventory.create({
         data: { productId: input.productId, variantId: input.variantId, branchId: input.branchId, stock: stockAfter },
       });
     }
@@ -128,9 +138,12 @@ export async function applyMovement(input: ApplyMovementInput) {
         reference: input.reference,
         userId: input.userId,
       },
-      tx
+      client
     );
-  });
+  };
+
+  if (tx) return run(tx);
+  return prisma.$transaction(run);
 }
 
 export function computeStatus(stock: number, minStock: number): "AVAILABLE" | "LOW" | "CRITICAL" | "OUT" {
