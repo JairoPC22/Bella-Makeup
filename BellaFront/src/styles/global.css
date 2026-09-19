@@ -101,6 +101,22 @@ select:focus {
 select:disabled { background-color: var(--color-bg); color: var(--color-text-secondary); cursor: not-allowed; filter: opacity(0.7); }
 select option { font-family: var(--font-body); }
 
+/* Multi-selects (e.g. the Users table's row-level branch assignment) keep
+   native listbox rendering, but get padded/rounded options and a themed
+   selected-row color instead of the OS-default flat blue highlight. The
+   `background` shorthand (not `background-color`) on `:checked` is a
+   deliberate cross-browser quirk: some engines only honor a custom
+   selected-option color through the shorthand. */
+select[multiple] { padding: 4px; }
+select[multiple] option {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+select[multiple] option:checked {
+  background: var(--color-pink-100) linear-gradient(0deg, var(--color-pink-100) 0%, var(--color-pink-100) 100%);
+  color: var(--color-pink-deep);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
