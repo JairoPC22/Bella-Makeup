@@ -9,9 +9,9 @@ import {
   UserRound,
   ArrowUpRight,
   PackageSearch,
-  Droplet,
+  SprayCan,
   Sparkles,
-  Gem,
+  Flower2,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePermission } from "../../hooks/usePermission";
@@ -49,24 +49,27 @@ function staggerStyle(ms: number): CSSProperties {
   return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
 }
 
-// A small, self-contained CSS/SVG-layered "abstract beauty" visual for the
-// hero — three softly blurred gradient orbs drifting at different speeds
-// (parallax-style depth from layering + blur, not literal 3D geometry),
-// a slow-rotating ring, and two lucide glyphs (a serum droplet as the
-// centerpiece, a twinkle accent) with drop-shadows for lift. No new
-// dependency, no canvas/WebGL — every animation here uses `animation`/
-// `transition`, so the existing sitewide `prefers-reduced-motion` rule in
-// global.css automatically freezes it for users who need that.
+// Hero visual, redesigned to read unmistakably as "beauty retail" rather
+// than generic abstract blobs: a perfume-spray glyph as the centerpiece
+// (the one motif most people immediately associate with a makeup/beauty
+// brand), a soft radial glow behind it, a slow-rotating dashed ring, a
+// diagonal shimmer sweep across the spray icon itself, and two small
+// orbiting accents (a flower — botanical/skincare association — and a
+// sparkle/twinkle). Pure CSS/SVG layering, no canvas/WebGL, no new
+// dependency; every animation uses `animation`/`transition`, so the
+// existing sitewide `prefers-reduced-motion` rule in global.css freezes
+// it automatically for users who need that.
 function DashboardVisual() {
   return (
     <div className="dashboard-visual" aria-hidden="true">
-      <span className="dashboard-visual__orb dashboard-visual__orb--a" />
-      <span className="dashboard-visual__orb dashboard-visual__orb--b" />
-      <span className="dashboard-visual__orb dashboard-visual__orb--c" />
+      <span className="dashboard-visual__glow" />
       <span className="dashboard-visual__ring" />
-      <Gem className="dashboard-visual__icon dashboard-visual__icon--gem" size={16} strokeWidth={1.75} />
-      <Droplet className="dashboard-visual__icon dashboard-visual__icon--droplet" size={34} strokeWidth={1.5} />
-      <Sparkles className="dashboard-visual__icon dashboard-visual__icon--sparkle" size={18} strokeWidth={1.75} />
+      <span className="dashboard-visual__centerpiece">
+        <SprayCan size={30} strokeWidth={1.5} />
+        <span className="dashboard-visual__shimmer" />
+      </span>
+      <Flower2 className="dashboard-visual__icon dashboard-visual__icon--flower" size={16} strokeWidth={1.75} />
+      <Sparkles className="dashboard-visual__icon dashboard-visual__icon--sparkle" size={15} strokeWidth={1.75} />
     </div>
   );
 }
@@ -299,44 +302,6 @@ export function DashboardPage() {
         </div>
       </header>
 
-      {hasAnyStat && (
-        <section className="stat-grid">
-          <PermissionGate code="branches.view">
-            <StatCard
-              icon={Building2}
-              label="Sucursales activas"
-              value={activeBranches}
-              caption={branches ? `de ${branches.length} en total` : undefined}
-              status={branchesStatus}
-              errorMessage="No se pudo cargar"
-              delay={0}
-            />
-          </PermissionGate>
-          <PermissionGate code="users.view">
-            <StatCard
-              icon={Users}
-              label="Usuarios activos"
-              value={activeUsers}
-              caption={users ? `de ${users.length} en total` : undefined}
-              status={usersStatus}
-              errorMessage="No se pudo cargar"
-              delay={70}
-            />
-          </PermissionGate>
-          <PermissionGate code="roles.view">
-            <StatCard
-              icon={ShieldCheck}
-              label="Roles en uso"
-              value={rolesInUse}
-              caption={roles ? `de ${roles.length} roles definidos` : undefined}
-              status={rolesStatus}
-              errorMessage="No se pudo cargar"
-              delay={140}
-            />
-          </PermissionGate>
-        </section>
-      )}
-
       <div className="dashboard-body">
         <div className="dashboard-body__charts">
         <PermissionGate code="inventory.view">
@@ -423,6 +388,44 @@ export function DashboardPage() {
           </div>
         </section>
       </div>
+
+      {hasAnyStat && (
+        <section className="stat-grid">
+          <PermissionGate code="branches.view">
+            <StatCard
+              icon={Building2}
+              label="Sucursales activas"
+              value={activeBranches}
+              caption={branches ? `de ${branches.length} en total` : undefined}
+              status={branchesStatus}
+              errorMessage="No se pudo cargar"
+              delay={0}
+            />
+          </PermissionGate>
+          <PermissionGate code="users.view">
+            <StatCard
+              icon={Users}
+              label="Usuarios activos"
+              value={activeUsers}
+              caption={users ? `de ${users.length} en total` : undefined}
+              status={usersStatus}
+              errorMessage="No se pudo cargar"
+              delay={70}
+            />
+          </PermissionGate>
+          <PermissionGate code="roles.view">
+            <StatCard
+              icon={ShieldCheck}
+              label="Roles en uso"
+              value={rolesInUse}
+              caption={roles ? `de ${roles.length} roles definidos` : undefined}
+              status={rolesStatus}
+              errorMessage="No se pudo cargar"
+              delay={140}
+            />
+          </PermissionGate>
+        </section>
+      )}
     </div>
   );
 }

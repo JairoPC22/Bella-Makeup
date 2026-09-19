@@ -68,14 +68,15 @@
 .dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
 
 /* ---------- Hero visual ----------
-   A small, self-contained "abstract beauty" composition: three softly
-   blurred gradient orbs drifting at slightly different speeds/radii (depth
-   via layering + blur, not literal 3D), a slow-rotating dashed ring, and
-   two lucide glyphs with drop-shadows for lift. Frozen automatically under
-   prefers-reduced-motion by the existing sitewide rule in global.css
-   (it only targets animation/transition durations, which is all this
-   uses). A subtle hover lift adds a touch of interactivity without needing
-   JS-driven pointer tracking. */
+   Redesigned to read as "beauty retail" at a glance rather than abstract
+   blobs: a perfume-spray glyph centerpiece in a gradient badge (the motif
+   most immediately associated with a makeup/beauty brand), a soft glow
+   behind it, a slow-rotating dashed ring framing it, a diagonal shimmer
+   sweep across the badge, and two small orbiting accents (a flower for
+   the botanical/skincare association, a twinkle for polish/glow). Frozen
+   automatically under prefers-reduced-motion by the existing sitewide
+   rule in global.css (it only targets animation/transition durations,
+   which is all this uses). */
 
 .dashboard-visual {
   position: relative;
@@ -88,40 +89,51 @@
   .dashboard-visual { display: block; }
 }
 
-.dashboard-visual__orb {
+.dashboard-visual__glow {
   position: absolute;
+  inset: -6px;
   border-radius: 50%;
-  filter: blur(6px);
-  opacity: 0.85;
-}
-.dashboard-visual__orb--a {
-  width: 60px; height: 60px;
-  top: 4px; left: 8px;
-  background: radial-gradient(circle at 35% 35%, var(--color-pink-100), var(--color-pink-elegant) 70%, transparent 100%);
-  animation: dashboard-orb-float-a 7s var(--ease-premium) infinite;
-}
-.dashboard-visual__orb--b {
-  width: 42px; height: 42px;
-  bottom: 6px; right: 4px;
-  background: radial-gradient(circle at 40% 40%, var(--color-pink-50), var(--color-pink-deep) 75%, transparent 100%);
-  opacity: 0.7;
-  animation: dashboard-orb-float-b 8.5s var(--ease-premium) infinite;
-}
-.dashboard-visual__orb--c {
-  width: 30px; height: 30px;
-  top: 30px; right: 18px;
-  background: radial-gradient(circle at 40% 40%, #ffffff, var(--color-primary-on-dark) 80%, transparent 100%);
-  opacity: 0.55;
-  animation: dashboard-orb-float-c 6s var(--ease-premium) infinite;
+  background: radial-gradient(circle, rgba(41, 151, 255, 0.28) 0%, rgba(0, 102, 204, 0.1) 55%, transparent 75%);
+  filter: blur(4px);
+  animation: dashboard-glow-pulse 4.5s var(--ease-premium) infinite;
 }
 
 .dashboard-visual__ring {
   position: absolute;
-  inset: 10px;
+  inset: 6px;
   border-radius: 50%;
   border: 1.5px dashed var(--color-pink-200);
-  opacity: 0.6;
+  opacity: 0.65;
   animation: dashboard-ring-spin 22s linear infinite;
+}
+
+.dashboard-visual__centerpiece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, var(--color-pink-elegant), var(--color-pink-deep));
+  color: var(--color-white);
+  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
+  animation: dashboard-centerpiece-bob 5s var(--ease-premium) infinite;
+}
+
+.dashboard-visual__shimmer {
+  position: absolute;
+  top: -60%;
+  left: -20%;
+  width: 40%;
+  height: 220%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: rotate(20deg);
+  animation: dashboard-shimmer-sweep 3.6s ease-in-out infinite;
 }
 
 .dashboard-visual__icon {
@@ -129,43 +141,39 @@
   color: var(--color-pink-deep);
   filter: drop-shadow(0 4px 8px rgba(0, 102, 204, 0.25));
 }
-.dashboard-visual__icon--droplet {
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--color-primary-focus);
-  animation: dashboard-icon-bob 5s var(--ease-premium) infinite;
-}
-.dashboard-visual__icon--sparkle {
-  top: 2px; right: 10px;
-  animation: dashboard-icon-twinkle 3.2s var(--ease-premium) infinite;
-}
-.dashboard-visual__icon--gem {
-  bottom: 8px; left: 4px;
-  opacity: 0.85;
+.dashboard-visual__icon--flower {
+  bottom: 6px;
+  left: 2px;
+  opacity: 0.9;
   animation: dashboard-icon-bob 6.5s var(--ease-premium) infinite reverse;
 }
-
-.dashboard-visual:hover .dashboard-visual__ring { opacity: 0.9; }
-
-@keyframes dashboard-orb-float-a {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(4px, -6px) scale(1.06); }
+.dashboard-visual__icon--sparkle {
+  top: 0;
+  right: 8px;
+  animation: dashboard-icon-twinkle 3.2s var(--ease-premium) infinite;
 }
-@keyframes dashboard-orb-float-b {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-5px, 5px) scale(0.94); }
-}
-@keyframes dashboard-orb-float-c {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(3px, 4px); }
+
+.dashboard-visual:hover .dashboard-visual__ring { opacity: 0.95; }
+
+@keyframes dashboard-glow-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 @keyframes dashboard-ring-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-@keyframes dashboard-icon-bob {
+@keyframes dashboard-centerpiece-bob {
   0%, 100% { transform: translate(-50%, -50%) translateY(0); }
   50% { transform: translate(-50%, -50%) translateY(-3px); }
+}
+@keyframes dashboard-shimmer-sweep {
+  0% { left: -60%; }
+  55%, 100% { left: 130%; }
+}
+@keyframes dashboard-icon-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 @keyframes dashboard-icon-twinkle {
   0%, 100% { opacity: 0.6; transform: scale(0.9); }
