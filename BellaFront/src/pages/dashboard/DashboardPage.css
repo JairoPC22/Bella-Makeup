@@ -211,13 +211,21 @@
 .stat-card__caption { margin: 2px 0 0; font-size: 0.78rem; color: var(--color-text-muted); }
 .stat-card .status-state--compact { align-items: flex-start; text-align: left; padding: 4px 0 0; }
 
-/* ---------- Two-column body ---------- */
+/* ---------- Multi-column body: donut + bar chart + gradient quick-links,
+   loosely echoing a finance-dashboard's stat/chart row without inventing
+   any data — every number here comes from inventory/users/branches the
+   page already fetches for the stat cards above. ---------- */
 
 .dashboard-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: var(--space-4);
   align-items: start;
+}
+.dashboard-body__charts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .dashboard-panel {
@@ -239,6 +247,100 @@
 .dashboard-panel__title { display: flex; align-items: center; gap: 8px; color: var(--color-ink); }
 .dashboard-panel__title h2 { font-size: 1.05rem; letter-spacing: var(--tracking-tight); }
 .dashboard-panel__title svg { color: var(--color-pink-deep); }
+
+.dashboard-panel__subheading {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+.dashboard-panel__subheading--ok { color: var(--color-pink-deep); text-transform: none; letter-spacing: normal; font-weight: 500; }
+
+/* ---------- Inventory status donut (pure CSS conic-gradient, no chart lib) ---------- */
+
+.inventory-donut { display: flex; align-items: center; gap: var(--space-4); }
+.inventory-donut__ring {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inventory-donut__hole {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px var(--color-divider-soft);
+}
+.inventory-donut__total { font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; color: var(--color-ink); line-height: 1; }
+.inventory-donut__total-label { font-size: 0.62rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+.inventory-donut__legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.inventory-donut__legend li { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--color-text-secondary); }
+.inventory-donut__legend-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-donut__legend strong { color: var(--color-ink); font-weight: 700; }
+.inventory-donut__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ---------- Branch bar chart (CSS width bars, no chart lib) ---------- */
+
+.branch-bar-chart { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.branch-bar-chart__row { display: flex; align-items: center; gap: var(--space-2); }
+.branch-bar-chart__label {
+  width: 128px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+.branch-bar-chart__track {
+  flex: 1;
+  min-width: 0;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+.branch-bar-chart__fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--color-pink-elegant), var(--color-pink-deep));
+  transition: width 0.6s var(--ease-premium);
+}
+.branch-bar-chart__value { width: 22px; flex-shrink: 0; text-align: right; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
+
+/* ---------- Gradient quick-links panel ---------- */
+
+.dashboard-panel--gradient {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--color-surface-pearl) 0%, var(--color-pink-50) 100%);
+  border-color: var(--color-pink-100);
+}
+.dashboard-panel--gradient::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  right: -20%;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(41, 151, 255, 0.14) 0%, transparent 70%);
+  pointer-events: none;
+}
+.dashboard-panel--gradient .dashboard-panel__header,
+.dashboard-panel--gradient .quick-links { position: relative; z-index: 1; }
 
 /* ---------- Low-stock widget ---------- */
 

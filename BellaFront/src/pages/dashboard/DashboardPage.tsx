@@ -71,6 +71,82 @@ function DashboardVisual() {
   );
 }
 
+// Real-data-only chart pair replacing a fabricated "best sellers" widget
+// (no sales/orders data exists anywhere in the system yet — see the
+// project's own standing instruction never to invent that panel). Both
+// draw from data the dashboard already fetches for other purposes:
+// inventory rows (full distribution, not just the low-stock subset) and
+// users x branches (already-loaded arrays, no new endpoint).
+
+const ALL_STATUS_LABEL: Record<string, string> = { AVAILABLE: "Disponible", LOW: "Bajo", CRITICAL: "Crítico", OUT: "Agotado" };
+const ALL_STATUS_ORDER = ["OUT", "CRITICAL", "LOW", "AVAILABLE"] as const;
+const STATUS_COLOR: Record<string, string> = {
+  OUT: "#B3261E",
+  CRITICAL: "#C05621",
+  LOW: "var(--color-pink-deep)",
+  AVAILABLE: "var(--color-accent)",
+};
+
+// A CSS conic-gradient ring (no charting library, no SVG path math) —
+// custom properties resolve fine inside conic-gradient() in every modern
+// browser, so the existing design tokens can be reused directly as stops.
+function InventoryStatusDonut({ counts, total }: { counts: Record<string, number>; total: number }) {
+  if (total === 0) {
+    return <StatusState kind="empty" compact message="Aún no hay inventario registrado." />;
+  }
+  let cursor = 0;
+  const stops: string[] = [];
+  ALL_STATUS_ORDER.forEach((status) => {
+    const count = counts[status] ?? 0;
+    if (count === 0) return;
+    const start = (cursor / total) * 360;
+    cursor += count;
+    const end = (cursor / total) * 360;
+    stops.push(`${STATUS_COLOR[status]} ${start}deg ${end}deg`);
+  });
+  return (
+    <div className="inventory-donut">
+      <div className="inventory-donut__ring" style={{ background: `conic-gradient(${stops.join(", ")})` }}>
+        <div className="inventory-donut__hole">
+          <span className="inventory-donut__total">{total}</span>
+          <span className="inventory-donut__total-label">SKUs</span>
+        </div>
+      </div>
+      <ul className="inventory-donut__legend">
+        {ALL_STATUS_ORDER.filter((status) => (counts[status] ?? 0) > 0).map((status) => (
+          <li key={status}>
+            <span className="inventory-donut__dot" style={{ background: STATUS_COLOR[status] }} />
+            <span className="inventory-donut__legend-label">{ALL_STATUS_LABEL[status]}</span>
+            <strong>{counts[status]}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+interface BranchUserCount { id: string; name: string; count: number; }
+
+function BranchUsersBar({ data }: { data: BranchUserCount[] }) {
+  if (data.length === 0) {
+    return <StatusState kind="empty" compact message="No hay sucursales registradas." />;
+  }
+  const max = Math.max(...data.map((d) => d.count), 1);
+  return (
+    <ul className="branch-bar-chart">
+      {data.map((d, i) => (
+        <li key={d.id} className="branch-bar-chart__row animate-in-stagger" style={staggerStyle(i * 50)}>
+          <span className="branch-bar-chart__label" title={d.name}>{d.name}</span>
+          <div className="branch-bar-chart__track">
+            <div className="branch-bar-chart__fill" style={{ width: `${(d.count / max) * 100}%` }} />
+          </div>
+          <span className="branch-bar-chart__value">{d.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 interface StatCardProps {
   icon: ComponentType<{ size?: number }>;
   label: string;
@@ -182,12 +258,19 @@ export function DashboardPage() {
   const lowStockRows = (inventory ?? [])
     .filter((row) => row.status === "LOW" || row.status === "CRITICAL" || row.status === "OUT")
     .sort((a, b) => STOCK_STATUS_ORDER[a.status] - STOCK_STATUS_ORDER[b.status] || a.stock - b.stock);
-  const lowStockCounts = {
-    OUT: lowStockRows.filter((r) => r.status === "OUT").length,
-    CRITICAL: lowStockRows.filter((r) => r.status === "CRITICAL").length,
-    LOW: lowStockRows.filter((r) => r.status === "LOW").length,
-  };
-  const lowStockVisible = lowStockRows.slice(0, 6);
+  const lowStockVisible = lowStockRows.slice(0, 5);
+
+  const inventoryCounts = (inventory ?? []).reduce<Record<string, number>>((acc, row) => {
+    acc[row.status] = (acc[row.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const inventoryTotal = inventory?.length ?? 0;
+
+  const branchUserCounts: BranchUserCount[] = (branches ?? []).map((b) => ({
+    id: b.id,
+    name: b.name,
+    count: (users ?? []).filter((u) => u.status === "ACTIVE" && (u.allBranches || u.branches.some((ub) => ub.id === b.id))).length,
+  }));
 
   const hour = new Date().getHours();
   const greeting = getGreeting(hour, user?.displayName ?? "de nuevo");
@@ -255,27 +338,23 @@ export function DashboardPage() {
       )}
 
       <div className="dashboard-body">
+        <div className="dashboard-body__charts">
         <PermissionGate code="inventory.view">
           <section className="dashboard-panel dashboard-panel--stock animate-in" style={{ animationDelay: "180ms" }}>
             <header className="dashboard-panel__header">
               <div className="dashboard-panel__title">
                 <PackageSearch size={17} />
-                <h2>Inventario bajo</h2>
+                <h2>Inventario por estado</h2>
               </div>
             </header>
 
             {inventoryStatus === "loading" && <StatusState kind="loading" />}
             {inventoryStatus === "error" && <StatusState kind="error" message="No se pudo cargar el inventario." />}
-            {inventoryStatus === "ready" && lowStockRows.length === 0 && (
-              <StatusState kind="empty" message="Todo el inventario está en niveles saludables." />
-            )}
+            {inventoryStatus === "ready" && <InventoryStatusDonut counts={inventoryCounts} total={inventoryTotal} />}
+
             {inventoryStatus === "ready" && lowStockRows.length > 0 && (
               <>
-                <div className="stock-summary">
-                  <span className="stock-chip stock-chip--out">{lowStockCounts.OUT} agotado{lowStockCounts.OUT === 1 ? "" : "s"}</span>
-                  <span className="stock-chip stock-chip--critical">{lowStockCounts.CRITICAL} crítico{lowStockCounts.CRITICAL === 1 ? "" : "s"}</span>
-                  <span className="stock-chip stock-chip--low">{lowStockCounts.LOW} bajo{lowStockCounts.LOW === 1 ? "" : "s"}</span>
-                </div>
+                <p className="dashboard-panel__subheading">Con menor existencia</p>
                 <ul className="stock-list">
                   {lowStockVisible.map((row, i) => (
                     <li key={row.id} className="stock-item animate-in-stagger" style={staggerStyle(Math.min(i, 8) * 40)}>
@@ -294,10 +373,28 @@ export function DashboardPage() {
                 )}
               </>
             )}
+            {inventoryStatus === "ready" && inventoryTotal > 0 && lowStockRows.length === 0 && (
+              <p className="dashboard-panel__subheading dashboard-panel__subheading--ok">Todo el inventario está en niveles saludables.</p>
+            )}
           </section>
         </PermissionGate>
 
-        <section className="dashboard-panel dashboard-panel--links animate-in" style={{ animationDelay: "220ms" }}>
+        {(canViewBranches || canViewUsers) && (
+          <section className="dashboard-panel dashboard-panel--branches animate-in" style={{ animationDelay: "220ms" }}>
+            <header className="dashboard-panel__header">
+              <div className="dashboard-panel__title">
+                <Users size={17} />
+                <h2>Usuarios por sucursal</h2>
+              </div>
+            </header>
+            {(branchesStatus === "loading" || usersStatus === "loading") && <StatusState kind="loading" />}
+            {(branchesStatus === "error" || usersStatus === "error") && <StatusState kind="error" message="No se pudieron cargar los datos." />}
+            {branchesStatus === "ready" && usersStatus === "ready" && <BranchUsersBar data={branchUserCounts} />}
+          </section>
+        )}
+        </div>
+
+        <section className="dashboard-panel dashboard-panel--links dashboard-panel--gradient animate-in" style={{ animationDelay: "260ms" }}>
           <header className="dashboard-panel__header">
             <div className="dashboard-panel__title">
               <h2>Accesos rápidos</h2>
