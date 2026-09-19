@@ -21,6 +21,7 @@ model Role {
   code        String   @unique
   name        String
   description String
+  isSystem    Boolean  @default(false) @map("is_system")
   createdAt   DateTime @default(now()) @map("created_at")
 
   users           User[]

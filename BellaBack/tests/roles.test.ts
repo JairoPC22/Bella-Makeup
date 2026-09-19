@@ -162,3 +162,127 @@ describe("PUT /api/roles/:id/permissions", () => {
       .send({ permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply"] });
   });
 });
+
+describe("POST /api/roles and DELETE /api/roles/:id", () => {
+  let cookie: string;
+
+  beforeAll(async () => {
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { code: "admin" } });
+    const user = await prisma.user.upsert({
+      where: { username: "roles_crud_test_admin" },
+      update: {},
+      create: {
+        firstName: "RolesCrud", lastName: "Admin", displayName: "RolesCrud Admin",
+        username: "roles_crud_test_admin", email: "roles_crud_test_admin@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: adminRole.id, allBranches: true,
+      },
+    });
+    cookie = `access_token=${signAccessToken({ sub: user.id, roleId: adminRole.id })}`;
+  });
+
+  it("creates a custom role with a chosen permission set and lets it be deleted", async () => {
+    const create = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [cookie])
+      .send({
+        code: "marketing_test",
+        name: "Marketing (test)",
+        description: "Rol de prueba para marketing",
+        permissions: ["products.view", "reports.view"],
+      });
+    expect(create.status).toBe(201);
+    expect(create.body.code).toBe("marketing_test");
+    expect(create.body.isSystem).toBe(false);
+    expect(create.body.permissions.sort()).toEqual(["products.view", "reports.view"]);
+    expect(create.body.assignedUsersCount).toBe(0);
+
+    const createEntry = await prisma.auditLog.findFirst({
+      where: { action: "roles.create", entityId: create.body.id },
+    });
+    expect(createEntry).not.toBeNull();
+
+    const del = await request(app).delete(`/api/roles/${create.body.id}`).set("Cookie", [cookie]);
+    expect(del.status).toBe(204);
+
+    const list = await request(app).get("/api/roles").set("Cookie", [cookie]);
+    expect(list.body.some((r: any) => r.id === create.body.id)).toBe(false);
+
+    const deleteEntry = await prisma.auditLog.findFirst({
+      where: { action: "roles.delete", entityId: create.body.id },
+    });
+    expect(deleteEntry).not.toBeNull();
+  });
+
+  it("rejects a duplicate role code with 409", async () => {
+    const res = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [cookie])
+      .send({ code: "cashier", name: "Duplicado", description: "x", permissions: [] });
+    expect(res.status).toBe(409);
+  });
+
+  it("rejects an unknown permission code on create with 400", async () => {
+    const res = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [cookie])
+      .send({ code: "temp_role_bad_perm", name: "Temp", description: "x", permissions: ["not.a.real.permission"] });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects malformed role codes with 400", async () => {
+    const res = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [cookie])
+      .send({ code: "Not A Valid Code!", name: "Temp", description: "x", permissions: [] });
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses to delete a seeded system role", async () => {
+    const viewerRole = await prisma.role.findUniqueOrThrow({ where: { code: "viewer" } });
+    const res = await request(app).delete(`/api/roles/${viewerRole.id}`).set("Cookie", [cookie]);
+    expect(res.status).toBe(400);
+
+    const list = await request(app).get("/api/roles").set("Cookie", [cookie]);
+    expect(list.body.some((r: any) => r.code === "viewer")).toBe(true);
+  });
+
+  it("refuses to delete a non-system role that still has users assigned", async () => {
+    const created = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [cookie])
+      .send({ code: "temp_role_with_users", name: "Temp con usuarios", description: "x", permissions: [] });
+    expect(created.status).toBe(201);
+
+    await prisma.user.upsert({
+      where: { username: "roles_crud_test_member" },
+      update: { roleId: created.body.id },
+      create: {
+        firstName: "Member", lastName: "T", displayName: "Member T", username: "roles_crud_test_member",
+        email: "roles_crud_test_member@bellamakeup.demo", passwordHash: await hashPassword("Password#123"),
+        avatarSeed: "seed", roleId: created.body.id, allBranches: true,
+      },
+    });
+
+    const blocked = await request(app).delete(`/api/roles/${created.body.id}`).set("Cookie", [cookie]);
+    expect(blocked.status).toBe(409);
+  });
+
+  it("rejects requests without roles.manage permission", async () => {
+    const viewerRole = await prisma.role.findUniqueOrThrow({ where: { code: "viewer" } });
+    const viewer = await prisma.user.upsert({
+      where: { username: "roles_crud_test_viewer" },
+      update: {},
+      create: {
+        firstName: "V", lastName: "T", displayName: "V T", username: "roles_crud_test_viewer",
+        email: "roles_crud_test_viewer@bellamakeup.demo", passwordHash: await hashPassword("Password#123"),
+        avatarSeed: "seed", roleId: viewerRole.id, allBranches: true,
+      },
+    });
+    const viewerCookie = `access_token=${signAccessToken({ sub: viewer.id, roleId: viewerRole.id })}`;
+    const res = await request(app)
+      .post("/api/roles")
+      .set("Cookie", [viewerCookie])
+      .send({ code: "temp_role_forbidden", name: "Temp", description: "x", permissions: [] });
+    expect(res.status).toBe(403);
+  });
+});

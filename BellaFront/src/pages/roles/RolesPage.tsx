@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Save, X, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Pencil, Save, X, ShieldAlert, AlertTriangle, Plus, Trash2, Lock } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Modal } from "../../components/common/Modal";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { ApiError } from "../../services/apiClient";
-import { listRoles, updateRolePermissions } from "../../services/roleService";
+import { listRoles, updateRolePermissions, deleteRole } from "../../services/roleService";
+import { RoleFormModal } from "./RoleFormModal";
 import type { Role } from "../../types/api";
 import "./RolesPage.css";
 
@@ -19,6 +20,51 @@ function derivePermissionUniverse(roles: Role[]): string[] {
   const union = new Set<string>();
   roles.forEach((r) => r.permissions.forEach((p) => union.add(p)));
   return Array.from(union).sort();
+}
+
+// Human-readable labels for every permission code — mirrors the
+// descriptions seeded in BellaBack/prisma/seed.ts's PERMISSIONS list.
+// Raw codes (products.view, roles.manage, ...) read as internal plumbing to
+// a non-technical admin; the label is what's shown, the code stays visible
+// as a small caption/title for anyone who needs the literal value.
+const PERMISSION_LABELS: Record<string, string> = {
+  "products.view": "Ver productos",
+  "products.create": "Crear productos",
+  "products.edit": "Editar productos",
+  "products.delete": "Eliminar productos",
+  "inventory.view": "Ver inventario",
+  "inventory.adjust": "Ajustar inventario",
+  "inventory.count": "Realizar inventarios físicos",
+  "inventory.transfer": "Crear transferencias",
+  "inventory.receive": "Recibir transferencias/compras",
+  "sales.view": "Ver ventas",
+  "sales.create": "Registrar ventas",
+  "sales.cancel": "Cancelar ventas",
+  "sales.return": "Registrar devoluciones",
+  "discounts.create": "Crear descuentos",
+  "discounts.apply": "Aplicar descuentos",
+  "discounts.authorize": "Autorizar descuentos",
+  "users.view": "Ver usuarios",
+  "users.create": "Crear usuarios",
+  "users.edit": "Editar usuarios",
+  "users.disable": "Desactivar usuarios",
+  "roles.view": "Ver roles",
+  "roles.manage": "Gestionar roles y permisos",
+  "branches.view": "Ver sucursales",
+  "branches.manage": "Gestionar sucursales",
+  "purchases.view": "Ver compras",
+  "purchases.create": "Crear compras",
+  "purchases.receive": "Recibir compras",
+  "reports.view": "Ver reportes",
+  "audit.view": "Ver actividad reciente",
+  "ecommerce.manage": "Gestionar catálogo ecommerce",
+  "orders.view": "Ver pedidos online",
+  "orders.update": "Actualizar pedidos online",
+  "settings.manage": "Gestionar configuración de la empresa",
+};
+
+function permissionLabel(code: string): string {
+  return PERMISSION_LABELS[code] ?? code;
 }
 
 // Generous, not exhaustive: anything that grants broad administrative
@@ -68,6 +114,11 @@ export function RolesPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     listRoles()
@@ -135,6 +186,25 @@ export function RolesPage() {
     }
   }
 
+  function handleRoleCreated(role: Role) {
+    setRoles((prev) => (prev ? [...prev, role].sort((a, b) => a.name.localeCompare(b.name)) : [role]));
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteRole(deleteTarget.id);
+      setRoles((prev) => prev?.filter((r) => r.id !== deleteTarget.id) ?? prev);
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : "No se pudo eliminar el rol.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (status === "loading") return <StatusState kind="loading" />;
   if (status === "error" || !roles) return <StatusState kind="error" message="No se pudieron cargar los roles." />;
 
@@ -142,8 +212,18 @@ export function RolesPage() {
 
   return (
     <div className="roles-page">
-      <h1>Roles</h1>
-      <p className="roles-page__subtitle">Consulta los permisos de cada rol. Los usuarios con permiso "roles.manage" pueden editarlos.</p>
+      <div className="roles-page__header">
+        <div>
+          <h1>Roles</h1>
+          <p className="roles-page__subtitle">Consulta los permisos de cada rol. Los usuarios con permiso "Gestionar roles y permisos" pueden editarlos, crear roles nuevos o eliminar los que ya no se usen.</p>
+        </div>
+        <PermissionGate code="roles.manage">
+          <button type="button" className="roles-page__create" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} /> Nuevo rol
+          </button>
+        </PermissionGate>
+      </div>
+
       <div className="roles-grid">
         {roles.map((role, i) => {
           const editing = editingRoleId === role.id;
@@ -151,16 +231,22 @@ export function RolesPage() {
           return (
             <article key={role.id} className="role-card" style={{ animationDelay: `${Math.min(i, 10) * 60}ms` }}>
               <header>
-                <h2>{role.name}</h2>
+                <div className="role-card__title">
+                  <h2>{role.name}</h2>
+                  {role.isSystem
+                    ? <span className="role-card__badge role-card__badge--system"><Lock size={10} /> Predeterminado</span>
+                    : <span className="role-card__badge role-card__badge--custom">Personalizado</span>}
+                </div>
                 <span className="role-card__count">{role.assignedUsersCount} usuario{role.assignedUsersCount === 1 ? "" : "s"}</span>
               </header>
               <p className="role-card__description">{role.description}</p>
 
               {!editing && (
                 <div className="role-card__permissions">
+                  {role.permissions.length === 0 && <span className="role-card__empty">Sin permisos asignados</span>}
                   {role.permissions.map((p) => (
-                    <span key={p} className={`role-card__permission${isSensitive(p) ? " role-card__permission--sensitive" : ""}`}>
-                      {isSensitive(p) && <ShieldAlert size={11} />} {p}
+                    <span key={p} className={`role-card__permission${isSensitive(p) ? " role-card__permission--sensitive" : ""}`} title={p}>
+                      {isSensitive(p) && <ShieldAlert size={11} />} {permissionLabel(p)}
                     </span>
                   ))}
                 </div>
@@ -180,8 +266,9 @@ export function RolesPage() {
                               key={code}
                               onClick={() => requestToggle(code)}
                               className={`role-card__permission role-card__permission--toggle${on ? " is-on" : " is-off"}${isSensitive(code) ? " role-card__permission--sensitive" : ""}`}
+                              title={code}
                             >
-                              {isSensitive(code) && <ShieldAlert size={11} />} {code}
+                              {isSensitive(code) && <ShieldAlert size={11} />} {permissionLabel(code)}
                             </button>
                           );
                         })}
@@ -204,6 +291,15 @@ export function RolesPage() {
                 <PermissionGate code="roles.manage">
                   <div className="role-card__actions">
                     <button type="button" onClick={() => startEditing(role)}><Pencil size={14} /> Editar permisos</button>
+                    {!role.isSystem && (
+                      <button
+                        type="button"
+                        className="role-card__delete"
+                        onClick={() => { setDeleteTarget(role); setDeleteError(null); }}
+                      >
+                        <Trash2 size={14} /> Eliminar
+                      </button>
+                    )}
                   </div>
                 </PermissionGate>
               )}
@@ -212,15 +308,42 @@ export function RolesPage() {
         })}
       </div>
 
+      <RoleFormModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSaved={handleRoleCreated}
+        grouped={grouped}
+        moduleLabels={MODULE_LABELS}
+        permissionLabels={PERMISSION_LABELS}
+      />
+
       <Modal open={confirmCode !== null} onClose={() => setConfirmCode(null)} title="Permiso sensible">
         <div className="roles-confirm">
           <p className="roles-confirm__intro">
-            <AlertTriangle size={16} /> Estás a punto de habilitar <code>{confirmCode}</code>.
+            <AlertTriangle size={16} /> Estás a punto de habilitar "{confirmCode ? permissionLabel(confirmCode) : ""}".
           </p>
           <p className="roles-confirm__description">{confirmDescription}</p>
           <div className="roles-confirm__actions">
             <button type="button" className="roles-confirm__cancel" onClick={() => setConfirmCode(null)}>Cancelar</button>
             <button type="button" className="roles-confirm__accept" onClick={confirmSensitiveEnable}>Sí, habilitar</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="Eliminar rol">
+        <div className="roles-confirm">
+          <p className="roles-confirm__intro">
+            <AlertTriangle size={16} /> ¿Eliminar el rol "{deleteTarget?.name}"?
+          </p>
+          <p className="roles-confirm__description">
+            Esta acción no se puede deshacer. Solo es posible si ningún usuario tiene este rol asignado actualmente.
+          </p>
+          {deleteError && <p className="roles-page__error">{deleteError}</p>}
+          <div className="roles-confirm__actions">
+            <button type="button" className="roles-confirm__cancel" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</button>
+            <button type="button" className="roles-confirm__accept" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Eliminando..." : "Sí, eliminar"}
+            </button>
           </div>
         </div>
       </Modal>

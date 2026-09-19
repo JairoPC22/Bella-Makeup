@@ -16,6 +16,7 @@ export function mapRole(role: RoleWithRelations) {
     code: role.code,
     name: role.name,
     description: role.description,
+    isSystem: role.isSystem,
     permissions: role.rolePermissions.map((rp) => rp.permission.code),
     assignedUsersCount: role._count.users,
   };

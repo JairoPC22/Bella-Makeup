@@ -14,6 +14,7 @@ export interface Role {
   code: string;
   name: string;
   description: string;
+  isSystem: boolean;
   permissions: string[];
   assignedUsersCount: number;
 }

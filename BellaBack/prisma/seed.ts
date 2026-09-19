@@ -111,8 +111,8 @@ async function main() {
   for (const r of ROLES) {
     const role = await prisma.role.upsert({
       where: { code: r.code },
-      update: { name: r.name, description: r.description },
-      create: { code: r.code, name: r.name, description: r.description },
+      update: { name: r.name, description: r.description, isSystem: true },
+      create: { code: r.code, name: r.name, description: r.description, isSystem: true },
     });
     for (const permCode of r.permissions) {
       const permission = await prisma.permission.findUniqueOrThrow({ where: { code: permCode } });
