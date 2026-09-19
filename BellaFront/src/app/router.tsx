@@ -9,6 +9,7 @@ import { ProfilePage } from "../pages/profile/ProfilePage";
 import { UsersPage } from "../pages/users/UsersPage";
 import { RolesPage } from "../pages/roles/RolesPage";
 import { BranchesPage } from "../pages/branches/BranchesPage";
+import { InventoryPage } from "../pages/inventory/InventoryPage";
 import { CompanySettingsPage } from "../pages/settings/CompanySettingsPage";
 import { AuditPage } from "../pages/audit/AuditPage";
 import { MessagesPage } from "../pages/messages/MessagesPage";
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
           {
             element: <PermissionRoute code="branches.view" />,
             children: [{ path: "/sucursales", element: <BranchesPage /> }],
+          },
+          {
+            element: <PermissionRoute code="inventory.view" />,
+            children: [{ path: "/inventario", element: <InventoryPage /> }],
           },
           { path: "/configuracion", element: <CompanySettingsPage /> },
           {

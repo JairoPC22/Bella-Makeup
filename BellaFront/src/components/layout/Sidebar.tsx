@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   PanelLeftClose,
   PanelLeftOpen,
+  PackageSearch,
 } from "lucide-react";
 import { PermissionGate } from "../auth/PermissionGate";
 import "./Sidebar.css";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: "/usuarios", end: false, label: "Usuarios", icon: Users, permission: "users.view" },
   { to: "/roles", end: false, label: "Roles", icon: ShieldCheck, permission: "roles.view" },
   { to: "/sucursales", end: false, label: "Sucursales", icon: Building2, permission: "branches.view" },
+  { to: "/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
   { to: "/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },
   { to: "/auditoria", end: false, label: "Actividad reciente", icon: ScrollText, permission: "audit.view" },
   { to: "/configuracion", end: false, label: "Configuración", icon: Settings, permission: "settings.manage" },

@@ -1,0 +1,128 @@
+.inventory-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
+
+.inventory-page__header { display: flex; align-items: center; justify-content: space-between; }
+.inventory-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.inventory-page__title svg { color: var(--color-pink-deep); }
+.inventory-page__title h1 { margin: 0; }
+
+/* ---------- Filter bar — same layout convention as AuditPage's
+   .audit-filters, plus a search input styled like MessagesPage's
+   .people-picker__search. ---------- */
+.inventory-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-1) 0 var(--space-1); }
+.inventory-filters__search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2_5); color: var(--color-text-muted);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.inventory-filters__search:focus-within { border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.inventory-filters__search input {
+  flex: 1 1 auto; border: none; outline: none; background: none;
+  font-family: var(--font-body); font-size: 0.92rem; color: var(--color-primary);
+}
+
+/* ---------- Table — same structure/conventions as UsersPage's
+   .users-table. ---------- */
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: fade-in-up 0.6s var(--ease-premium) both;
+}
+.inventory-table th, .inventory-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; vertical-align: middle; }
+.inventory-table tbody tr { transition: background-color var(--transition-base) var(--ease-premium); }
+.inventory-table tbody tr:hover { background: var(--color-bg); }
+.inventory-table tbody tr:last-child td { border-bottom: none; }
+
+.inventory-table__product-name { margin: 0; color: var(--color-ink); font-weight: 500; }
+.inventory-table__product-sku { margin: 2px 0 0; font-size: 0.76rem; color: var(--color-text-muted); }
+.inventory-table__stock { font-weight: 700; color: var(--color-ink); }
+
+.inventory-table__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.inventory-table__actions button {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--color-border); cursor: pointer;
+  padding: 5px 10px; color: var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.inventory-table__actions button:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+/* ---------- stock-badge--available: DashboardPage.css only ever needed
+   out/critical/low (its widget only lists low-stock rows), so this page
+   adds the missing fourth variant using the exact same token the dashboard
+   already assigns to AVAILABLE elsewhere (its donut's STATUS_COLOR map
+   uses var(--color-accent) for this exact status) — no new color
+   introduced, just the existing accent applied as a badge here too. ---------- */
+.stock-badge--available { background: var(--color-accent); color: var(--color-ink); }
+
+/* ---------- Adjustment modal ---------- */
+.inventory-adjust { display: flex; flex-direction: column; gap: var(--space-3); }
+.inventory-adjust__summary {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+.inventory-adjust__product { margin: 0; font-weight: 600; color: var(--color-ink); }
+.inventory-adjust__meta { margin: 2px 0 0; font-size: 0.8rem; color: var(--color-text-muted); }
+.inventory-adjust__stock { margin: 6px 0 0; font-size: 0.85rem; color: var(--color-text-secondary); }
+.inventory-adjust__preview { margin: -6px 0 0; font-size: 0.88rem; color: var(--color-pink-deep); }
+
+.modal__body .inventory-adjust__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(0, 102, 204, 0.08);
+  border: 1px solid rgba(0, 102, 204, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-pink-deep);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+.inventory-adjust__success {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; padding: var(--space-2) var(--space-3);
+  background: var(--color-pink-50);
+  border: 1px solid var(--color-pink-100);
+  border-radius: var(--radius-sm);
+  color: var(--color-pink-deep);
+  font-size: 0.88rem;
+}
+
+/* ---------- Kardex modal ---------- */
+.kardex { display: flex; flex-direction: column; gap: var(--space-3); }
+.kardex__subtitle { margin: 0; font-size: 0.88rem; color: var(--color-text-secondary); }
+.kardex__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.kardex__item {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  animation: fade-in-up 0.4s var(--ease-premium) both;
+}
+.kardex__item-main { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.kardex__type { font-weight: 600; color: var(--color-ink); font-size: 0.92rem; }
+.kardex__qty {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-weight: 700; font-size: 0.82rem;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+.kardex__qty--in { background: var(--color-accent); color: var(--color-ink); }
+.kardex__qty--out { background: #B3261E; color: var(--color-white); }
+.kardex__stock-line { margin: 4px 0 0; font-size: 0.82rem; color: var(--color-text-secondary); }
+.kardex__reference { margin: 2px 0 0; font-size: 0.8rem; color: var(--color-text-muted); }
+.kardex__meta { margin: 4px 0 0; font-size: 0.76rem; color: var(--color-text-muted); }
+
+@media (max-width: 768px) {
+  .inventory-table thead { display: none; }
+  .inventory-table, .inventory-table tbody, .inventory-table tr, .inventory-table td { display: block; width: 100%; }
+  .inventory-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+}
