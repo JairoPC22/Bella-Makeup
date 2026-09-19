@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Building2,
   Settings,
-  ScrollText,
   MessagesSquare,
   PanelLeftClose,
   PanelLeftOpen,
@@ -28,7 +27,6 @@ const NAV_ITEMS = [
   { to: "/productos", end: false, label: "Productos", icon: Package, permission: "products.view" },
   { to: "/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
   { to: "/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },
-  { to: "/auditoria", end: false, label: "Actividad reciente", icon: ScrollText, permission: "audit.view" },
   { to: "/configuracion", end: false, label: "Configuración", icon: Settings, permission: "settings.manage" },
 ] as const;
 

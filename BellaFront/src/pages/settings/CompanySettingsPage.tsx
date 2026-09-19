@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Building2, Camera, Share2, MessageCircle, CheckCircle2, FileText, Globe, Receipt, Link2, Undo2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Building2, Camera, Share2, MessageCircle, CheckCircle2, FileText, Globe, Receipt, Link2, Undo2, ScrollText, ArrowUpRight } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
+import { PermissionGate } from "../../components/auth/PermissionGate";
 import * as settingsService from "../../services/companySettingsService";
 import type { CompanySettings } from "../../types/api";
 import "./CompanySettingsPage.css";
@@ -155,6 +157,22 @@ export function CompanySettingsPage() {
           {saveState === "error" && <p className="settings-card__error">No se pudo guardar. Intenta de nuevo.</p>}
         </div>
       </form>
+
+      <PermissionGate code="audit.view">
+        <section className="settings-section">
+          <header className="settings-section__header">
+            <ScrollText size={18} />
+            <div>
+              <h2>Actividad reciente</h2>
+              <p>Historial completo de acciones realizadas en el sistema.</p>
+            </div>
+          </header>
+          <Link to="/auditoria" className="settings-section__audit-link">
+            Ver actividad reciente
+            <ArrowUpRight size={16} />
+          </Link>
+        </section>
+      </PermissionGate>
     </div>
   );
 }
