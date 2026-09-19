@@ -48,6 +48,9 @@ export interface CompanySettings {
   currency: string;
   description?: string | null;
   businessHours?: string | null;
+  taxId?: string | null;
+  website?: string | null;
+  returnPolicy?: string | null;
 }
 
 export interface InventoryRow {

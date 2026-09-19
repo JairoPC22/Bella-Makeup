@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Building2, Image, Camera, Share2, MessageCircle, CheckCircle2, FileText, Globe } from "lucide-react";
+import { Building2, Camera, Share2, MessageCircle, CheckCircle2, FileText, Globe, Receipt, Link2, Undo2 } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import * as settingsService from "../../services/companySettingsService";
 import type { CompanySettings } from "../../types/api";
@@ -36,10 +36,12 @@ export function CompanySettingsPage() {
         address: settings.address ?? undefined,
         phone: settings.phone ?? undefined,
         currency: settings.currency,
-        logoUrl: settings.logoUrl ?? undefined,
         description: settings.description ?? undefined,
         businessHours: settings.businessHours ?? undefined,
         socialLinks: settings.socialLinks ?? undefined,
+        taxId: settings.taxId ?? undefined,
+        website: settings.website ?? undefined,
+        returnPolicy: settings.returnPolicy ?? undefined,
       });
       setSettings(updated);
       setSaveState("saved");
@@ -78,6 +80,14 @@ export function CompanySettingsPage() {
             </label>
             <label>Dirección<input value={settings.address ?? ""} onChange={(e) => setSettings({ ...settings, address: e.target.value })} /></label>
             <label>Teléfono<input value={settings.phone ?? ""} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} /></label>
+            <label>
+              <span className="settings-section__label-with-icon"><Receipt size={14} /> RFC / Identificación fiscal</span>
+              <input placeholder="XAXX010101000" value={settings.taxId ?? ""} onChange={(e) => setSettings({ ...settings, taxId: e.target.value })} />
+            </label>
+            <label>
+              <span className="settings-section__label-with-icon"><Link2 size={14} /> Sitio web</span>
+              <input placeholder="https://bellamakeup.com" value={settings.website ?? ""} onChange={(e) => setSettings({ ...settings, website: e.target.value })} />
+            </label>
             <label className="settings-section__span2">Horario de atención
               <input placeholder="Lun–Sáb 9:00–19:00" value={settings.businessHours ?? ""} onChange={(e) => setSettings({ ...settings, businessHours: e.target.value })} />
             </label>
@@ -88,20 +98,11 @@ export function CompanySettingsPage() {
           <header className="settings-section__header">
             <FileText size={18} />
             <div>
-              <h2>Identidad de marca</h2>
-              <p>Logo y una breve descripción que representa a la empresa.</p>
+              <h2>Identidad y políticas</h2>
+              <p>Una breve descripción de marca y la política de devoluciones que verán los clientes.</p>
             </div>
           </header>
           <div className="settings-section__grid">
-            <label className="settings-section__span2">
-              <span className="settings-section__label-with-icon"><Image size={14} /> URL del logo</span>
-              <input placeholder="https://..." value={settings.logoUrl ?? ""} onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })} />
-            </label>
-            {settings.logoUrl && (
-              <div className="settings-logo-preview">
-                <img src={settings.logoUrl} alt="Logo de la empresa" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              </div>
-            )}
             <label className="settings-section__span2">Descripción / eslogan
               <textarea
                 maxLength={500}
@@ -111,10 +112,17 @@ export function CompanySettingsPage() {
                 onChange={(e) => setSettings({ ...settings, description: e.target.value })}
               />
             </label>
+            <label className="settings-section__span2">
+              <span className="settings-section__label-with-icon"><Undo2 size={14} /> Política de devoluciones</span>
+              <textarea
+                maxLength={1000}
+                rows={3}
+                placeholder="Cambios y devoluciones dentro de los primeros 15 días con ticket de compra."
+                value={settings.returnPolicy ?? ""}
+                onChange={(e) => setSettings({ ...settings, returnPolicy: e.target.value })}
+              />
+            </label>
           </div>
-          <p className="settings-section__note">
-            El logo se guarda como URL — subir un archivo directamente requeriría un endpoint de carga de imágenes en el backend que todavía no existe para configuración de empresa.
-          </p>
         </section>
 
         <section className="settings-section">
