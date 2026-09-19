@@ -70,14 +70,13 @@
   color: var(--color-pink-elegant);
 }
 
-.login-brand__logotype {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: clamp(2.5rem, 4vw + 1rem, 3.75rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  margin: 0;
-  color: var(--color-white);
+.login-brand__logo {
+  display: block;
+  align-self: flex-start;
+  height: clamp(72px, 9vw + 40px, 128px);
+  width: auto;
+  margin: 4px 0 -4px;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
 }
 
 .login-brand__tagline {
@@ -125,11 +124,8 @@
 
 .login-form__brand-mobile {
   display: none;
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1.5rem;
-  letter-spacing: -0.02em;
-  color: var(--color-primary);
+  height: 40px;
+  width: auto;
   margin-bottom: var(--space-3);
 }
 

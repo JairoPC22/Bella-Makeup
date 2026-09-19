@@ -52,8 +52,7 @@ export function Sidebar() {
       <div className="sidebar__grid" aria-hidden="true" />
 
       <div className="sidebar__brand">
-        <span className="sidebar__brand-mark">B</span>
-        <span className="sidebar__brand-text">Bella Makeup</span>
+        <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="sidebar__brand-logo" />
       </div>
 
       <nav className="sidebar__nav">
@@ -81,11 +80,9 @@ export function Sidebar() {
         className="sidebar__toggle"
         onClick={() => setCollapsed((c) => !c)}
         aria-pressed={collapsed}
-        data-tooltip={collapsed ? "Expandir" : "Colapsar"}
+        aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
       >
-        <span className="sidebar__link-icon">
-          {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
-        </span>
+        {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
       </button>
     </aside>
   );

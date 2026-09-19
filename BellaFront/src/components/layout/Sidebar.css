@@ -60,30 +60,12 @@
   flex-shrink: 0;
 }
 
-.sidebar__brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+.sidebar__brand-logo {
+  display: block;
+  height: 34px;
+  width: auto;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--color-pink-elegant), var(--color-pink-deep));
-  color: var(--color-white);
-  font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 1rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.sidebar__brand-text {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.12rem;
-  letter-spacing: -0.01em;
-  color: var(--color-white);
-  white-space: nowrap;
-  overflow: hidden;
+  object-fit: contain;
 }
 
 .sidebar__nav {
@@ -105,8 +87,7 @@
   overflow: visible;
 }
 
-.sidebar__link,
-.sidebar__toggle {
+.sidebar__link {
   position: relative;
   display: flex;
   align-items: center;
@@ -139,40 +120,6 @@
   text-overflow: ellipsis;
 }
 
-/* The collapse toggle is icon-only in both expanded and collapsed states
-   (no "Colapsar"/"Expandir" text label), so unlike the nav links its
-   tooltip isn't scoped to .sidebar--collapsed — it always needs the
-   hover/focus label to convey what the icon does. Desktop-only, matching
-   where the button itself is shown (hidden entirely under 769px). */
-@media (min-width: 769px) {
-  .sidebar__toggle {
-    justify-content: center;
-  }
-  .sidebar__toggle::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 12px);
-    top: 50%;
-    transform: translate(-4px, -50%);
-    background: var(--color-primary);
-    color: var(--color-white);
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    font-size: 0.78rem;
-    white-space: nowrap;
-    box-shadow: var(--shadow-md);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--transition-fast) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
-    z-index: 30;
-  }
-  .sidebar__toggle:hover::after,
-  .sidebar__toggle:focus-visible::after {
-    opacity: 1;
-    transform: translate(0, -50%);
-  }
-}
-
 .sidebar__link:hover { background: rgba(255, 255, 255, 0.07); color: var(--color-white); }
 .sidebar__link:active { transform: scale(0.98); }
 .sidebar__link--active {
@@ -183,20 +130,37 @@
 }
 .sidebar__link--active .sidebar__link-icon svg { color: var(--color-pink-elegant); }
 
+/* Collapse toggle: a standalone circular icon button, no text/tooltip —
+   the icon itself (panel-open/panel-close) already conveys the action.
+   Sits in its own row above the nav, pinned to the right edge in the
+   expanded rail; centers itself once the rail narrows. Desktop-only,
+   matching where the button is shown at all (hidden under 769px). */
 .sidebar__toggle {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  margin-top: var(--space-2);
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 0 var(--space-2);
   border: none;
-  background: transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(247, 243, 241, 0.85);
   cursor: pointer;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0;
-  padding-top: var(--space-3);
+  transition: background-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
 }
-.sidebar__toggle:hover { background: rgba(255, 255, 255, 0.06); color: var(--color-white); }
-.sidebar__toggle:active { transform: scale(0.98); }
+.sidebar__toggle:hover { background: rgba(255, 255, 255, 0.12); color: var(--color-white); }
+.sidebar__toggle:active { transform: scale(0.94); }
+
+@media (min-width: 769px) {
+  .sidebar--collapsed .sidebar__toggle { align-self: center; }
+}
 
 /* ---------- Collapsed rail: icons only, centered, tooltip on hover ---------- */
 
@@ -204,16 +168,11 @@
   .sidebar--collapsed { width: var(--sidebar-width-collapsed); padding-left: var(--space-2); padding-right: var(--space-2); }
 
   .sidebar--collapsed .sidebar__brand { justify-content: center; padding: 0; }
-  .sidebar--collapsed .sidebar__brand-text,
+  .sidebar--collapsed .sidebar__brand-logo { height: 26px; }
   .sidebar--collapsed .sidebar__link-label { display: none; }
 
-  .sidebar--collapsed .sidebar__link,
-  .sidebar--collapsed .sidebar__toggle { justify-content: center; padding-left: 0; padding-right: 0; }
+  .sidebar--collapsed .sidebar__link { justify-content: center; padding-left: 0; padding-right: 0; }
 
-  /* Toggle's own always-on tooltip is defined once above, outside this
-     collapsed-only block, since the button is icon-only regardless of
-     collapsed state. Only the nav links' tooltip is collapsed-scoped
-     here, since expanded links already show their text label. */
   .sidebar--collapsed .sidebar__link::after {
     content: attr(data-tooltip);
     position: absolute;

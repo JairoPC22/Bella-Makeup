@@ -35,7 +35,7 @@ export function LoginPage() {
         <div className="login-brand__grid" />
         <div className="login-brand__content">
           <span className="login-brand__eyebrow">Panel administrativo</span>
-          <h1 className="login-brand__logotype">Bella Makeup</h1>
+          <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="login-brand__logo" />
           <p className="login-brand__tagline">
             Sucursales, equipos y operación diaria, todo en una sola cuenta.
           </p>
@@ -46,7 +46,7 @@ export function LoginPage() {
       <div className="login-form-panel">
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-form__header">
-            <span className="login-form__brand-mobile">Bella Makeup</span>
+            <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="login-form__brand-mobile" />
             <h2>Bienvenida de nuevo</h2>
             <p className="login-form__subtitle">Ingresa tus credenciales para continuar.</p>
           </div>
