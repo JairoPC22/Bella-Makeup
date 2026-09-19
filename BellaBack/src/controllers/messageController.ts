@@ -10,8 +10,8 @@ export async function listConversations(req: Request, res: Response, next: NextF
 
 export async function startConversation(req: Request, res: Response, next: NextFunction) {
   try {
-    const { otherUserId } = startConversationSchema.parse(req.body);
-    const conversation = await messageService.startConversation(req.user!.id, otherUserId);
+    const { participantIds, name } = startConversationSchema.parse(req.body);
+    const conversation = await messageService.startConversation(req.user!.id, { participantIds, name });
     res.status(201).json(conversation);
   } catch (err) { next(err); }
 }
@@ -28,6 +28,19 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
     const files = (req.files as Express.Multer.File[] | undefined) ?? [];
     const message = await messageService.sendMessage(req.user!.id, req.params.id, { body, files });
     res.status(201).json(message);
+  } catch (err) { next(err); }
+}
+
+export async function hideConversation(req: Request, res: Response, next: NextFunction) {
+  try {
+    await messageService.hideConversation(req.user!.id, req.params.id);
+    res.status(204).send();
+  } catch (err) { next(err); }
+}
+
+export async function getUnreadCount(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await messageService.getUnreadCount(req.user!.id));
   } catch (err) { next(err); }
 }
 

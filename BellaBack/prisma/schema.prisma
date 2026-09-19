@@ -92,8 +92,7 @@ model User {
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
   inventoryMovements InventoryMovement[]
-  conversationsAsA Conversation[] @relation("ConversationsAsUserA")
-  conversationsAsB Conversation[] @relation("ConversationsAsUserB")
+  conversationParticipations ConversationParticipant[]
   messagesAuthored Message[]      @relation("MessagesAuthored")
   salesMade     Sale[]         @relation("SalesMade")
 
@@ -314,17 +313,31 @@ model InventoryAdjustment {
 
 model Conversation {
   id        String   @id @default(uuid())
-  userAId   String   @map("user_a_id")
-  userBId   String   @map("user_b_id")
+  isGroup   Boolean  @default(false) @map("is_group")
+  name      String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  userA    User      @relation("ConversationsAsUserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB    User      @relation("ConversationsAsUserB", fields: [userBId], references: [id], onDelete: Cascade)
-  messages Message[]
+  participants ConversationParticipant[]
+  messages     Message[]
 
-  @@unique([userAId, userBId])
   @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String    @map("conversation_id")
+  userId         String    @map("user_id")
+  joinedAt       DateTime  @default(now()) @map("joined_at")
+  lastReadAt     DateTime? @map("last_read_at")
+  hiddenAt       DateTime? @map("hidden_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+  @@index([userId])
 }
 
 model Message {

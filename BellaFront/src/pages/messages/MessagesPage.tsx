@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Plus, Paperclip, Send, X, FileText, FileSpreadsheet, Image as ImageIcon, Search } from "lucide-react";
+import {
+  Plus,
+  Paperclip,
+  Send,
+  X,
+  FileText,
+  FileSpreadsheet,
+  Image as ImageIcon,
+  Search,
+  Check,
+  Trash2,
+  Loader2,
+  Users as UsersIcon,
+} from "lucide-react";
 import { Modal } from "../../components/common/Modal";
 import { AttachmentPreviewModal } from "../../components/common/AttachmentPreviewModal";
 import { StatusState } from "../../components/common/StatusState";
@@ -7,7 +20,7 @@ import { Avatar } from "../../components/common/Avatar";
 import { useAuth } from "../../hooks/useAuth";
 import { ApiError } from "../../services/apiClient";
 import * as messageService from "../../services/messageService";
-import type { Conversation, Message, MessageAttachment, MessagingParty } from "../../types/api";
+import type { Conversation, ConversationParticipant, Message, MessageAttachment, MessagingParty } from "../../types/api";
 import "./MessagesPage.css";
 
 const MAX_FILES = 3;
@@ -24,6 +37,7 @@ const EXCEL_MIME = new Set([
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
+const GROUP_NAME_LABEL_LIMIT = 2;
 
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -45,12 +59,30 @@ function lastSeenText(lastLoginAt: string | null): string {
   return lastLoginAt ? `última conexión ${formatRelativeTime(lastLoginAt).toLowerCase()}` : "nunca ha iniciado sesión";
 }
 
-// Branch is now purely display context for "the other person" — computed
-// live from their own allBranches/branches, never stored per-message.
+// Branch is purely display context for "the other person" — computed live
+// from their own allBranches/branches, never stored per-message.
 function branchCaption(party: Pick<MessagingParty, "allBranches" | "branches">): string {
   if (party.allBranches) return "Todas las sucursales";
   if (party.branches.length === 0) return "Sin sucursal asignada";
   return party.branches.map((b) => b.name).join(", ");
+}
+
+function otherParticipant(conv: Conversation, myUserId: string | undefined): ConversationParticipant | null {
+  if (conv.isGroup) return null;
+  return conv.participants.find((p) => p.user.id !== myUserId) ?? null;
+}
+
+// "Ana, Luis +2 más" — the fallback display for a group with no `name` set.
+function groupParticipantsLabel(conv: Conversation, myUserId: string | undefined): string {
+  const others = conv.participants.filter((p) => p.user.id !== myUserId).map((p) => p.user.displayName);
+  if (others.length <= GROUP_NAME_LABEL_LIMIT) return others.join(", ") || "Grupo";
+  const shown = others.slice(0, GROUP_NAME_LABEL_LIMIT).join(", ");
+  return `${shown} +${others.length - GROUP_NAME_LABEL_LIMIT} más`;
+}
+
+function conversationDisplayName(conv: Conversation, myUserId: string | undefined): string {
+  if (!conv.isGroup) return otherParticipant(conv, myUserId)?.user.displayName ?? "Usuario";
+  return conv.name?.trim() || groupParticipantsLabel(conv, myUserId);
 }
 
 function AttachmentIcon({ mimeType }: { mimeType: string }) {
@@ -79,8 +111,13 @@ export function MessagesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<MessageAttachment | null>(null);
   const [peopleSearch, setPeopleSearch] = useState("");
-  const [startingUserId, setStartingUserId] = useState<string | null>(null);
+  const [selectedPeopleIds, setSelectedPeopleIds] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState("");
+  const [startingConversation, setStartingConversation] = useState(false);
   const [newConvError, setNewConvError] = useState<string | null>(null);
+
+  const [confirmHideId, setConfirmHideId] = useState<string | null>(null);
+  const [hidingId, setHidingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadScrollRef = useRef<HTMLDivElement>(null);
@@ -96,7 +133,22 @@ export function MessagesPage() {
     if (!selectedId) return;
     setMessagesStatus("loading");
     messageService.listMessages(selectedId)
-      .then((msgs) => { setMessages(msgs); setMessagesStatus("ready"); })
+      .then(({ conversation, messages: msgs }) => {
+        setMessages(msgs);
+        setMessagesStatus("ready");
+        // Viewing IS reading (server-side side effect of the same GET) —
+        // reflect that immediately in local state: refresh this
+        // conversation's participants (so the "Visto" indicator and any
+        // group participant list use fresh data) and zero its unread
+        // badge, without waiting for a full list refetch.
+        setConversations((prev) =>
+          prev
+            ? prev.map((c) =>
+                c.id === selectedId ? { ...c, participants: conversation.participants, unreadCount: 0 } : c
+              )
+            : prev
+        );
+      })
       .catch(() => setMessagesStatus("error"));
   }, [selectedId]);
 
@@ -107,6 +159,18 @@ export function MessagesPage() {
   }, [messages]);
 
   const selectedConversation = conversations?.find((c) => c.id === selectedId) ?? null;
+  const selectedOtherParticipant = selectedConversation ? otherParticipant(selectedConversation, user?.id) : null;
+
+  // The id of the LAST message I sent in the open thread — "Visto" only
+  // ever renders under this one, never older messages of mine, and never
+  // in a group.
+  const lastMineMessageId = useMemo(() => {
+    if (!messages || selectedConversation?.isGroup) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].author.id === user?.id) return messages[i].id;
+    }
+    return null;
+  }, [messages, selectedConversation?.isGroup, user?.id]);
 
   const filteredPeople = useMemo(() => {
     const q = peopleSearch.trim().toLowerCase();
@@ -189,24 +253,55 @@ export function MessagesPage() {
 
   function openNewConversationModal() {
     setPeopleSearch("");
+    setSelectedPeopleIds([]);
+    setGroupName("");
     setNewConvError(null);
     setModalOpen(true);
   }
 
-  async function handleStartConversation(person: MessagingParty) {
-    setStartingUserId(person.id);
+  function togglePerson(personId: string) {
+    setSelectedPeopleIds((prev) =>
+      prev.includes(personId) ? prev.filter((id) => id !== personId) : [...prev, personId]
+    );
+  }
+
+  async function handleStartConversation() {
+    if (selectedPeopleIds.length === 0) return;
+    setStartingConversation(true);
     setNewConvError(null);
     try {
-      const conv = await messageService.startConversation(person.id);
+      const isGroup = selectedPeopleIds.length >= 2;
+      const conv = await messageService.startConversation(
+        selectedPeopleIds,
+        isGroup ? groupName.trim() || null : null
+      );
       const refreshed = await messageService.listConversations();
       setConversations(refreshed);
-      const full = refreshed.find((c) => c.id === conv.id) ?? { ...conv, messages: [] };
+      const full = refreshed.find((c) => c.id === conv.id) ?? conv;
       selectConversation(full);
       setModalOpen(false);
     } catch (err) {
       setNewConvError(err instanceof ApiError ? err.message : "No se pudo iniciar la conversación.");
     } finally {
-      setStartingUserId(null);
+      setStartingConversation(false);
+    }
+  }
+
+  async function handleHideConversation(conversationId: string) {
+    setHidingId(conversationId);
+    try {
+      await messageService.hideConversation(conversationId);
+      setConversations((prev) => (prev ? prev.filter((c) => c.id !== conversationId) : prev));
+      if (selectedId === conversationId) {
+        setSelectedId(null);
+        setMessages(null);
+      }
+    } catch {
+      // Non-fatal — leave the row in place, the confirm state resets below
+      // so the user can just try again.
+    } finally {
+      setHidingId(null);
+      setConfirmHideId(null);
     }
   }
 
@@ -231,32 +326,87 @@ export function MessagesPage() {
           {conversationsStatus === "ready" && conversations && conversations.length > 0 && (
             <ul className="messages-list__items">
               {conversations.map((conv) => {
-                const other = conv.otherUser;
+                const other = otherParticipant(conv, user?.id);
+                const displayName = conversationDisplayName(conv, user?.id);
                 const last = conv.messages?.[0];
                 const preview = last
                   ? last.body || (last.attachments.length > 0 ? `${last.attachments.length} archivo(s) adjunto(s)` : "")
                   : "Sin mensajes todavía";
+                const isConfirming = confirmHideId === conv.id;
                 return (
-                  <li key={conv.id}>
+                  <li key={conv.id} className="messages-list__row">
                     <button
                       type="button"
                       className={`messages-list__item${conv.id === selectedId ? " messages-list__item--active" : ""}`}
                       onClick={() => selectConversation(conv)}
                     >
-                      <Avatar avatarStyle={other.avatarStyle} avatarSeed={other.avatarSeed} displayName={other.displayName} size="md" />
+                      {conv.isGroup ? (
+                        <span className="messages-list__group-avatar" aria-hidden="true"><UsersIcon size={18} /></span>
+                      ) : (
+                        <Avatar
+                          avatarStyle={other?.user.avatarStyle ?? "adventurer"}
+                          avatarSeed={other?.user.avatarSeed ?? conv.id}
+                          displayName={displayName}
+                          size="md"
+                        />
+                      )}
                       <div className="messages-list__item-text">
                         <div className="messages-list__item-row">
-                          <p className="messages-list__name">{other.displayName}</p>
+                          <p className="messages-list__name">{displayName}</p>
                           <span className="messages-list__time">{formatRelativeTime(conv.updatedAt)}</span>
                         </div>
                         <p className="messages-list__caption">
-                          <span className="messages-list__role-badge">{other.role.name}</span>
-                          <span className="messages-list__dot">·</span>
-                          <span className="messages-list__caption-branch">{branchCaption(other)}</span>
+                          {conv.isGroup ? (
+                            <span className="messages-list__role-badge">{conv.participants.length} participantes</span>
+                          ) : (
+                            <>
+                              <span className="messages-list__role-badge">{other?.user.role.name}</span>
+                              <span className="messages-list__dot">·</span>
+                              <span className="messages-list__caption-branch">{other ? branchCaption(other.user) : ""}</span>
+                            </>
+                          )}
                         </p>
                         <p className="messages-list__preview">{preview}</p>
                       </div>
+                      {conv.unreadCount > 0 && (
+                        <span className="messages-list__unread-badge" aria-label={`${conv.unreadCount} sin leer`}>
+                          {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
+                        </span>
+                      )}
                     </button>
+
+                    <div className="messages-list__row-actions">
+                      {isConfirming ? (
+                        <>
+                          <button
+                            type="button"
+                            className="messages-list__hide-confirm messages-list__hide-confirm--yes"
+                            onClick={() => handleHideConversation(conv.id)}
+                            disabled={hidingId === conv.id}
+                          >
+                            {hidingId === conv.id ? <Loader2 size={12} className="spin" /> : "Sí"}
+                          </button>
+                          <button
+                            type="button"
+                            className="messages-list__hide-confirm messages-list__hide-confirm--no"
+                            onClick={() => setConfirmHideId(null)}
+                            disabled={hidingId === conv.id}
+                          >
+                            No
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="messages-list__hide-trigger"
+                          onClick={() => setConfirmHideId(conv.id)}
+                          title="Eliminar para mí"
+                          aria-label="Eliminar para mí"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </li>
                 );
               })}
@@ -274,20 +424,37 @@ export function MessagesPage() {
           {selectedId && selectedConversation && (
             <>
               <div className="messages-thread__header">
-                <Avatar
-                  avatarStyle={selectedConversation.otherUser.avatarStyle}
-                  avatarSeed={selectedConversation.otherUser.avatarSeed}
-                  displayName={selectedConversation.otherUser.displayName}
-                  size="sm"
-                />
+                {selectedConversation.isGroup ? (
+                  <span className="messages-list__group-avatar" aria-hidden="true"><UsersIcon size={18} /></span>
+                ) : (
+                  <Avatar
+                    avatarStyle={selectedOtherParticipant?.user.avatarStyle ?? "adventurer"}
+                    avatarSeed={selectedOtherParticipant?.user.avatarSeed ?? selectedConversation.id}
+                    displayName={conversationDisplayName(selectedConversation, user?.id)}
+                    size="sm"
+                  />
+                )}
                 <div className="messages-thread__header-text">
-                  <p className="messages-thread__header-name">{selectedConversation.otherUser.displayName}</p>
+                  <p className="messages-thread__header-name">{conversationDisplayName(selectedConversation, user?.id)}</p>
                   <p className="messages-thread__header-caption">
-                    <span className="messages-list__role-badge">{selectedConversation.otherUser.role.name}</span>
-                    <span className="messages-list__dot">·</span>
-                    {branchCaption(selectedConversation.otherUser)}
-                    <span className="messages-list__dot">·</span>
-                    {lastSeenText(selectedConversation.otherUser.lastLoginAt)}
+                    {selectedConversation.isGroup ? (
+                      <span>
+                        {selectedConversation.participants
+                          .filter((p) => p.user.id !== user?.id)
+                          .map((p) => p.user.displayName)
+                          .join(", ")}
+                      </span>
+                    ) : (
+                      selectedOtherParticipant && (
+                        <>
+                          <span className="messages-list__role-badge">{selectedOtherParticipant.user.role.name}</span>
+                          <span className="messages-list__dot">·</span>
+                          {branchCaption(selectedOtherParticipant.user)}
+                          <span className="messages-list__dot">·</span>
+                          {lastSeenText(selectedOtherParticipant.user.lastLoginAt)}
+                        </>
+                      )
+                    )}
                   </p>
                 </div>
               </div>
@@ -301,6 +468,12 @@ export function MessagesPage() {
                 {messagesStatus === "ready" &&
                   messages?.map((m) => {
                     const mine = m.author.id === user?.id;
+                    const showSeen =
+                      mine &&
+                      !selectedConversation.isGroup &&
+                      m.id === lastMineMessageId &&
+                      !!selectedOtherParticipant?.lastReadAt &&
+                      new Date(m.createdAt).getTime() <= new Date(selectedOtherParticipant.lastReadAt).getTime();
                     return (
                       <div key={m.id} className={`message-row${mine ? " message-row--mine" : " message-row--theirs"}`}>
                         {!mine && (
@@ -311,24 +484,30 @@ export function MessagesPage() {
                             size="sm"
                           />
                         )}
-                        <div className={`message-bubble${mine ? " message-bubble--mine" : " message-bubble--theirs"}`}>
-                          {m.body && <p className="message-bubble__body">{m.body}</p>}
-                          {m.attachments.length > 0 && (
-                            <div className="message-bubble__attachments">
-                              {m.attachments.map((a) => (
-                                <button
-                                  key={a.id}
-                                  type="button"
-                                  className="attachment-chip"
-                                  onClick={() => setPreviewAttachment(a)}
-                                >
-                                  <AttachmentIcon mimeType={a.mimeType} />
-                                  <span>{a.fileName}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          <span className="message-bubble__time">{formatRelativeTime(m.createdAt)}</span>
+                        <div className="message-row__stack">
+                          <div className={`message-bubble${mine ? " message-bubble--mine" : " message-bubble--theirs"}`}>
+                            {!mine && selectedConversation.isGroup && (
+                              <span className="message-bubble__author">{m.author.displayName}</span>
+                            )}
+                            {m.body && <p className="message-bubble__body">{m.body}</p>}
+                            {m.attachments.length > 0 && (
+                              <div className="message-bubble__attachments">
+                                {m.attachments.map((a) => (
+                                  <button
+                                    key={a.id}
+                                    type="button"
+                                    className="attachment-chip"
+                                    onClick={() => setPreviewAttachment(a)}
+                                  >
+                                    <AttachmentIcon mimeType={a.mimeType} />
+                                    <span>{a.fileName}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <span className="message-bubble__time">{formatRelativeTime(m.createdAt)}</span>
+                          </div>
+                          {showSeen && <span className="message-row__seen">Visto</span>}
                         </div>
                       </div>
                     );
@@ -405,29 +584,66 @@ export function MessagesPage() {
             {filteredPeople.length === 0 && (
               <li className="people-picker__empty">Nadie coincide con tu búsqueda.</li>
             )}
-            {filteredPeople.map((person) => (
-              <li key={person.id}>
-                <button
-                  type="button"
-                  className="people-picker__row"
-                  onClick={() => handleStartConversation(person)}
-                  disabled={startingUserId !== null}
-                >
-                  <Avatar avatarStyle={person.avatarStyle} avatarSeed={person.avatarSeed} displayName={person.displayName} size="md" />
-                  <div className="people-picker__row-text">
-                    <p className="people-picker__name">{person.displayName}</p>
-                    <p className="people-picker__caption">
-                      <span className="messages-list__role-badge">{person.role.name}</span>
-                      <span className="messages-list__dot">·</span>
-                      {branchCaption(person)}
-                    </p>
-                    <p className="people-picker__lastseen">{lastSeenText(person.lastLoginAt)}</p>
-                  </div>
-                  {startingUserId === person.id && <span className="people-picker__spinner" aria-hidden="true" />}
-                </button>
-              </li>
-            ))}
+            {filteredPeople.map((person) => {
+              const selected = selectedPeopleIds.includes(person.id);
+              return (
+                <li key={person.id}>
+                  <button
+                    type="button"
+                    className={`people-picker__row${selected ? " people-picker__row--selected" : ""}`}
+                    onClick={() => togglePerson(person.id)}
+                    aria-pressed={selected}
+                    disabled={startingConversation}
+                  >
+                    <span className={`people-picker__checkbox${selected ? " people-picker__checkbox--checked" : ""}`} aria-hidden="true">
+                      {selected && <Check size={12} />}
+                    </span>
+                    <Avatar avatarStyle={person.avatarStyle} avatarSeed={person.avatarSeed} displayName={person.displayName} size="md" />
+                    <div className="people-picker__row-text">
+                      <p className="people-picker__name">{person.displayName}</p>
+                      <p className="people-picker__caption">
+                        <span className="messages-list__role-badge">{person.role.name}</span>
+                        <span className="messages-list__dot">·</span>
+                        {branchCaption(person)}
+                      </p>
+                      <p className="people-picker__lastseen">{lastSeenText(person.lastLoginAt)}</p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
+
+          {selectedPeopleIds.length >= 2 && (
+            <div className="people-picker__group-name">
+              <label htmlFor="messages-group-name">Nombre del grupo (opcional)</label>
+              <input
+                id="messages-group-name"
+                type="text"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="Ej. Equipo Sucursal Norte"
+                maxLength={120}
+              />
+            </div>
+          )}
+
+          <div className="people-picker__footer">
+            <span className="people-picker__selected-count">
+              {selectedPeopleIds.length === 0
+                ? "Selecciona al menos una persona"
+                : `${selectedPeopleIds.length} seleccionado${selectedPeopleIds.length === 1 ? "" : "s"}`}
+            </span>
+            <button
+              type="button"
+              className="people-picker__submit"
+              onClick={handleStartConversation}
+              disabled={selectedPeopleIds.length === 0 || startingConversation}
+            >
+              {startingConversation && <Loader2 size={14} className="spin" />}
+              Iniciar conversación
+            </button>
+          </div>
         </div>
       </Modal>
 

@@ -1,5 +1,5 @@
 import { apiFetch, ApiError } from "./apiClient";
-import type { Conversation, Message, MessagingParty } from "../types/api";
+import type { Conversation, ConversationMessagesResponse, Message, MessagingParty } from "../types/api";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 // /uploads is served as a static root by the backend (see BellaBack's
@@ -16,14 +16,24 @@ export const listConversations = () => apiFetch<Conversation[]>("/messages/conve
 
 export const listMessagingUsers = () => apiFetch<MessagingParty[]>("/messages/users");
 
-export const startConversation = (otherUserId: string) =>
+// participantIds is every OTHER person to add — the caller is implicit
+// server-side. 1 id => 1:1 (dedup against an existing conversation); 2+ ids
+// => always creates a new group. `name` is only meaningful for groups.
+export const startConversation = (participantIds: string[], name?: string | null) =>
   apiFetch<Conversation>("/messages/conversations", {
     method: "POST",
-    body: JSON.stringify({ otherUserId }),
+    body: JSON.stringify({ participantIds, ...(name ? { name } : {}) }),
   });
 
 export const listMessages = (conversationId: string) =>
-  apiFetch<Message[]>(`/messages/conversations/${conversationId}/messages`);
+  apiFetch<ConversationMessagesResponse>(`/messages/conversations/${conversationId}/messages`);
+
+// Per-viewer "delete for me" — hides the conversation from the caller's own
+// list without affecting the other participant(s) or the underlying data.
+export const hideConversation = (conversationId: string) =>
+  apiFetch<void>(`/messages/conversations/${conversationId}`, { method: "DELETE" });
+
+export const getUnreadCount = () => apiFetch<{ count: number }>("/messages/unread-count");
 
 export interface SendMessageInput {
   body: string;

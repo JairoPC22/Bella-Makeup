@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { FloatingMessagesButton } from "./FloatingMessagesButton";
 import "./AppShell.css";
 
 export function AppShell() {
@@ -29,6 +30,7 @@ export function AppShell() {
           </div>
         </main>
       </div>
+      <FloatingMessagesButton />
     </div>
   );
 }

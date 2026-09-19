@@ -43,8 +43,14 @@
 .messages-list::-webkit-scrollbar-thumb:hover { background-color: var(--color-pink-elegant); }
 
 .messages-list__items { list-style: none; margin: 0; padding: var(--space-2); display: flex; flex-direction: column; gap: 4px; }
+
+/* Each row is now [select-button][hide action] side by side — a real
+   sibling button rather than nesting a second interactive control inside
+   the select button, which native HTML disallows. */
+.messages-list__row { position: relative; display: flex; align-items: stretch; gap: 2px; }
+
 .messages-list__item {
-  width: 100%; text-align: left; display: flex; align-items: flex-start; gap: var(--space-2);
+  flex: 1 1 auto; min-width: 0; text-align: left; display: flex; align-items: flex-start; gap: var(--space-2);
   background: none; border: none; border-radius: var(--radius-md); padding: var(--space-2_5) var(--space-3);
   cursor: pointer;
   transition: background-color var(--transition-fast) var(--ease-premium);
@@ -52,6 +58,43 @@
 .messages-list__item:hover { background: var(--color-bg); }
 .messages-list__item--active { background: var(--color-pink-50); }
 .messages-list__item-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.messages-list__group-avatar {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(150deg, var(--color-pink-elegant), var(--color-pink-deep));
+  color: var(--color-white);
+}
+
+.messages-list__unread-badge {
+  flex: 0 0 auto; align-self: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-pill);
+  background: var(--color-pink-deep); color: var(--color-white);
+  font-size: 0.68rem; font-weight: 800; line-height: 1;
+}
+
+.messages-list__row-actions {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding-right: 6px;
+}
+.messages-list__hide-trigger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; border: none; background: none;
+  color: var(--color-text-muted); cursor: pointer; opacity: 0;
+  transition: opacity var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.messages-list__row:hover .messages-list__hide-trigger,
+.messages-list__hide-trigger:focus-visible { opacity: 1; }
+.messages-list__hide-trigger:hover { background: rgba(0, 102, 204, 0.1); color: var(--color-pink-deep); }
+.messages-list__hide-confirm {
+  border: none; border-radius: var(--radius-pill); padding: 3px 10px; font-size: 0.72rem; font-weight: 700;
+  cursor: pointer;
+}
+.messages-list__hide-confirm--yes { background: var(--color-pink-deep); color: var(--color-white); }
+.messages-list__hide-confirm--yes:hover { background: var(--color-primary-focus); }
+.messages-list__hide-confirm--no { background: var(--color-bg); color: var(--color-text-secondary); }
+.messages-list__hide-confirm--no:hover { background: var(--color-border); }
+.messages-list__hide-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 .messages-list__item-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .messages-list__name { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .messages-list__caption {
@@ -106,6 +149,18 @@
 .message-row { display: flex; align-items: flex-end; gap: var(--space-2); max-width: 100%; animation: fade-in-up 0.3s var(--ease-premium) both; }
 .message-row--theirs { justify-content: flex-start; }
 .message-row--mine { justify-content: flex-end; }
+
+/* Wraps the bubble + the "Visto" caption underneath it (1:1 only, last
+   message of mine only) so the caption inherits the same left/right
+   alignment as the bubble it belongs to. */
+.message-row__stack { display: flex; flex-direction: column; max-width: 520px; }
+.message-row--mine .message-row__stack { align-items: flex-end; }
+.message-row--theirs .message-row__stack { align-items: flex-start; }
+.message-row__seen { margin-top: 2px; font-size: 0.68rem; color: var(--color-text-muted); }
+
+.message-bubble__author {
+  font-size: 0.72rem; font-weight: 700; color: var(--color-pink-deep);
+}
 
 .message-bubble {
   max-width: 520px;
@@ -238,6 +293,8 @@
 }
 .people-picker__row:hover:not(:disabled) { background: var(--color-bg); }
 .people-picker__row:disabled { cursor: not-allowed; opacity: 0.6; }
+.people-picker__row--selected { background: var(--color-pink-50); }
+.people-picker__row--selected:hover:not(:disabled) { background: var(--color-pink-50); }
 .people-picker__row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .people-picker__name { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--color-primary); }
 .people-picker__caption {
@@ -245,12 +302,41 @@
 }
 .people-picker__lastseen { margin: 0; font-size: 0.72rem; color: var(--color-text-muted); }
 
-.people-picker__spinner {
-  flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
-  border: 2px solid var(--color-pink-soft); border-top-color: var(--color-pink-deep);
-  animation: spin 0.7s linear infinite;
+/* Multi-select checkbox — a decorative span (not a real <input>) so the
+   picker row can stay a single focusable/clickable <button>; aria-pressed
+   on the row itself carries the actual selected state for a11y. */
+.people-picker__checkbox {
+  flex: 0 0 auto; width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--color-border); display: inline-flex; align-items: center; justify-content: center;
+  color: var(--color-white);
+  transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.people-picker__checkbox--checked { background: var(--color-pink-deep); border-color: var(--color-pink-deep); }
+
+.people-picker__group-name { display: flex; flex-direction: column; gap: 6px; }
+.people-picker__group-name label { font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); }
+.people-picker__group-name input {
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3); font-family: var(--font-body); font-size: 0.9rem; color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.people-picker__group-name input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+.people-picker__footer {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  padding-top: var(--space-2); border-top: 1px solid var(--color-border);
+}
+.people-picker__selected-count { font-size: 0.8rem; color: var(--color-text-muted); }
+.people-picker__submit {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  background: var(--color-pink-deep); color: var(--color-white); border: none;
+  border-radius: var(--radius-pill); padding: var(--space-2) var(--space-4); font-weight: 600; font-size: 0.88rem;
+  cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.people-picker__submit:hover:not(:disabled) { background: var(--color-primary-focus); }
+.people-picker__submit:active:not(:disabled) { transform: scale(0.98); }
+.people-picker__submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 768px) {
   .messages-layout { grid-template-columns: 1fr; }

@@ -179,11 +179,39 @@ export interface Message {
   attachments: MessageAttachment[];
 }
 
+// One row of a conversation's participant list — the person plus THEIR OWN
+// lastReadAt on this conversation. For a 1:1 conversation, the entry whose
+// user.id !== me is what the "Visto" indicator (Task 3) is built from: any
+// of my own messages with createdAt <= that entry's lastReadAt has been
+// seen. Present on both the conversation-list response and the
+// conversation-detail (message-list) response.
+export interface ConversationParticipant {
+  user: MessagingParty;
+  lastReadAt: string | null;
+}
+
 export interface Conversation {
   id: string;
-  otherUser: MessagingParty;
-  createdAt: string;
+  isGroup: boolean;
+  name: string | null;
+  participants: ConversationParticipant[];
+  unreadCount: number;
   updatedAt: string;
+  createdAt: string;
+  messages: Message[]; // last-message preview, same as before
+}
+
+// GET /messages/conversations/:id/messages now returns this envelope
+// instead of a bare Message[] — `conversation.participants` is what powers
+// the "Visto" indicator and the group participant list inside an open
+// thread, without a second round trip.
+export interface ConversationMessagesResponse {
+  conversation: {
+    id: string;
+    isGroup: boolean;
+    name: string | null;
+    participants: ConversationParticipant[];
+  };
   messages: Message[];
 }
 
