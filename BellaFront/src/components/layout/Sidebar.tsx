@@ -65,9 +65,7 @@ export function Sidebar() {
         {collapsed ? (
           <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="sidebar__brand-logo" />
         ) : (
-          <div className="sidebar__brand-card">
-            <img src="/brand/logo-full-480.png" alt="Bella Makeup" className="sidebar__brand-lockup" />
-          </div>
+          <img src="/brand/logo-full-480.png" alt="Bella Makeup" className="sidebar__brand-lockup" />
         )}
       </div>
 

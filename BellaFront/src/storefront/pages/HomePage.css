@@ -13,22 +13,6 @@
 .storefront-hero {
   position: relative;
   overflow: hidden;
-  /* Contains mix-blend-mode below to this section only, so the hero photo's
-     blend never bleeds through into the sticky header or page content above
-     it — see MDN's isolation guidance for mix-blend-mode. */
-  isolation: isolate;
-  /* The glow used to be a separate absolutely-positioned sibling div. It's
-     folded directly into this element's own `background` instead because
-     .storefront-hero__inner (below) sets z-index:1 and therefore opens its
-     OWN nested stacking context — in every browser tested, a descendant's
-     mix-blend-mode only reliably picks up the *background paint* of its
-     isolated ancestor chain, not a sibling element sitting in a different
-     stacking context next to it. Without this, the hero photo's screen
-     blend only ever saw the flat --color-primary fill and never the glow,
-     so the glow-colored part of the frame still showed a visible black
-     rectangle behind the model even though the rest blended away cleanly.
-     Keeping it as one real `background` on this element guarantees the
-     blended image sees the exact same pixels a plain screenshot would. */
   background:
     radial-gradient(circle at 86% -12%, rgba(41, 151, 255, 0.42) 0%, rgba(0, 102, 204, 0.2) 38%, transparent 64%),
     var(--color-primary);
@@ -48,15 +32,6 @@
 }
 
 .storefront-hero__inner {
-  /* No z-index here on purpose — it already paints above .storefront-hero__grid
-     through plain DOM order (both are position:relative/absolute with
-     z-index:auto), and giving it an explicit z-index opens its own stacking
-     context, which empirically blocks the hero photo's mix-blend-mode
-     further down from seeing anything painted behind it (verified: with
-     z-index removed, the JPEG's black background composites away against
-     the gradient exactly as expected; with it present, the image renders
-     as a flat, un-blended black rectangle regardless of isolation/overflow
-     settings on ancestors). Keep this rule z-index-free. */
   position: relative;
   max-width: 1200px;
   margin: 0 auto;
@@ -137,79 +112,35 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  /* The entrance animation lives on the <img> itself (below), NOT here.
-     `animation-fill-mode: both` permanently holds the keyframe's end-state
-     `transform: translateY(0)` as this element's computed style forever
-     after the animation completes — and a non-"none" transform on an
-     ANCESTOR of a mix-blend-mode element opens a new stacking context that
-     silently blocks the blend from seeing anything behind it (confirmed
-     empirically: with the animation here, the hero photo rendered as a
-     flat, un-blended black rectangle no matter what else was fixed).
-     Putting the identical animation on the img directly gives the same
-     fade-in-up entrance without introducing a blocking ancestor. */
 }
 
-/* Hero-Ima2.jpeg is a JPEG, so it can't carry real alpha — the "transparent
-   cutout" it was described as is actually a flat, hard-edged black
-   rectangle behind the model. mix-blend-mode: screen is mathematically
-   exact for pure black: screen(black, X) = X for any backdrop X, so every
-   black pixel renders as exactly whatever sits behind it (this section's
-   near-black background + radial glow) and disappears — no visible box, no
-   need to touch the source file. Screen does lighten non-black pixels, but
-   because this hero's backdrop is dark (#1D1D1F + a subtle blue glow, not a
-   light color), that lift stays subtle on the model's midtone skin instead
-   of blowing out to white the way it would over a bright background — so a
-   fallback to `lighten` wasn't needed here. `isolation: isolate` on
-   .storefront-hero (above) keeps the blend contained to this section.
-   A small saturate/contrast lift compensates for the mild flattening screen
-   blending causes on midtones, keeping skin tones and the product bottles
-   looking rich instead of hazy. */
+/* THIRD ATTEMPT — this time the fix is upstream of CSS, not another CSS
+   tweak, so read this before changing anything again. The first two passes
+   fought the source JPEG's flat black background with CSS tricks
+   (mix-blend-mode: screen, then a mask-image feather on top of that) — both
+   left visible artifacts: screen blending inherently washes out/lightens
+   every non-black pixel (this IS "esa neblina" — a client-visible haze that
+   was never actually mist/fog, it was the unavoidable side effect of
+   blending a photo through screen mode), and the feather mask was smearing
+   translucency over real photo content (part of the model's arm, to hide a
+   too-tight crop) which made it worse. No amount of crop/mask tuning fixes
+   a wash-out that's inherent to the blend mode itself.
+   The real fix: model-cutout.png (built once via a small Jimp script, not
+   a build step) is a REAL alpha-transparent PNG. Every background pixel in
+   the source was sampled and confirmed pure (0,0,0); a luminance threshold
+   (max channel < 14 → alpha 0, 14-40 → linear feather, >40 → fully opaque)
+   keyed the background to true transparency while verified hair/skin
+   samples (e.g. (76,51,45), (193,134,104) — nowhere near black) stayed
+   fully opaque and untouched. A plain <img> with real alpha needs no blend
+   mode, no filter, no mask: colors are exactly the source photo's (no
+   wash-out), nothing photographed is cropped (object-fit: contain shows
+   the full kept frame), and the edge is a clean per-pixel alpha matte, not
+   a CSS approximation of one. */
 .storefront-hero__media img {
   width: 100%;
-  max-width: 600px;
+  max-width: 640px;
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
-  /* SECOND ATTEMPT — read this before changing again.
-     What "esa neblina" was: the previous pass cropped to a near-square
-     (aspect-ratio 1/1) pinned to the source's right edge. At 1671x941, a
-     1:1 cover-crop only keeps the rightmost 941px of width — which lands
-     ~730px in from the left edge of the source, i.e. mid-forearm (her
-     raised hand/elbow spans roughly x:680-950 in the source). That sliced
-     her arm in half with a hard vertical cut, so a
-     `mask-image: linear-gradient(to right, transparent 0%, black 16% ...)`
-     was added to feather that cut into the gradient instead of leaving a
-     hard edge — but feathering a cut THROUGH a real limb doesn't read as
-     an intentional vignette, it reads as a translucent haze smeared over
-     part of the photo ("esa neblina"), because it partially erases real
-     photo content (skin/hair), not just empty background. Removing the
-     mask alone would bring the amputated-arm edge back with a hard line,
-     which is equally bad — so the actual fix is upstream of the mask: stop
-     cropping through the arm at all.
-     Fix: widen the crop from 1:1 to 4:3. At 4:3 the kept width is
-     941 * (4/3) ≈ 1254px, so the crop starts ~417px from the source's left
-     edge — well left of where her arm begins (~680px) — so the ENTIRE
-     raised arm, hand, hair and both product/flower clusters stay in frame
-     with a comfortable margin of dead-black space (which the screen blend
-     still dissolves into the gradient) before any real photo content
-     starts. No mask is needed because the crop no longer cuts through a
-     photographed subject anywhere — every pixel at the crop's edges is
-     either background (invisible via blend) or well clear of the model.
-     The flowers/product bottles sitting flush against the source's own
-     right/bottom edges are baked into the source JPEG itself (verified by
-     inspecting the raw file) — that's a limitation of the asset, not of
-     this crop, and reads as an intentional edge-bleed rather than a bad
-     crop now that nothing else is being cut. If this still looks
-     cropped/off, the next thing to try is object-fit: contain with a
-     wider container (showing the full 1671x941 frame with no crop at
-     all), or asking for a re-export of the source photo with breathing
-     room around the flowers/bottles. */
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  /* 4:3 is narrower than the source's 1.775:1, so cover always keeps the
-     full source HEIGHT and only crops width — the vertical component of
-     object-position is a no-op here and deliberately left at center. */
-  object-position: 100% center;
-  mix-blend-mode: screen;
-  filter: saturate(1.14) contrast(1.05);
+  object-fit: contain;
 }
 
 @media (max-width: 900px) {

@@ -58,7 +58,7 @@ export function HomePage() {
             </Link>
           </div>
           <div className="storefront-hero__media">
-            <img src="/media/hero/Hero-Ima2.jpeg" alt="Modelo con productos de belleza Bella Makeup" />
+            <img src="/media/hero/model-cutout.png" alt="Modelo con productos de belleza Bella Makeup" />
           </div>
         </div>
       </section>

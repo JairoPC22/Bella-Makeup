@@ -69,24 +69,21 @@
 }
 
 /* Full icon+wordmark lockup (expanded rail only) — the source lockup's
-   wordmark is dark ink meant for a light surface, so it sits on a small
-   light card instead of directly on the sidebar's dark background, rather
-   than requiring a second dark-mode logo asset just for this one spot. */
-.sidebar__brand-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--color-white);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
+   wordmark is dark ink meant for a light surface, so a plain <img> here
+   would be nearly invisible against the sidebar's dark background. Rather
+   than sit it on a light card (a hard-edged white box that reads as a
+   sticker, not a logo — flagged directly by the client), the PNG's real
+   alpha channel (verified: color type 6/RGBA, not a baked-in white
+   background) is used to reverse the ink to solid white in place: only the
+   actual glyph pixels are affected, the transparent surround stays
+   transparent, so the wordmark sits directly on the sidebar with no
+   visible container at all. */
 .sidebar__brand-lockup {
   display: block;
   width: 100%;
   max-width: 168px;
   height: auto;
+  filter: brightness(0) invert(1);
 }
 
 .sidebar__nav {
