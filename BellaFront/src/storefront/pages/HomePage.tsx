@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, HeartHandshake, ShieldCheck, Sparkles, Store, Truck } from "lucide-react";
+import { ArrowRight, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { listPublicCategories, listPublicProducts, buildPublicImageUrl } from "../../services/storefrontService";
 import type { PublicCategory, PublicProduct } from "../../types/api";
@@ -40,14 +40,20 @@ export function HomePage() {
   return (
     <div className="storefront-home">
       <section className="storefront-hero">
+        <div className="storefront-hero__arc storefront-hero__arc--a" aria-hidden="true" />
+        <div className="storefront-hero__arc storefront-hero__arc--b" aria-hidden="true" />
         <div className="storefront-hero__grid" aria-hidden="true" />
         <div className="storefront-hero__inner">
           <div className="storefront-hero__copy">
             <span className="storefront-hero__eyebrow animate-in-stagger" style={staggerStyle(0)}>
-              <Sparkles size={14} aria-hidden="true" /> Tienda en línea
+              <span className="storefront-hero__eyebrow-line" aria-hidden="true" />
+              <Sparkles size={13} aria-hidden="true" /> Tienda en línea
+              <span className="storefront-hero__eyebrow-line" aria-hidden="true" />
             </span>
             <h1 className="animate-in-stagger" style={staggerStyle(110)}>
-              Belleza que se nota, entrega que se siente.
+              Belleza que se nota,
+              <br />
+              <em>entrega</em> que se siente.
             </h1>
             <p className="animate-in-stagger" style={staggerStyle(220)}>
               Descubre nuestra selección de maquillaje y cuidado de la piel. Ordena en línea y recoge en tu
@@ -56,30 +62,24 @@ export function HomePage() {
             <Link to="/catalogo" className="storefront-hero__cta animate-in-stagger" style={staggerStyle(330)}>
               Ver catálogo <ArrowRight size={18} aria-hidden="true" />
             </Link>
+
+            <div className="storefront-hero__trust animate-in-stagger" style={staggerStyle(420)}>
+              <div className="storefront-hero__trust-item">
+                <Truck size={18} aria-hidden="true" />
+                <span>Envíos seguros y rápidos</span>
+              </div>
+              <div className="storefront-hero__trust-item">
+                <ShieldCheck size={18} aria-hidden="true" />
+                <span>Productos 100% originales</span>
+              </div>
+              <div className="storefront-hero__trust-item">
+                <Heart size={18} aria-hidden="true" />
+                <span>Tu belleza, nuestra prioridad</span>
+              </div>
+            </div>
           </div>
           <div className="storefront-hero__media">
             <img src="/media/hero/model-cutout.png" alt="Modelo con productos de belleza Bella Makeup" />
-          </div>
-        </div>
-      </section>
-
-      <section className="storefront-trust-strip" aria-label="Beneficios de comprar con Bella Makeup">
-        <div className="storefront-trust-strip__inner">
-          <div className="storefront-trust-item">
-            <span className="storefront-trust-item__icon"><Store size={16} aria-hidden="true" /></span>
-            Retiro gratis en sucursal
-          </div>
-          <div className="storefront-trust-item">
-            <span className="storefront-trust-item__icon"><ShieldCheck size={16} aria-hidden="true" /></span>
-            Productos 100% originales
-          </div>
-          <div className="storefront-trust-item">
-            <span className="storefront-trust-item__icon"><HeartHandshake size={16} aria-hidden="true" /></span>
-            Asesoría experta y cercana
-          </div>
-          <div className="storefront-trust-item">
-            <span className="storefront-trust-item__icon"><Truck size={16} aria-hidden="true" /></span>
-            Entrega a domicilio
           </div>
         </div>
       </section>

@@ -15,8 +15,29 @@
   overflow: hidden;
   background:
     radial-gradient(circle at 86% -12%, rgba(41, 151, 255, 0.42) 0%, rgba(0, 102, 204, 0.2) 38%, transparent 64%),
-    var(--color-primary);
+    linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 82%, black) 100%);
   color: var(--color-white);
+}
+
+/* Two concentric arcs of light behind the model — the reference banner's
+   "spotlight ring" motif. Pure border-circles, not images, so they scale
+   losslessly and cost nothing. Positioned to peek from the top-right,
+   mostly hidden behind the model/copy so they read as ambient light rather
+   than a literal drawn circle. */
+.storefront-hero__arc {
+  position: absolute;
+  top: 50%;
+  right: 6%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.storefront-hero__arc--a { width: 720px; height: 720px; transform: translateY(-50%); }
+.storefront-hero__arc--b {
+  width: 520px;
+  height: 520px;
+  transform: translateY(-50%);
+  border-color: rgba(120, 185, 255, 0.22);
 }
 
 .storefront-hero__grid {
@@ -33,32 +54,34 @@
 
 .storefront-hero__inner {
   position: relative;
-  max-width: 1200px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: var(--space-7) var(--space-4);
+  padding: var(--space-6) var(--space-4) 0;
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-4);
-  min-height: 560px;
+  min-height: 520px;
 }
 
 .storefront-hero__copy {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-3);
-  /* No animation on this wrapper itself — each child (eyebrow/h1/p/CTA)
-     carries its own .animate-in-stagger + inline --stagger-delay instead
-     (see HomePage.tsx's staggerStyle() calls), so the opening copy visibly
-     reveals line by line on load rather than fading in as one flat block
-     ("que aparezca con animación al inicio"). Mirrors the
+  padding-bottom: var(--space-6);
+  /* No animation on this wrapper itself — each child (eyebrow/h1/p/CTA/
+     trust row) carries its own .animate-in-stagger + inline --stagger-delay
+     instead (see HomePage.tsx's staggerStyle() calls), so the opening copy
+     visibly reveals line by line on load rather than fading in as one flat
+     block ("que aparezca con animación al inicio"). Mirrors the
      .animate-in-stagger convention already used on DashboardPage. */
 }
 
 .storefront-hero__eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   align-self: flex-start;
   font-size: 0.72rem;
   font-weight: 600;
@@ -66,23 +89,34 @@
   text-transform: uppercase;
   color: var(--color-pink-elegant);
 }
+.storefront-hero__eyebrow-line {
+  width: 22px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
 
 .storefront-hero__copy h1 {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: clamp(2rem, 3.4vw + 1rem, 3.4rem);
+  font-size: clamp(2rem, 3.1vw + 1rem, 3.1rem);
   letter-spacing: var(--tracking-tighter);
-  line-height: 1.08;
+  line-height: 1.14;
   margin: 0;
-  max-width: 12ch;
+  max-width: 14ch;
+}
+.storefront-hero__copy h1 em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--color-pink-elegant);
 }
 
 .storefront-hero__copy p {
   font-family: var(--font-body);
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.6;
   color: rgba(247, 243, 241, 0.75);
-  max-width: 34ch;
+  max-width: 36ch;
   margin: 0;
 }
 
@@ -91,27 +125,54 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
   padding: var(--space-3) var(--space-5);
   background: var(--color-pink-deep);
   color: var(--color-white);
   border-radius: var(--radius-pill);
   font-weight: 600;
   text-decoration: none;
+  /* Soft glow under the button, echoing the reference banner's CTA —
+     a blurred duplicate of the button's own fill color, not a generic
+     drop-shadow, so it reads as light being cast rather than a shadow. */
+  box-shadow: 0 10px 28px -6px color-mix(in srgb, var(--color-pink-deep) 70%, transparent);
   transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
 }
 .storefront-hero__cta:hover {
   background: var(--color-primary-focus);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 32px -4px color-mix(in srgb, var(--color-primary-focus) 75%, transparent);
   transform: translateY(-1px);
 }
 .storefront-hero__cta:active { transform: scale(0.98); }
 
+.storefront-hero__trust {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+.storefront-hero__trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: rgba(247, 243, 241, 0.8);
+  padding-right: var(--space-3);
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+}
+.storefront-hero__trust-item:last-child { border-right: none; padding-right: 0; }
+.storefront-hero__trust-item svg { color: var(--color-pink-elegant); flex-shrink: 0; }
+
 .storefront-hero__media {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
+  align-self: stretch;
+  height: 100%;
 }
 
 /* THIRD ATTEMPT — this time the fix is upstream of CSS, not another CSS
@@ -137,10 +198,17 @@
    the full kept frame), and the edge is a clean per-pixel alpha matte, not
    a CSS approximation of one. */
 .storefront-hero__media img {
-  width: 100%;
-  max-width: 640px;
+  /* Bleeds to the section's own right/bottom edges — no padding, no
+     max-width cap on the container — matching the reference banner where
+     the model's arm/table sits flush with the banner's bottom edge instead
+     of floating centered with margin all around. */
+  height: 100%;
+  max-height: 560px;
+  width: auto;
+  max-width: none;
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
   object-fit: contain;
+  object-position: bottom right;
 }
 
 @media (max-width: 900px) {
@@ -149,55 +217,11 @@
     padding-top: var(--space-6);
     min-height: 0;
   }
+  .storefront-hero__copy { padding-bottom: var(--space-4); }
   .storefront-hero__copy h1 { max-width: none; }
   .storefront-hero__copy p { max-width: none; }
-  .storefront-hero__media { order: -1; justify-content: center; }
-  .storefront-hero__media img { max-width: 340px; }
-}
-
-/* ---------- Trust strip ---------- */
-/* A short reassurance bar between the hero and the category section — the
-   kind of low-effort, high-trust signal editorial storefronts use to bridge
-   an emotional hero into the functional shopping sections below it. */
-
-.storefront-trust-strip {
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-divider-soft);
-}
-
-.storefront-trust-strip__inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-3) var(--space-4);
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.storefront-trust-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.83rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  line-height: 1.25;
-}
-
-.storefront-trust-item__icon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--color-pink-50);
-  color: var(--color-pink-deep);
-}
-
-@media (max-width: 720px) {
-  .storefront-trust-strip__inner {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .storefront-hero__media { order: -1; justify-content: center; height: auto; }
+  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 340px; }
+  .storefront-hero__trust { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .storefront-hero__trust-item { border-right: none; padding-right: 0; }
 }
