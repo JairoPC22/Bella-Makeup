@@ -56,7 +56,13 @@ export function Sidebar() {
       <div className="sidebar__grid" aria-hidden="true" />
 
       <div className="sidebar__brand">
-        <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="sidebar__brand-logo" />
+        {collapsed ? (
+          <img src="/brand/monogram-transparent.png" alt="Bella Makeup" className="sidebar__brand-logo" />
+        ) : (
+          <div className="sidebar__brand-card">
+            <img src="/brand/logo-full-480.png" alt="Bella Makeup" className="sidebar__brand-lockup" />
+          </div>
+        )}
       </div>
 
       <nav className="sidebar__nav">

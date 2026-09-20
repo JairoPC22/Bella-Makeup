@@ -322,16 +322,6 @@ export function DashboardPage() {
           )}
         </div>
         <div className="dashboard-hero__side">
-          {/* Full icon+wordmark lockup — the fuller brand mark that, until
-              now, only ever appeared pre-cropped as the sidebar's small
-              monogram. Small and quiet on purpose (a subtle brand touch
-              above the existing visual/avatar row, not a second hero) —
-              the greeting text block to the left is untouched. */}
-          <img
-            src="/brand/logo-full-240.png"
-            alt="Bella Makeup"
-            className="dashboard-hero__brandmark"
-          />
           <div className="dashboard-hero__visual-row">
             <DashboardVisual />
             {user && (

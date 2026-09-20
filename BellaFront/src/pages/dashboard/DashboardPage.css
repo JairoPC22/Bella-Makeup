@@ -52,31 +52,11 @@
   color: var(--color-text-muted);
 }
 
-/* Column, not row: the brand lockup sits above the existing visual+avatar
-   row rather than squeezing into it, so it reads as a distinct "brand
-   touch" instead of fighting the animated visual for space. */
 .dashboard-hero__side {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
   flex-shrink: 0;
 }
-
-/* ---------- Full icon+wordmark lockup ----------
-   Small and quiet: sized off logo-full-240.png's own 240×147 aspect ratio
-   (height set, width auto) rather than stretched/cropped, kept well under
-   the visual/avatar row's own footprint, and slightly transparent so it
-   reads as a discreet signature rather than a second logo competing with
-   the sidebar's monogram. */
-.dashboard-hero__brandmark {
-  display: block;
-  height: 28px;
-  width: auto;
-  opacity: 0.88;
-  transition: opacity var(--transition-base) var(--ease-premium);
-}
-.dashboard-hero__side:hover .dashboard-hero__brandmark { opacity: 1; }
 
 .dashboard-hero__visual-row {
   display: flex;
