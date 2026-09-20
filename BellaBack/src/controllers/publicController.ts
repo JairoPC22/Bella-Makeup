@@ -30,6 +30,12 @@ export async function listBranches(_req: Request, res: Response, next: NextFunct
   } catch (err) { next(err); }
 }
 
+export async function getCompanyInfo(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await publicCatalogService.getPublicCompanyInfo());
+  } catch (err) { next(err); }
+}
+
 export async function createOrder(req: Request, res: Response, next: NextFunction) {
   try {
     const data = createOnlineOrderSchema.parse(req.body);

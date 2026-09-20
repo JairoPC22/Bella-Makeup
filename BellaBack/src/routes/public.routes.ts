@@ -13,6 +13,7 @@ router.get("/categories", publicController.listCategories);
 router.get("/products", publicController.listProducts);
 router.get("/products/:id", publicController.getProduct);
 router.get("/branches", publicController.listBranches);
+router.get("/company", publicController.getCompanyInfo);
 router.post("/orders", publicController.createOrder);
 router.get("/orders/:orderNumber", publicController.trackOrder);
 

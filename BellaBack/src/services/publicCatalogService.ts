@@ -69,6 +69,22 @@ async function loadStockTotals(productIds: string[]): Promise<{ productStock: Ma
   return { productStock, variantStock };
 }
 
+// Safe public subset of CompanySettings — the authenticated GET /api/settings
+// exposes the full row (including taxId, which is fine for staff but not
+// meant for a public unauthenticated response), so the storefront gets its
+// own endpoint with only what a customer-facing footer/contact button needs.
+export async function getPublicCompanyInfo() {
+  const settings = await prisma.companySettings.findFirst();
+  if (!settings) return null;
+  return {
+    companyName: settings.companyName,
+    address: settings.address,
+    phone: settings.phone,
+    businessHours: settings.businessHours,
+    socialLinks: settings.socialLinks as Record<string, string> | null,
+  };
+}
+
 export function listPublicCategories() {
   return prisma.category
     .findMany({ where: { status: "ACTIVE" }, orderBy: { name: "asc" } })
