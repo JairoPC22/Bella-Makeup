@@ -1,0 +1,39 @@
+/* Pinned bottom-LEFT (the storefront's ScrollToTopButton takes bottom-right)
+   — echoes the admin side's FloatingMessagesButton.css treatment (circular,
+   gradient fill, pill shadow) but in WhatsApp's own green rather than the
+   app's blue/pink brand ramp, since this button's whole purpose is to be
+   instantly recognizable as "this opens WhatsApp". */
+.storefront-whatsapp-button {
+  position: fixed;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 60;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(150deg, #25d366, #128c4a);
+  color: var(--color-white);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium);
+}
+.storefront-whatsapp-button:hover {
+  box-shadow: 0 10px 28px rgba(18, 140, 74, 0.4);
+  transform: scale(1.06);
+}
+.storefront-whatsapp-button:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 720px) {
+  .storefront-whatsapp-button {
+    left: var(--space-3);
+    bottom: var(--space-3);
+    width: 50px;
+    height: 50px;
+  }
+}

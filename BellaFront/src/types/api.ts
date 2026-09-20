@@ -376,6 +376,18 @@ export interface PublicBranch {
   id: string; name: string; address: string | null; phone: string | null;
   schedule: string | null; lat: number | null; lng: number | null;
 }
+// GET /api/public/company — company-wide contact info for the storefront
+// (floating WhatsApp button, footer map, etc). Distinct from the
+// authenticated CompanySettings type used by the admin panel's
+// companySettingsService — this is the deliberately lighter, public-safe
+// read model, same "Public*"-prefixed convention as the types above.
+export interface PublicCompanyInfo {
+  companyName: string;
+  address: string | null;
+  phone: string | null;
+  businessHours: string | null;
+  socialLinks: { whatsapp?: string; instagram?: string } | null;
+}
 export interface OnlineOrderItemInput { productId: string; variantId?: string; quantity: number; }
 export type OnlineOrderFulfillment =
   | { type: "PICKUP"; branchId: string }

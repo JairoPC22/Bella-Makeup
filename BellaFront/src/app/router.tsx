@@ -28,6 +28,7 @@ import { OrderConfirmationPage as StorefrontOrderConfirmationPage } from "../sto
 import { AboutPage as StorefrontAboutPage } from "../storefront/pages/AboutPage";
 import { FaqPage as StorefrontFaqPage } from "../storefront/pages/FaqPage";
 import { ShippingPage as StorefrontShippingPage } from "../storefront/pages/ShippingPage";
+import { LocationPage as StorefrontLocationPage } from "../storefront/pages/LocationPage";
 
 function NotFoundPage() {
   return (
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       { path: "/nosotros", element: <StorefrontAboutPage /> },
       { path: "/preguntas-frecuentes", element: <StorefrontFaqPage /> },
       { path: "/envios", element: <StorefrontShippingPage /> },
+      { path: "/ubicacion", element: <StorefrontLocationPage /> },
     ],
   },
   {

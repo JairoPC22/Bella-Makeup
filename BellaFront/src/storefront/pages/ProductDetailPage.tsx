@@ -101,11 +101,18 @@ export function ProductDetailPage() {
       <div className="storefront-detail__layout">
         <div className="storefront-detail__gallery">
           <div className="storefront-detail__main-image">
-            {displayImageUrl ? (
-              <img src={displayImageUrl} alt={product.name} />
-            ) : (
-              <Sparkles size={32} aria-hidden="true" />
-            )}
+            {/* `key` forces React to remount this node whenever the shown
+                image changes (thumbnail click OR variant swap), which
+                restarts the CSS entrance animation below each time — a
+                cheap, dependency-free crossfade without a transition
+                library ("que se vean bien en galería con animación"). */}
+            <div className="storefront-detail__main-image-inner" key={displayImageUrl ?? "placeholder"}>
+              {displayImageUrl ? (
+                <img src={displayImageUrl} alt={product.name} />
+              ) : (
+                <Sparkles size={32} aria-hidden="true" />
+              )}
+            </div>
           </div>
           {galleryImages.length > 1 && (
             <div className="storefront-detail__thumbs">

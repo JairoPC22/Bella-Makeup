@@ -3,6 +3,7 @@ import type {
   OnlineOrder,
   PublicBranch,
   PublicCategory,
+  PublicCompanyInfo,
   PublicProduct,
   PublicProductListResponse,
 } from "../types/api";
@@ -59,6 +60,11 @@ export const listPublicProducts = (params?: { categoryId?: string; search?: stri
 export const getPublicProduct = (id: string) => publicFetch<PublicProduct>(`/products/${id}`);
 
 export const listPublicBranches = () => publicFetch<PublicBranch[]>("/branches");
+
+// Backs the floating WhatsApp button (StorefrontLayout) and the Ubicación
+// page's contact details — company name/address/phone/hours/social links,
+// safe for a fully anonymous visitor.
+export const getPublicCompanyInfo = () => publicFetch<PublicCompanyInfo>("/company");
 
 export const createOnlineOrder = (input: CreateOnlineOrderInput) =>
   publicFetch<OnlineOrder>("/orders", { method: "POST", body: JSON.stringify(input) });

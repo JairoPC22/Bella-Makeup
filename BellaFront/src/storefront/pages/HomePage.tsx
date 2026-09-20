@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, HeartHandshake, ShieldCheck, Sparkles, Store, Truck } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
@@ -9,6 +9,16 @@ import "./HomePage.css";
 const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
 
 type FetchStatus = "loading" | "ready" | "error";
+
+// Mirrors DashboardPage.tsx's own staggerStyle() helper exactly — the
+// `--stagger-delay` custom property (consumed by .animate-in-stagger in
+// global.css) isn't part of csstype's CSSProperties, so it needs the same
+// `unknown` escape hatch. Used here so the hero's opening copy visibly
+// reveals line-by-line ("que aparezca con animación al inicio") instead of
+// fading in as a single flat block.
+function staggerStyle(ms: number): CSSProperties {
+  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
 
 export function HomePage() {
   const [categories, setCategories] = useState<PublicCategory[]>([]);
@@ -33,15 +43,17 @@ export function HomePage() {
         <div className="storefront-hero__grid" aria-hidden="true" />
         <div className="storefront-hero__inner">
           <div className="storefront-hero__copy">
-            <span className="storefront-hero__eyebrow">
+            <span className="storefront-hero__eyebrow animate-in-stagger" style={staggerStyle(0)}>
               <Sparkles size={14} aria-hidden="true" /> Tienda en línea
             </span>
-            <h1>Belleza que se nota, entrega que se siente.</h1>
-            <p>
+            <h1 className="animate-in-stagger" style={staggerStyle(110)}>
+              Belleza que se nota, entrega que se siente.
+            </h1>
+            <p className="animate-in-stagger" style={staggerStyle(220)}>
               Descubre nuestra selección de maquillaje y cuidado de la piel. Ordena en línea y recoge en tu
               sucursal más cercana o recíbelo a domicilio.
             </p>
-            <Link to="/catalogo" className="storefront-hero__cta">
+            <Link to="/catalogo" className="storefront-hero__cta animate-in-stagger" style={staggerStyle(330)}>
               Ver catálogo <ArrowRight size={18} aria-hidden="true" />
             </Link>
           </div>

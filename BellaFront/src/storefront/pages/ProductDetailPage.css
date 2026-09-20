@@ -35,6 +35,25 @@
   overflow: hidden;
   color: var(--color-text-muted);
 }
+.storefront-detail__main-image-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Crossfade + gentle scale-in each time the `key` above changes (new
+     thumbnail clicked or variant swapped), instead of the previous instant
+     jump-cut between images. */
+  animation: storefront-gallery-fade 0.38s var(--ease-premium) both;
+}
+@keyframes storefront-gallery-fade {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .storefront-detail__main-image-inner { animation: none; }
+}
+
 .storefront-detail__main-image img {
   width: 100%;
   height: 100%;
@@ -55,16 +74,29 @@
   background: var(--color-white);
   padding: 0;
   cursor: pointer;
-  transition: border-color var(--transition-base) var(--ease-premium);
+  transform: translateY(0) scale(1);
+  opacity: 0.82;
+  box-shadow: none;
+  transition: border-color var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    opacity var(--transition-base) var(--ease-premium);
 }
 .storefront-detail__thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.storefront-detail__thumb.is-active,
 .storefront-detail__thumb:hover {
+  border-color: var(--color-pink-elegant);
+  opacity: 1;
+  transform: translateY(-2px);
+}
+.storefront-detail__thumb.is-active {
   border-color: var(--color-pink-deep);
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--color-pink-50), var(--shadow-sm);
+  transform: translateY(-1px) scale(1.04);
 }
 
 .storefront-detail__info {

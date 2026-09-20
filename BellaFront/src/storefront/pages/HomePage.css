@@ -72,7 +72,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  animation: fade-in-up var(--duration-entrance) var(--ease-premium) both;
+  /* No animation on this wrapper itself — each child (eyebrow/h1/p/CTA)
+     carries its own .animate-in-stagger + inline --stagger-delay instead
+     (see HomePage.tsx's staggerStyle() calls), so the opening copy visibly
+     reveals line by line on load rather than fading in as one flat block
+     ("que aparezca con animación al inicio"). Mirrors the
+     .animate-in-stagger convention already used on DashboardPage. */
 }
 
 .storefront-hero__eyebrow {
@@ -161,25 +166,50 @@
    looking rich instead of hazy. */
 .storefront-hero__media img {
   width: 100%;
-  max-width: 520px;
+  max-width: 600px;
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
-  /* The source photo is a 1671x941 landscape frame with the subject living
-     in roughly its right 55%; the left half is dead black space. Cropping
-     to a near-square portrait and pinning object-position to the right edge
-     removes that dead space entirely instead of just hiding it, so the
-     photo reads as a deliberately composed portrait rather than a big box
-     with a small subject floating inside it ("acomódala mejor"). */
-  aspect-ratio: 1 / 1;
+  /* SECOND ATTEMPT — read this before changing again.
+     What "esa neblina" was: the previous pass cropped to a near-square
+     (aspect-ratio 1/1) pinned to the source's right edge. At 1671x941, a
+     1:1 cover-crop only keeps the rightmost 941px of width — which lands
+     ~730px in from the left edge of the source, i.e. mid-forearm (her
+     raised hand/elbow spans roughly x:680-950 in the source). That sliced
+     her arm in half with a hard vertical cut, so a
+     `mask-image: linear-gradient(to right, transparent 0%, black 16% ...)`
+     was added to feather that cut into the gradient instead of leaving a
+     hard edge — but feathering a cut THROUGH a real limb doesn't read as
+     an intentional vignette, it reads as a translucent haze smeared over
+     part of the photo ("esa neblina"), because it partially erases real
+     photo content (skin/hair), not just empty background. Removing the
+     mask alone would bring the amputated-arm edge back with a hard line,
+     which is equally bad — so the actual fix is upstream of the mask: stop
+     cropping through the arm at all.
+     Fix: widen the crop from 1:1 to 4:3. At 4:3 the kept width is
+     941 * (4/3) ≈ 1254px, so the crop starts ~417px from the source's left
+     edge — well left of where her arm begins (~680px) — so the ENTIRE
+     raised arm, hand, hair and both product/flower clusters stay in frame
+     with a comfortable margin of dead-black space (which the screen blend
+     still dissolves into the gradient) before any real photo content
+     starts. No mask is needed because the crop no longer cuts through a
+     photographed subject anywhere — every pixel at the crop's edges is
+     either background (invisible via blend) or well clear of the model.
+     The flowers/product bottles sitting flush against the source's own
+     right/bottom edges are baked into the source JPEG itself (verified by
+     inspecting the raw file) — that's a limitation of the asset, not of
+     this crop, and reads as an intentional edge-bleed rather than a bad
+     crop now that nothing else is being cut. If this still looks
+     cropped/off, the next thing to try is object-fit: contain with a
+     wider container (showing the full 1671x941 frame with no crop at
+     all), or asking for a re-export of the source photo with breathing
+     room around the flowers/bottles. */
+  aspect-ratio: 4 / 3;
   object-fit: cover;
+  /* 4:3 is narrower than the source's 1.775:1, so cover always keeps the
+     full source HEIGHT and only crops width — the vertical component of
+     object-position is a no-op here and deliberately left at center. */
   object-position: 100% center;
   mix-blend-mode: screen;
   filter: saturate(1.14) contrast(1.05);
-  /* Feathers the one edge of the crop that cuts through real photo content
-     (the left edge, through part of her arm) so it fades into the gradient
-     instead of ending in a hard vertical line — reinforces "su fondo es el
-     degradado" beyond what the blend mode alone gives at that edge. */
-  mask-image: linear-gradient(to right, transparent 0%, black 16%, black 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 16%, black 100%);
 }
 
 @media (max-width: 900px) {
