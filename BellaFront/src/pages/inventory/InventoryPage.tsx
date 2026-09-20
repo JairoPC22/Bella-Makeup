@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { PackageSearch, SlidersHorizontal, History, Search, Info } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { PermissionGate } from "../../components/auth/PermissionGate";
+import { ReportExportButtons } from "../../components/common/ReportExportButtons";
 import * as branchService from "../../services/branchService";
 import * as categoryService from "../../services/categoryService";
 import * as inventoryService from "../../services/inventoryService";
 import type { Branch, Category, InventoryRow } from "../../types/api";
+import type { ReportColumn } from "../../utils/reportExport";
 import { InventoryAdjustModal } from "./InventoryAdjustModal";
 import { KardexModal } from "./KardexModal";
 import "./InventoryPage.css";
@@ -75,6 +77,25 @@ export function InventoryPage() {
     );
   });
 
+  // One-line description of whatever filters are currently active, shown
+  // under the title in the exported report — omitted entirely (not an
+  // empty string) when nothing is filtered, per this export utility's
+  // ReportOptions contract.
+  const activeFilterParts: string[] = [];
+  if (branchId) activeFilterParts.push(`Sucursal: ${branches.find((b) => b.id === branchId)?.name ?? branchId}`);
+  if (categoryId) activeFilterParts.push(`Categoría: ${categories.find((c) => c.id === categoryId)?.name ?? categoryId}`);
+  if (statusFilter) activeFilterParts.push(`Estado: ${STATUS_LABEL[statusFilter]}`);
+  if (query) activeFilterParts.push(`Búsqueda: "${search.trim()}"`);
+  const filtersSummary = activeFilterParts.length > 0 ? activeFilterParts.join(" · ") : undefined;
+
+  const reportColumns: ReportColumn<InventoryRow>[] = [
+    { header: "Producto", accessor: (row) => `${row.product.name} (${row.product.sku})` },
+    { header: "Variante", accessor: (row) => (row.variant ? row.variant.name : "—") },
+    { header: "Sucursal", accessor: (row) => row.branch.name },
+    { header: "Stock", accessor: (row) => row.stock },
+    { header: "Estado", accessor: (row) => STATUS_LABEL[row.status] },
+  ];
+
   return (
     <div className="inventory-page">
       <div className="inventory-page__header">
@@ -114,6 +135,13 @@ export function InventoryPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
+        <ReportExportButtons
+          title="Reporte de Inventario"
+          columns={reportColumns}
+          rows={visibleRows}
+          filtersSummary={filtersSummary}
+          fileBaseName="inventario"
+        />
       </div>
 
       {status === "loading" && <StatusState kind="loading" />}

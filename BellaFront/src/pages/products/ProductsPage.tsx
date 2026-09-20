@@ -4,11 +4,13 @@ import { Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
 import { PermissionGate } from "../../components/auth/PermissionGate";
+import { ReportExportButtons } from "../../components/common/ReportExportButtons";
 import { ApiError } from "../../services/apiClient";
 import * as productService from "../../services/productService";
 import * as categoryService from "../../services/categoryService";
 import * as brandService from "../../services/brandService";
 import type { Brand, Category, Product } from "../../types/api";
+import type { ReportColumn } from "../../utils/reportExport";
 import { ProductFormModal } from "./ProductFormModal";
 import "./ProductsPage.css";
 
@@ -104,6 +106,25 @@ export function ProductsPage() {
     setBrands((prev) => [...prev, brand].sort((a, b) => a.name.localeCompare(b.name)));
   }
 
+  // One-line description of whatever filters are currently applied, shown
+  // under the title in the exported report — omitted entirely (not an
+  // empty string) when nothing is filtered.
+  const activeFilterParts: string[] = [];
+  if (categoryId) activeFilterParts.push(`Categoría: ${categories.find((c) => c.id === categoryId)?.name ?? categoryId}`);
+  if (brandId) activeFilterParts.push(`Marca: ${brands.find((b) => b.id === brandId)?.name ?? brandId}`);
+  if (statusFilter) activeFilterParts.push(`Estado: ${statusFilter === "ACTIVE" ? "Activo" : "Inactivo"}`);
+  if (search) activeFilterParts.push(`Búsqueda: "${search}"`);
+  const filtersSummary = activeFilterParts.length > 0 ? activeFilterParts.join(" · ") : undefined;
+
+  const reportColumns: ReportColumn<Product>[] = [
+    { header: "Producto", accessor: (p) => `${p.name} (${p.sku})` },
+    { header: "Categoría", accessor: (p) => p.category?.name ?? "—" },
+    { header: "Marca", accessor: (p) => p.brand?.name ?? "—" },
+    { header: "Precio", accessor: (p) => currencyFormatter.format(Number(p.price)) },
+    { header: "Variantes", accessor: (p) => p.variants.length },
+    { header: "Estado", accessor: (p) => (p.status === "ACTIVE" ? "Activo" : "Inactivo") },
+  ];
+
   return (
     <div className="products-page">
       <div className="products-page__header animate-in">
@@ -151,6 +172,13 @@ export function ProductsPage() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </label>
+        <ReportExportButtons
+          title="Reporte de Productos"
+          columns={reportColumns}
+          rows={products ?? []}
+          filtersSummary={filtersSummary}
+          fileBaseName="productos"
+        />
       </div>
 
       {status === "loading" && <StatusState kind="loading" />}

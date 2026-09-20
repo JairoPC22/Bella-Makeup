@@ -1,0 +1,18 @@
+/* Same pill-outline convention as InventoryPage's .inventory-table__actions
+   button — a secondary action, not the filled-pink primary CTA style used
+   for "Nuevo producto"/"Nuevo rol". Sits at the end of the host page's
+   filter bar (margin-left: auto pushes it to the right edge when there's
+   room, wraps below on narrow screens since the filter bar is already
+   flex-wrap). */
+.report-export { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.report-export__btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--color-white); border: 1px solid var(--color-border);
+  cursor: pointer; padding: 7px 14px; color: var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+  font-size: 0.85rem; font-weight: 600; font-family: var(--font-body);
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.report-export__btn:hover:not(:disabled) { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+.report-export__btn:active:not(:disabled) { transform: scale(0.98); }
+.report-export__btn:disabled { opacity: 0.5; cursor: not-allowed; }
