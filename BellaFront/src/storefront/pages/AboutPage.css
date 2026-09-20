@@ -1,0 +1,152 @@
+.storefront-about {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Brand story ---------- */
+
+.storefront-about__story {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.storefront-about__story-text h2 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: 1.7rem;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+}
+
+.storefront-about__story-text p {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.storefront-about__story-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-1);
+  font-weight: 600;
+  color: var(--color-pink-deep);
+  text-decoration: none;
+}
+.storefront-about__story-link:hover { text-decoration: underline; }
+
+.storefront-about__story-media img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  /* Hero-Ima1.jpeg has a real, solid studio backdrop (not a transparency
+     bug like Hero-Ima2 on the home hero) — here it's framed intentionally
+     as a photo tile with its own soft-pink background, which reads as a
+     deliberate editorial card rather than a broken cutout. */
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ---------- Values grid ---------- */
+
+.storefront-about__values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-3);
+}
+
+.storefront-about__value-card {
+  padding: var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.storefront-about__value-card:hover {
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.storefront-about__value-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+  margin-bottom: var(--space-2_5);
+}
+
+.storefront-about__value-card h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--color-ink);
+}
+
+.storefront-about__value-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Branches callout ---------- */
+
+.storefront-about__branches {
+  background: var(--color-primary);
+  color: var(--color-white);
+  margin-top: var(--space-5);
+}
+
+.storefront-about__branches-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.storefront-about__branches-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(41, 151, 255, 0.16);
+  color: var(--color-primary-on-dark);
+}
+
+.storefront-about__branches-inner h2 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  letter-spacing: var(--tracking-tight);
+}
+
+.storefront-about__branches-inner p {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: rgba(247, 243, 241, 0.78);
+}
+
+@media (max-width: 860px) {
+  .storefront-about__story {
+    grid-template-columns: 1fr;
+  }
+  .storefront-about__story-media { order: -1; }
+  .storefront-about__story-media img { aspect-ratio: 16 / 10; }
+  .storefront-about__branches-inner { flex-direction: column; }
+}

@@ -1,0 +1,146 @@
+.storefront-shipping__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.storefront-shipping__option-card {
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.storefront-shipping__option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+  margin-bottom: var(--space-3);
+}
+
+.storefront-shipping__option-card h2 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--color-ink);
+}
+
+.storefront-shipping__option-card p {
+  margin: 0 0 var(--space-3);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.storefront-shipping__option-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.storefront-shipping__option-facts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.storefront-shipping__option-facts svg { color: var(--color-pink-deep); flex-shrink: 0; }
+
+/* ---------- How it works steps ---------- */
+
+.storefront-shipping__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.storefront-shipping__step {
+  display: flex;
+  gap: var(--space-2_5);
+  padding: var(--space-3);
+}
+
+.storefront-shipping__step-number {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.storefront-shipping__step-title {
+  margin: 0 0 2px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.storefront-shipping__step-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Payment note ---------- */
+
+.storefront-shipping__note {
+  background: var(--color-primary);
+  color: var(--color-white);
+  margin-top: var(--space-5);
+}
+
+.storefront-shipping__note-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.storefront-shipping__note-inner p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: rgba(247, 243, 241, 0.82);
+}
+.storefront-shipping__note-inner strong { color: var(--color-white); }
+
+.storefront-shipping__note-link {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.storefront-shipping__note-link:hover { background: var(--color-primary-focus); transform: translateY(-1px); }

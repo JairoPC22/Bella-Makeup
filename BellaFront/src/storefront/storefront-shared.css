@@ -1,0 +1,312 @@
+/* Shared across every storefront page (Home/Catalog/ProductDetail/Checkout)
+   — imported once by StorefrontLayout.tsx since it wraps every storefront
+   route via <Outlet/>, so these rules are always available without each
+   page re-importing them. Page-specific CSS files hold only what's unique
+   to that page. */
+
+.storefront-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.storefront-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.storefront-section__header h2 {
+  font-size: 1.6rem;
+  letter-spacing: var(--tracking-tight);
+}
+.storefront-section__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-pink-deep);
+  text-decoration: none;
+}
+.storefront-section__link:hover { text-decoration: underline; }
+
+/* ---------- Category teaser strip ---------- */
+
+.storefront-category-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.storefront-category-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  transition: border-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.storefront-category-card:hover {
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  color: var(--color-pink-deep);
+}
+.storefront-category-card svg { color: var(--color-pink-elegant); flex-shrink: 0; }
+
+/* ---------- Product grid / card (reused: Home destacados, Catalog) ---------- */
+
+.storefront-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.storefront-product-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.storefront-product-card:hover {
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.storefront-product-card__image {
+  aspect-ratio: 1;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  overflow: hidden;
+}
+.storefront-product-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.storefront-product-card__brand {
+  margin: var(--space-3) var(--space-3) 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  min-height: 1em;
+}
+.storefront-product-card__name {
+  margin: 2px var(--space-3) 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  line-height: 1.3;
+}
+.storefront-product-card__price {
+  margin: var(--space-2) var(--space-3) var(--space-3);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.storefront-product-card__price--strike {
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+.storefront-product-card__price--promo {
+  color: var(--color-pink-deep);
+}
+
+.storefront-product-card__actions {
+  margin: 0 var(--space-3) var(--space-3);
+}
+
+.storefront-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.storefront-add-btn:hover:not(:disabled) { background: var(--color-primary-focus); }
+.storefront-add-btn:active:not(:disabled) { transform: scale(0.98); }
+.storefront-add-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.storefront-add-btn--outline {
+  background: var(--color-white);
+  color: var(--color-pink-deep);
+  border: 1px solid var(--color-pink-elegant);
+}
+.storefront-add-btn--outline:hover:not(:disabled) { background: var(--color-pink-50); }
+
+/* ---------- Toggle cards (fulfillment / payment choice on checkout) ---------- */
+
+.storefront-toggle-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2_5);
+}
+
+.storefront-toggle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-base) var(--ease-premium), background-color var(--transition-base) var(--ease-premium);
+}
+.storefront-toggle-card:hover { border-color: var(--color-pink-elegant); }
+.storefront-toggle-card--active {
+  border-color: var(--color-pink-deep);
+  background: var(--color-pink-50);
+}
+.storefront-toggle-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  color: var(--color-ink);
+}
+.storefront-toggle-card__title svg { color: var(--color-pink-deep); }
+.storefront-toggle-card__desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* ---------- Generic storefront form fields ---------- */
+
+.storefront-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.storefront-field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.storefront-field input,
+.storefront-field textarea {
+  padding: var(--space-2_5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  background: var(--color-white);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.storefront-field input:focus,
+.storefront-field textarea:focus {
+  outline: none;
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-focus);
+}
+.storefront-field textarea { resize: vertical; min-height: 72px; }
+
+.storefront-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(0, 102, 204, 0.08);
+  border: 1px solid rgba(0, 102, 204, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-pink-deep);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.storefront-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--space-3);
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.storefront-primary-btn:hover:not(:disabled) { background: var(--color-primary-focus); box-shadow: var(--shadow-md); }
+.storefront-primary-btn:active:not(:disabled) { transform: scale(0.98); }
+.storefront-primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Page header (About / FAQ / Shipping) ---------- */
+/* Shared intro block for the informational storefront pages — a lighter,
+   on-white echo of the home hero's eyebrow + heading rhythm, so these pages
+   feel like siblings of the home page instead of a bolted-on afterthought. */
+
+.storefront-page-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-2);
+}
+.storefront-page-header__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-pink-deep);
+}
+.storefront-page-header h1 {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 2vw + 1.2rem, 2.6rem);
+  letter-spacing: var(--tracking-tighter);
+  color: var(--color-ink);
+}
+.storefront-page-header p {
+  margin: var(--space-2_5) 0 0;
+  max-width: 62ch;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
