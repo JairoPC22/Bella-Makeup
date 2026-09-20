@@ -12,6 +12,7 @@ const TYPE_LABEL: Record<InventoryMovement["type"], string> = {
   TRANSFER_IN: "Transferencia entrante",
   TRANSFER_OUT: "Transferencia saliente",
   RETURN: "Devolución",
+  ORDER: "Pedido en línea",
 };
 
 interface KardexModalProps {

@@ -13,6 +13,7 @@ import {
   Package,
   ShoppingCart,
   Receipt,
+  ArrowLeftRight,
 } from "lucide-react";
 import { PermissionGate } from "../auth/PermissionGate";
 import "./Sidebar.css";
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { to: "/sucursales", end: false, label: "Sucursales", icon: Building2, permission: "branches.view" },
   { to: "/productos", end: false, label: "Productos", icon: Package, permission: "products.view" },
   { to: "/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
+  { to: "/transferencias", end: false, label: "Transferencias", icon: ArrowLeftRight, permission: "transfers.view" },
   { to: "/pos", end: false, label: "Punto de venta", icon: ShoppingCart, permission: "sales.create" },
   { to: "/ventas", end: false, label: "Ventas", icon: Receipt, permission: "sales.view" },
   { to: "/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },

@@ -96,7 +96,11 @@ export interface ListPublicProductsFilters {
 }
 
 const publicProductInclude = {
-  images: { orderBy: { sortOrder: "asc" as const } },
+  // isPrimary first so images[0] (what the storefront shows as the single
+  // thumbnail) is always the product's actual primary image, not whichever
+  // image happens to tie-break first on sortOrder alone — see
+  // productRepository.ts's identical fix for the same reasoning.
+  images: { orderBy: [{ isPrimary: "desc" as const }, { sortOrder: "asc" as const }] },
   // Only ACTIVE variants are shown to a public shopper — mirrors the same
   // "active only" rule applied to the products themselves.
   variants: { where: { status: "ACTIVE" as const } },

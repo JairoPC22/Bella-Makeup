@@ -1,7 +1,13 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-const productInclude = { images: { orderBy: { sortOrder: "asc" as const } }, variants: true, category: true, brand: true };
+// Ordered isPrimary first (then sortOrder) so `images[0]` is always the
+// product's primary image everywhere a caller just wants "the" thumbnail —
+// productImageRepository.ts guarantees exactly one isPrimary: true row per
+// product, but sortOrder alone doesn't reliably agree with it (ties are
+// possible), so relying on sortOrder alone previously let a non-primary
+// image win the [0] slot.
+const productInclude = { images: { orderBy: [{ isPrimary: "desc" as const }, { sortOrder: "asc" as const }] }, variants: true, category: true, brand: true };
 
 export function findAllProducts(filters: { categoryId?: string; brandId?: string; status?: "ACTIVE" | "INACTIVE"; search?: string }) {
   const where: Prisma.ProductWhereInput = {

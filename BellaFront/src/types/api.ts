@@ -136,7 +136,7 @@ export interface InventoryMovement {
   productId: string;
   variantId?: string | null;
   branchId: string;
-  type: "ADJUSTMENT" | "PURCHASE" | "SALE" | "TRANSFER_IN" | "TRANSFER_OUT" | "RETURN";
+  type: "ADJUSTMENT" | "PURCHASE" | "SALE" | "TRANSFER_IN" | "TRANSFER_OUT" | "RETURN" | "ORDER";
   quantity: number;
   stockBefore: number;
   stockAfter: number;
@@ -294,4 +294,112 @@ export interface AuditLogEntry {
   user: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
   branch: { id: string; name: string } | null;
   details?: Record<string, unknown> | null;
+}
+
+// Shared shape for create/list/detail/receive/cancel responses — mirrors
+// transferRepository.ts's `transferInclude` + transferService.ts's
+// mapTransfer exactly (verified against prisma/schema.prisma's Transfer/
+// TransferItem models, not guessed). sourceBranch/destinationBranch are
+// deliberately the lighter `{id,name}` subset here (not the full Branch
+// type), since that's genuinely all the include selects — the page
+// cross-references the already-loaded full Branch list when it needs an
+// address. requestedBy/receivedBy are display-safe user subsets, never the
+// full User row (no passwordHash). transferNumber/itemCount are
+// server-computed additions (formatTransferNumber(folio) and
+// items.length), same convention as Sale's ticketNumber/itemCount.
+export interface TransferItem {
+  id: string;
+  transferId: string;
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export interface Transfer {
+  id: string;
+  folio: number;
+  sourceBranchId: string;
+  destinationBranchId: string;
+  status: "PENDING" | "IN_TRANSIT" | "COMPLETED" | "CANCELLED";
+  requestedByUserId: string;
+  receivedByUserId?: string | null;
+  notes?: string | null;
+  cancelReason?: string | null;
+  dispatchedAt?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  createdAt: string;
+  sourceBranch: { id: string; name: string };
+  destinationBranch: { id: string; name: string };
+  requestedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  receivedBy?: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
+  items: TransferItem[];
+  transferNumber: string;
+  itemCount: number;
+}
+
+// ---------- Public storefront ("la tienda en línea") types ----------
+// Contract for the not-yet-built /api/public/* backend surface — see
+// storefrontService.ts. Deliberately separate/lighter shapes than the
+// admin Product/Category/Brand/Branch types above (e.g. no `status`, no
+// `cost`/`taxRate`) since a public shopper never needs internal-only
+// fields, and this is a distinct read model, not a reuse of the admin one.
+
+export interface PublicCategory { id: string; name: string; }
+export interface PublicBrand { id: string; name: string; }
+export interface PublicProductImage { id: string; url: string; }
+export interface PublicProductVariant {
+  id: string; name: string; sku: string;
+  price: string | null; // null = uses parent product's price
+  imageUrl: string | null;
+  inStock: boolean;
+}
+export interface PublicProduct {
+  id: string; sku: string; name: string; description: string | null;
+  category: PublicCategory | null;
+  brand: PublicBrand | null;
+  price: string; // Decimal-as-string, same convention as Sale
+  promoPrice: string | null;
+  images: PublicProductImage[];
+  variants: PublicProductVariant[];
+  inStock: boolean;
+}
+export interface PublicProductListResponse {
+  items: PublicProduct[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+export interface PublicBranch {
+  id: string; name: string; address: string | null; phone: string | null;
+  schedule: string | null; lat: number | null; lng: number | null;
+}
+export interface OnlineOrderItemInput { productId: string; variantId?: string; quantity: number; }
+export type OnlineOrderFulfillment =
+  | { type: "PICKUP"; branchId: string }
+  | { type: "DELIVERY"; branchId: string; address: string; lat?: number; lng?: number };
+export interface CreateOnlineOrderInput {
+  customer: { firstName: string; lastName?: string; phone: string; email?: string };
+  fulfillment: OnlineOrderFulfillment;
+  paymentMethod: "CASH" | "CARD" | "TRANSFER";
+  items: OnlineOrderItemInput[];
+  notes?: string;
+}
+export interface OnlineOrderItem {
+  id: string; product: { id: string; name: string; sku: string }; variant: { id: string; name: string; sku: string } | null;
+  quantity: number; unitPrice: string; lineTotal: string;
+}
+export type OnlineOrderStatus = "PENDING" | "CONFIRMED" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
+export interface OnlineOrder {
+  id: string; orderNumber: string; status: OnlineOrderStatus;
+  customerName: string; customerPhone: string; customerEmail: string | null;
+  fulfillmentType: "PICKUP" | "DELIVERY"; branch: { id: string; name: string; address: string | null };
+  deliveryAddress: string | null;
+  paymentMethod: "CASH" | "CARD" | "TRANSFER";
+  subtotal: string; taxTotal: string; total: string;
+  items: OnlineOrderItem[];
+  notes: string | null;
+  createdAt: string;
 }
