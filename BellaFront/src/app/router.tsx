@@ -11,6 +11,8 @@ import { RolesPage } from "../pages/roles/RolesPage";
 import { BranchesPage } from "../pages/branches/BranchesPage";
 import { ProductsPage } from "../pages/products/ProductsPage";
 import { InventoryPage } from "../pages/inventory/InventoryPage";
+import { PosPage } from "../pages/pos/PosPage";
+import { SalesPage } from "../pages/sales/SalesPage";
 import { CompanySettingsPage } from "../pages/settings/CompanySettingsPage";
 import { AuditPage } from "../pages/audit/AuditPage";
 import { MessagesPage } from "../pages/messages/MessagesPage";
@@ -55,6 +57,14 @@ export const router = createBrowserRouter([
           {
             element: <PermissionRoute code="inventory.view" />,
             children: [{ path: "/inventario", element: <InventoryPage /> }],
+          },
+          {
+            element: <PermissionRoute code="sales.create" />,
+            children: [{ path: "/pos", element: <PosPage /> }],
+          },
+          {
+            element: <PermissionRoute code="sales.view" />,
+            children: [{ path: "/ventas", element: <SalesPage /> }],
           },
           { path: "/configuracion", element: <CompanySettingsPage /> },
           {

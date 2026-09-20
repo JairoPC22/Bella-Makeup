@@ -1,0 +1,111 @@
+.sales-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
+
+.sales-page__header { display: flex; align-items: center; justify-content: space-between; }
+.sales-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.sales-page__title svg { color: var(--color-pink-deep); }
+.sales-page__title h1 { margin: 0; }
+
+/* ---------- Filter bar — same layout convention as InventoryPage's
+   .inventory-filters. ---------- */
+.sales-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-1) 0 var(--space-1); }
+.sales-filters__date {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 500;
+}
+.sales-filters__date input {
+  padding: 7px var(--space-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.85rem; color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.sales-filters__date input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+/* ---------- Table — same structure/conventions as InventoryPage's
+   .inventory-table. ---------- */
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: fade-in-up 0.6s var(--ease-premium) both;
+}
+.sales-table th, .sales-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; vertical-align: middle; }
+.sales-table tbody tr {
+  position: relative;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-fast) var(--ease-premium);
+}
+.sales-table tbody tr:hover { background: var(--color-bg); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.sales-table tbody tr:last-child td { border-bottom: none; }
+
+.sales-table__folio { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.sales-table__total { font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.sales-table__view {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--color-border); cursor: pointer;
+  padding: 5px 10px; color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); font-size: 0.8rem;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.sales-table__view:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+.sale-status-badge {
+  display: inline-flex; flex-shrink: 0;
+  font-size: 0.74rem; font-weight: 700;
+  padding: 3px 9px; border-radius: var(--radius-pill); white-space: nowrap;
+}
+.sale-status-badge--completed { background: var(--color-accent); color: var(--color-ink); }
+.sale-status-badge--cancelled { background: #FBE5E1; color: #B3261E; }
+
+/* ---------- Detail modal ---------- */
+.sales-detail-modal.modal { max-width: 440px; }
+.sales-detail { display: flex; flex-direction: column; gap: var(--space-3); align-items: center; }
+
+.sales-detail__cancel { width: 100%; max-width: 360px; display: flex; justify-content: center; }
+.sales-detail__cancel-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid #B3261E; color: #B3261E;
+  border-radius: var(--radius-pill); padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.sales-detail__cancel-trigger:hover { background: #FBE5E1; }
+
+.sales-detail__cancel-confirm {
+  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  padding: var(--space-2_5) var(--space-3);
+  border: 1px solid #F2C4BC; background: #FBE5E1;
+  border-radius: var(--radius-md);
+}
+.sales-detail__cancel-confirm label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 0.82rem; font-weight: 600; color: #8A1F17;
+}
+.sales-detail__cancel-confirm textarea {
+  padding: var(--space-2);
+  border: 1px solid #E7A79C; border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.86rem; color: var(--color-primary);
+  background: var(--color-white); resize: vertical;
+}
+.sales-detail__cancel-confirm textarea:focus { outline: none; border-color: #B3261E; }
+.sales-detail__cancel-error { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 0.78rem; color: #8A1F17; }
+.sales-detail__cancel-actions { display: flex; gap: 8px; }
+.sales-detail__cancel-confirm-btn, .sales-detail__cancel-cancel-btn {
+  flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill);
+  font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.sales-detail__cancel-confirm-btn { background: #B3261E; border: none; color: var(--color-white); }
+.sales-detail__cancel-confirm-btn:hover:not(:disabled) { background: #8A1F17; }
+.sales-detail__cancel-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.sales-detail__cancel-cancel-btn { background: var(--color-white); border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+.sales-detail__cancel-cancel-btn:hover:not(:disabled) { background: var(--color-bg); }
+
+@media (max-width: 768px) {
+  .sales-table thead { display: none; }
+  .sales-table, .sales-table tbody, .sales-table tr, .sales-table td { display: block; width: 100%; }
+  .sales-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+}

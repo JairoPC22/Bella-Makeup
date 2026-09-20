@@ -215,6 +215,75 @@ export interface ConversationMessagesResponse {
   messages: Message[];
 }
 
+// GET /api/customers, POST /api/customers response shape — every field but
+// id/createdAt is nullable since a customer can be quick-created from the
+// POS with just a firstName or just a phone (see customer.validators.ts's
+// createCustomerSchema .refine).
+export interface Customer {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  createdAt: string;
+}
+
+// Sale/SaleItem/SalePayment money fields are Prisma Decimal columns, which
+// serialize over JSON as strings (e.g. "258", "129.50") — verified live
+// against a real POST /api/sales response, not assumed. Every consumer
+// (PosPage totals preview, SaleReceipt) must Number(...) these before doing
+// arithmetic or formatting as currency.
+export interface SaleItem {
+  id: string;
+  saleId: string;
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  unitPrice: string;
+  discount: string;
+  lineTotal: string;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export interface SalePayment {
+  id: string;
+  saleId: string;
+  method: "CASH" | "CARD" | "TRANSFER" | "OTHER";
+  amount: string;
+  reference?: string | null;
+}
+
+// Shared shape for create/list/detail/cancel (saleRepository.ts's
+// saleInclude + saleService.ts's mapSale) — ticketNumber/customerName/
+// itemCount are always present; changeDue is only ever present on the
+// response from POST /api/sales (createSale), omitted from list/detail/cancel.
+export interface Sale {
+  id: string;
+  folio: number;
+  branchId: string;
+  userId: string;
+  customerId?: string | null;
+  subtotal: string;
+  discountTotal: string;
+  taxTotal: string;
+  total: string;
+  status: "COMPLETED" | "CANCELLED";
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  cancelReason?: string | null;
+  createdAt: string;
+  branch: Branch;
+  user: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  customer?: Customer | null;
+  items: SaleItem[];
+  payments: SalePayment[];
+  ticketNumber: string;
+  customerName: string;
+  itemCount: number;
+  changeDue?: number;
+}
+
 export interface AuditLogEntry {
   id: string;
   action: string;
