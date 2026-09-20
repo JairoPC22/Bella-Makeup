@@ -58,6 +58,13 @@ model Branch {
   phone        String?
   schedule     String?
   managerName  String?      @map("manager_name")
+  // Nullable on purpose: no seeded branch currently has real coordinates.
+  // The public storefront's nearest-branch computation already handles a
+  // null lat/lng pair by skipping that logic (see PublicBranch in
+  // BellaFront/src/types/api.ts), so leaving these unset for existing rows
+  // is the honest choice rather than fabricating coordinates.
+  lat          Float?
+  lng          Float?
   status       BranchStatus @default(ACTIVE)
   createdAt    DateTime     @default(now()) @map("created_at")
 
@@ -68,6 +75,7 @@ model Branch {
   sales        Sale[]
   transfersOut Transfer[]   @relation("TransferSourceBranch")
   transfersIn  Transfer[]   @relation("TransferDestinationBranch")
+  orders       Order[]
 
   @@map("branches")
 }
@@ -177,6 +185,14 @@ enum MovementType {
   TRANSFER_IN
   TRANSFER_OUT
   RETURN
+  // Online-storefront checkout/cancel — mirrors SALE's own pattern (a
+  // single type reused for both the decrement at checkout and the
+  // restoration on cancel, exactly like saleService.ts's cancelSale reuses
+  // "SALE" rather than introducing a separate reversal type) instead of a
+  // TRANSFER_IN/TRANSFER_OUT-style directional pair, since an online order
+  // is structurally a sale (single branch, single direction), not a
+  // two-branch movement.
+  ORDER
 }
 
 model Category {
@@ -226,6 +242,7 @@ model Product {
   movements     InventoryMovement[]
   saleItems     SaleItem[]
   transferItems TransferItem[]
+  orderItems    OrderItem[]
 
   @@map("products")
   @@index([categoryId])
@@ -262,6 +279,7 @@ model ProductVariant {
   movements   InventoryMovement[]
   saleItems   SaleItem[]
   transferItems TransferItem[]
+  orderItems  OrderItem[]
 
   @@map("product_variants")
 }
@@ -396,7 +414,8 @@ model Customer {
   email     String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  sales Sale[]
+  sales  Sale[]
+  orders Order[]
 
   @@map("customers")
   @@index([phone])
@@ -505,4 +524,78 @@ model TransferItem {
   variant  ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@map("transfer_items")
+}
+
+// ---------- Online storefront orders ----------
+// The DB model is `Order` (not `OnlineOrder`) — nothing else in this schema
+// claims the name. `OnlineOrder` is only the frontend's TS interface name
+// (see BellaFront/src/types/api.ts); orderService.ts maps this model to
+// that exact shape at the API boundary.
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum FulfillmentType {
+  PICKUP
+  DELIVERY
+}
+
+model Order {
+  id              String          @id @default(uuid())
+  folio           Int             @default(autoincrement())
+  customerId      String          @map("customer_id")
+  status          OrderStatus     @default(PENDING)
+  fulfillmentType FulfillmentType @map("fulfillment_type")
+  // For PICKUP this is the branch the customer chose to collect from; for
+  // DELIVERY it's still customer/frontend-supplied for now (nearest-branch
+  // auto-routing needs the lat/lng data this task doesn't populate for the
+  // seeded branches) — matches OnlineOrderFulfillment's discriminated union
+  // in BellaFront/src/types/api.ts, which always includes a branchId for
+  // both variants.
+  branchId        String          @map("branch_id")
+  deliveryAddress String?         @map("delivery_address")
+  deliveryLat     Float?          @map("delivery_lat")
+  deliveryLng     Float?          @map("delivery_lng")
+  paymentMethod   PaymentMethod   @map("payment_method")
+  subtotal        Decimal         @db.Decimal(10, 2)
+  taxTotal        Decimal         @default(0) @map("tax_total") @db.Decimal(10, 2)
+  total           Decimal         @db.Decimal(10, 2)
+  notes           String?
+  cancelReason    String?         @map("cancel_reason")
+  confirmedAt     DateTime?       @map("confirmed_at")
+  cancelledAt     DateTime?       @map("cancelled_at")
+  completedAt     DateTime?       @map("completed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  customer Customer    @relation(fields: [customerId], references: [id])
+  branch   Branch      @relation(fields: [branchId], references: [id])
+  items    OrderItem[]
+
+  @@map("orders")
+  @@index([branchId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String  @map("order_id")
+  productId String  @map("product_id")
+  variantId String? @map("variant_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  lineTotal Decimal @map("line_total") @db.Decimal(10, 2)
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
 }

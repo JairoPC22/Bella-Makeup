@@ -75,6 +75,13 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
       "transfers.view", "transfers.create", "transfers.receive", "transfers.cancel",
       "users.view", "branches.view", "purchases.view", "purchases.receive", "reports.view", "audit.view",
       "messages.view", "messages.send",
+      // Online orders placed via the public storefront need to be
+      // fulfillable by staff on the ground — a branch manager, like an
+      // admin, can see and progress/cancel them. Mirrors the same
+      // judgment already applied to transfers.cancel/sales.cancel above:
+      // Cashier/Warehouse do NOT get this (see their permission lists
+      // below), only Administrator and Branch Manager.
+      "orders.view", "orders.update",
     ],
   },
   {

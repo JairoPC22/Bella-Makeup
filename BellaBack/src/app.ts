@@ -22,6 +22,8 @@ import messageRoutes from "./routes/message.routes";
 import customerRoutes from "./routes/customer.routes";
 import saleRoutes from "./routes/sale.routes";
 import transferRoutes from "./routes/transfer.routes";
+import publicRoutes from "./routes/public.routes";
+import orderRoutes from "./routes/order.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -102,6 +104,11 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/transfers", transferRoutes);
+// /api/public — the anonymous storefront surface, a sibling root next to
+// every authenticated /api/* router above, not nested under any of them.
+// No requireAuth anywhere in public.routes.ts by design.
+app.use("/api/public", publicRoutes);
+app.use("/api/orders", orderRoutes);
 app.use(errorHandler);
 
 export default app;

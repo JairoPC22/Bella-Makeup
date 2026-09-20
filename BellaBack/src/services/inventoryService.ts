@@ -8,7 +8,7 @@ export interface ApplyMovementInput {
   productId: string;
   variantId?: string;
   branchId: string;
-  type: "ADJUSTMENT" | "PURCHASE" | "SALE" | "TRANSFER_IN" | "TRANSFER_OUT" | "RETURN";
+  type: "ADJUSTMENT" | "PURCHASE" | "SALE" | "TRANSFER_IN" | "TRANSFER_OUT" | "RETURN" | "ORDER";
   quantity: number; // signed: positive = stock-in, negative = stock-out
   reference?: string;
   userId?: string;
