@@ -9,10 +9,6 @@ import {
   UserRound,
   ArrowUpRight,
   PackageSearch,
-  SprayCan,
-  Sparkles,
-  Flower2,
-  Gem,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePermission } from "../../hooks/usePermission";
@@ -50,55 +46,34 @@ function staggerStyle(ms: number): CSSProperties {
   return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
 }
 
-// Sets the two CSS custom properties an orbiting icon's wrapper/keyframes
-// read (--orbit-radius, --orbit-duration) plus a real animation-delay, so
-// each icon can start mid-cycle at a different point on its circle instead
-// of every orbit visibly "launching" from the same angle on page load.
-// Same `as unknown as CSSProperties` escape hatch as staggerStyle above —
-// custom properties aren't part of csstype's CSSProperties.
-function orbitStyle(radiusPx: number, durationS: number, delayS = 0): CSSProperties {
-  return {
-    "--orbit-radius": `${radiusPx}px`,
-    "--orbit-duration": `${durationS}s`,
-    animationDelay: `${delayS}s`,
-  } as unknown as CSSProperties;
-}
-
-// Hero visual, pushed further than the previous "beauty retail" pass
-// (spray-can centerpiece + two icons bobbing in place) into something that
-// actually reads as *moving*: three lucide glyphs genuinely orbit the
-// centerpiece along circular paths at three different radii, speeds, and
-// directions (Flower2 tight and fast, Gem tighter still and quickest,
-// Sparkles wide, slow, and counter-rotating), each icon kept upright the
-// whole way around by counter-spinning at the same rate its orbit sweeps —
-// the classic two-layer "orbit wrapper rotates, icon cancels the rotation"
-// CSS trick, not a bob/pulse. Sparkles also gets its own independent
-// twinkle (opacity) animation layered on top, since `transform` and
-// `opacity` don't conflict — one icon that's simultaneously orbiting AND
-// twinkling, so the whole composition doesn't move in lockstep. Centerpiece
-// keeps its glow/ring/shimmer/gentle-bob treatment underneath. Pure CSS,
-// no canvas/WebGL/animation library; every motion uses `animation`, so the
-// existing sitewide `prefers-reduced-motion` rule in global.css freezes
-// all of it automatically.
+// Hero visual, replacing the previous icon-orbit composition (three lucide
+// glyphs circling a spray-can centerpiece) after explicit client rejection
+// of anything icon-based there — the ask was for something abstract,
+// elegant, and *genuinely* three-dimensional, evoking Anthropic/Claude's
+// own soft warm-toned geometric motion-design language rather than
+// clip-art orbiting a hub. This is a real CSS 3D scene: `.dashboard-visual`
+// sets `perspective`, `.dashboard-visual__stage` is `transform-style:
+// preserve-3d` and slowly tilts on two axes (rotateX/rotateY), and each
+// blob/ring inside independently drifts along its own translateZ so they
+// move at different apparent depths as the stage tilts — true parallax,
+// not a 2D orbit trick. No icons, no imagery: four soft translucent
+// spheres (one "core" plus three smaller satellites) and one tilted ring
+// (a flattened ellipse via rotateX, spun on its own axis like a slim halo)
+// built purely from radial gradients derived from the existing blue token
+// ramp via color-mix(), at varied opacity/blur for a glassy look. Every
+// animation uses `animation`, so the sitewide `prefers-reduced-motion` rule
+// in global.css (global.css:130) freezes all of it automatically. Pure
+// CSS — no canvas/WebGL/animation library.
 function DashboardVisual() {
   return (
     <div className="dashboard-visual" aria-hidden="true">
-      <span className="dashboard-visual__glow" />
-      <span className="dashboard-visual__ring" />
-      <span className="dashboard-visual__centerpiece">
-        <SprayCan size={30} strokeWidth={1.5} />
-        <span className="dashboard-visual__shimmer" />
-      </span>
-
-      <span className="dashboard-visual__orbit" style={orbitStyle(34, 10)}>
-        <Flower2 className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--flower" size={14} strokeWidth={1.75} />
-      </span>
-      <span className="dashboard-visual__orbit dashboard-visual__orbit--reverse" style={orbitStyle(46, 16, -5)}>
-        <Sparkles className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--sparkle" size={13} strokeWidth={1.75} />
-      </span>
-      <span className="dashboard-visual__orbit" style={orbitStyle(24, 7, -2)}>
-        <Gem className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--gem" size={11} strokeWidth={1.75} />
-      </span>
+      <div className="dashboard-visual__stage">
+        <span className="dashboard-visual__ring" />
+        <span className="dashboard-visual__orb dashboard-visual__orb--a" />
+        <span className="dashboard-visual__orb dashboard-visual__orb--b" />
+        <span className="dashboard-visual__orb dashboard-visual__orb--c" />
+        <span className="dashboard-visual__orb dashboard-visual__orb--core" />
+      </div>
     </div>
   );
 }

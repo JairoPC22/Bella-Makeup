@@ -73,170 +73,163 @@
 .dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
 
 /* ---------- Hero visual ----------
-   Pushed a step further than the previous "beauty retail" pass (a
-   perfume-spray centerpiece with two icons bobbing in place): three
-   lucide glyphs now genuinely ORBIT the centerpiece along circular paths —
-   not up/down bobbing — at three different radii, speeds, and directions,
-   each one kept upright throughout via the standard two-layer CSS orbit
-   trick: the `.dashboard-visual__orbit` wrapper sweeps a full rotation,
-   and the icon inside counter-rotates at the exact same rate so the net
-   rotation on the icon itself is zero — only its position moves. Radius
-   and duration are read from `--orbit-radius`/`--orbit-duration` custom
-   properties set inline per icon (DashboardPage.tsx's orbitStyle()), so
-   one shared pair of keyframes drives all three instead of one keyframe
-   per icon. Centerpiece keeps its glow / dashed ring / diagonal shimmer /
-   gentle bob underneath. Frozen automatically under prefers-reduced-motion
-   by the existing sitewide rule in global.css (targets animation/
-   transition durations globally, which is all any of this uses). */
+   Replaces the earlier icon-orbit composition (lucide glyphs circling a
+   spray-can centerpiece) after explicit client rejection of anything
+   icon-based here — the ask was for an abstract, elegant, *genuinely*
+   three-dimensional piece, closer to Anthropic/Claude's own soft
+   warm-toned geometric motion-design language than clip-art. This is a
+   real CSS 3D scene, not a 2D orbit trick:
+
+   - `.dashboard-visual` is the camera: it sets `perspective`, which makes
+     any `translateZ` on its 3D descendants actually foreshorten/enlarge
+     (closer = bigger, farther = smaller) instead of doing nothing.
+   - `.dashboard-visual__stage` is `transform-style: preserve-3d` and
+     itself slowly tilts on two axes (rotateX + rotateY) — the whole scene
+     gently rocks, like a snowglobe tipping, rather than spinning flat.
+   - Each shape inside independently animates its OWN translateZ (and a
+     little translate/scale) on a different duration, so as the stage
+     tilts, shapes at different depths visibly part ways from one another
+     — that relative drift under a shared perspective is what reads as
+     real depth/parallax instead of everything moving in lockstep.
+   - One flattened ring (`rotateX` most of the way to edge-on, so it
+     renders as a thin ellipse/halo) spins on its own axis like a slim ring
+     around the core sphere.
+
+   No lucide icons anywhere in this composition. Every shape is a radial
+   gradient built from the existing blue token ramp via color-mix() (never
+   a new invented hex), at varied stops/opacity for a soft glassy look.
+   Every motion runs on `animation`, so the sitewide prefers-reduced-motion
+   rule in global.css (global.css:130) freezes all of it automatically. */
 
 .dashboard-visual {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
   display: none;
+  perspective: 480px;
 }
 @media (min-width: 560px) {
   .dashboard-visual { display: block; }
 }
 
-.dashboard-visual__glow {
+.dashboard-visual__stage {
   position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(41, 151, 255, 0.28) 0%, rgba(0, 102, 204, 0.1) 55%, transparent 75%);
-  filter: blur(4px);
-  animation: dashboard-glow-pulse 4.5s var(--ease-premium) infinite;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: dashboard-stage-tilt 20s var(--ease-premium) infinite;
 }
 
+.dashboard-visual__orb,
 .dashboard-visual__ring {
   position: absolute;
-  inset: 6px;
   border-radius: 50%;
-  border: 1.5px dashed var(--color-pink-200);
-  opacity: 0.65;
-  animation: dashboard-ring-spin 22s linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
 
-.dashboard-visual__centerpiece {
-  position: absolute;
+/* Core sphere: the visual's anchor point, largest and most opaque, sitting
+   at the stage's own center so the tilt animation above reads as rotating
+   *around* it rather than dragging it along for the ride. */
+.dashboard-visual__orb--core {
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(150deg, var(--color-pink-elegant), var(--color-pink-deep));
-  color: var(--color-white);
-  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
-  animation: dashboard-centerpiece-bob 5s var(--ease-premium) infinite;
-  z-index: 1;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  background: radial-gradient(circle at 32% 28%,
+    color-mix(in srgb, var(--color-white) 92%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-elegant) 88%, transparent) 42%,
+    color-mix(in srgb, var(--color-pink-deep) 92%, transparent) 100%);
+  box-shadow:
+    0 16px 32px color-mix(in srgb, var(--color-pink-deep) 35%, transparent),
+    inset -8px -10px 18px color-mix(in srgb, var(--color-pink-800) 45%, transparent),
+    inset 6px 8px 14px color-mix(in srgb, var(--color-white) 55%, transparent);
+  animation: dashboard-core-float 9s ease-in-out infinite;
 }
 
-.dashboard-visual__shimmer {
-  position: absolute;
-  top: -60%;
-  left: -20%;
-  width: 40%;
-  height: 220%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-  transform: rotate(20deg);
-  animation: dashboard-shimmer-sweep 3.6s ease-in-out infinite;
+/* Three smaller satellite spheres, each on its own depth/drift cycle so
+   they cross in front of / behind one another and the core as the stage
+   tilts — the actual source of the parallax. */
+.dashboard-visual__orb--a {
+  top: 8%;
+  left: 4%;
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle at 35% 30%,
+    color-mix(in srgb, var(--color-white) 85%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-soft) 80%, transparent) 55%,
+    transparent 100%);
+  animation: dashboard-orb-a-drift 13s ease-in-out infinite;
 }
 
-/* ---------- Orbiting icons ----------
-   .dashboard-visual__orbit is a zero-size point pinned at the visual's
-   exact center; it rotates a full turn every --orbit-duration. The icon
-   inside is offset from that point by --orbit-radius (baked into the
-   dashboard-orbit-icon-spin keyframe alongside its own counter-rotation),
-   so as the wrapper sweeps around, the icon traces a circle at that radius
-   while staying visually upright the whole way. `--reverse` flips both the
-   wrapper's sweep direction and the icon's counter-spin together (via
-   animation-direction, not a second keyframe) so the cancellation still
-   holds for orbits that sweep counter-clockwise instead of clockwise. */
-.dashboard-visual__orbit {
-  position: absolute;
+.dashboard-visual__orb--b {
+  bottom: 10%;
+  right: 2%;
+  width: 38px;
+  height: 38px;
+  background: radial-gradient(circle at 40% 35%,
+    color-mix(in srgb, var(--color-white) 80%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-300) 70%, transparent) 60%,
+    transparent 100%);
+  animation: dashboard-orb-b-drift 17s ease-in-out infinite;
+}
+
+.dashboard-visual__orb--c {
+  top: 58%;
+  right: 12%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle at 40% 35%,
+    color-mix(in srgb, var(--color-white) 88%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary-on-dark) 75%, transparent) 65%,
+    transparent 100%);
+  animation: dashboard-orb-c-drift 10.5s ease-in-out infinite;
+}
+
+/* A flattened halo — most of the way to edge-on via rotateX — that spins
+   slowly around the core on its own axis, like a slim ring around a
+   planet, adding a second distinct kind of motion (rotation, not drift)
+   to the composition. */
+.dashboard-visual__ring {
   top: 50%;
   left: 50%;
-  width: 0;
-  height: 0;
-  animation-name: dashboard-orbit-spin;
-  animation-duration: var(--orbit-duration, 12s);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+  width: 88px;
+  height: 88px;
+  margin: -44px 0 0 -44px;
+  border: 1.5px solid color-mix(in srgb, var(--color-pink-elegant) 45%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--color-pink-elegant) 12%, transparent);
+  animation: dashboard-ring-spin 24s linear infinite;
 }
-.dashboard-visual__orbit--reverse { animation-direction: reverse; }
-.dashboard-visual__orbit--reverse .dashboard-visual__orbit-icon { animation-direction: reverse; }
 
-.dashboard-visual__orbit-icon {
-  position: absolute;
-  top: 0;
-  left: 0;
-  color: var(--color-pink-deep);
-  filter: drop-shadow(0 3px 6px rgba(0, 102, 204, 0.28));
-  animation-name: dashboard-orbit-icon-spin;
-  animation-duration: var(--orbit-duration, 12s);
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+.dashboard-visual:hover .dashboard-visual__ring {
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 70%, transparent);
 }
-/* Sparkles gets a second, independent animation layered on top — opacity
-   doesn't conflict with the transform-driven orbit/counter-spin above, so
-   it can simultaneously orbit AND twinkle instead of moving in lockstep
-   with the other two icons. */
-.dashboard-visual__orbit-icon--sparkle {
-  animation-name: dashboard-orbit-icon-spin, dashboard-icon-twinkle;
-  animation-duration: var(--orbit-duration, 12s), 2.4s;
-  animation-timing-function: linear, ease-in-out;
-  animation-iteration-count: infinite, infinite;
-  animation-direction: reverse, normal;
+
+@keyframes dashboard-stage-tilt {
+  0%, 100% { transform: rotateX(8deg) rotateY(-14deg); }
+  50% { transform: rotateX(-6deg) rotateY(12deg); }
 }
-.dashboard-visual__orbit-icon--gem { color: var(--color-primary-on-dark); }
-
-.dashboard-visual:hover .dashboard-visual__ring { opacity: 0.95; }
-
-@keyframes dashboard-glow-pulse {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
+@keyframes dashboard-core-float {
+  0%, 100% { transform: translateZ(0) translateY(0) scale(1); }
+  50% { transform: translateZ(16px) translateY(-3px) scale(1.03); }
+}
+@keyframes dashboard-orb-a-drift {
+  0%, 100% { transform: translateZ(-14px) translate(0, 0); }
+  50% { transform: translateZ(20px) translate(3px, -5px); }
+}
+@keyframes dashboard-orb-b-drift {
+  0%, 100% { transform: translateZ(10px) translate(0, 0); }
+  50% { transform: translateZ(-18px) translate(-4px, 4px); }
+}
+@keyframes dashboard-orb-c-drift {
+  0%, 100% { transform: translateZ(-6px) scale(1); }
+  50% { transform: translateZ(18px) scale(1.15); }
 }
 @keyframes dashboard-ring-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@keyframes dashboard-centerpiece-bob {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-3px); }
-}
-@keyframes dashboard-shimmer-sweep {
-  0% { left: -60%; }
-  55%, 100% { left: 130%; }
-}
-@keyframes dashboard-orbit-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-/* Bakes the radius offset and the counter-rotation into the same keyframe
-   on purpose — `transform` can only hold one value per frame, so the
-   offset has to travel along with the rotation rather than living on a
-   separate static rule. Per the CSS transform composition order, `rotate`
-   (listed second) is applied to the icon first — spinning it in place
-   around its own center — and `translate` (listed first) is applied after,
-   shifting that already-spinning icon by a fixed vector in the parent's
-   unrotated axes. Net result: the icon spins in place at a fixed offset
-   from the orbit wrapper's center, and since the spin direction/speed here
-   is the exact inverse of the wrapper's own rotation, the two cancel out —
-   the icon's world-space orientation stays upright while only its
-   position sweeps around the circle. */
-@keyframes dashboard-orbit-icon-spin {
-  from { transform: translate(var(--orbit-radius, 36px), -50%) rotate(0deg); }
-  to { transform: translate(var(--orbit-radius, 36px), -50%) rotate(-360deg); }
-}
-@keyframes dashboard-icon-twinkle {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
+  from { transform: rotateX(72deg) rotateZ(0deg); }
+  to { transform: rotateX(72deg) rotateZ(360deg); }
 }
 
 /* ---------- Stat grid ---------- */
