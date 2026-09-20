@@ -5,6 +5,6 @@ import { StatusState } from "../common/StatusState";
 export function ProtectedRoute() {
   const { user, loading } = useAuth();
   if (loading) return <StatusState kind="loading" message="Verificando sesión..." />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin/login" replace />;
   return <Outlet />;
 }

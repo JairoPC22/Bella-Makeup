@@ -143,7 +143,7 @@ export function ProductsPage() {
       <p className="products-page__subtitle">
         El catálogo de productos es compartido por todas las sucursales. El stock de cada producto por sucursal se gestiona en{" "}
         <PermissionGate code="inventory.view" fallback="Inventario">
-          <Link to="/inventario">Inventario</Link>
+          <Link to="/admin/inventario">Inventario</Link>
         </PermissionGate>
         .
       </p>

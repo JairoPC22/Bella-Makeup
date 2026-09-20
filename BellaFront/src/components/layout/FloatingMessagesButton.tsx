@@ -39,7 +39,7 @@ function FloatingMessagesButtonInner() {
   // messages there is reflected right away instead of waiting up to 30s
   // for the next poll tick.
   useEffect(() => {
-    if (location.pathname === "/mensajes") return;
+    if (location.pathname === "/admin/mensajes") return;
     messageService.getUnreadCount().then((res) => setCount(res.count)).catch(() => {});
   }, [location.pathname]);
 
@@ -70,7 +70,7 @@ function FloatingMessagesButtonInner() {
     <button
       type="button"
       className={`floating-messages-button${visible ? " floating-messages-button--visible" : ""}`}
-      onClick={() => navigate("/mensajes")}
+      onClick={() => navigate("/admin/mensajes")}
       onTransitionEnd={handleTransitionEnd}
       aria-label={`Ir a Mensajes, ${count} conversación${count === 1 ? "" : "es"} sin leer`}
     >

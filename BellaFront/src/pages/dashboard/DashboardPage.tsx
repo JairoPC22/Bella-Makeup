@@ -192,12 +192,12 @@ interface QuickLink {
 }
 
 const QUICK_LINKS: QuickLink[] = [
-  { to: "/usuarios", label: "Usuarios", description: "Gestiona cuentas y roles del equipo", icon: Users, permission: "users.view" },
-  { to: "/sucursales", label: "Sucursales", description: "Consulta y edita puntos de venta", icon: Building2, permission: "branches.view" },
-  { to: "/roles", label: "Roles", description: "Permisos y accesos por rol", icon: ShieldCheck, permission: "roles.view" },
-  { to: "/auditoria", label: "Actividad reciente", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
-  { to: "/configuracion", label: "Configuración", description: "Datos generales de la empresa", icon: Settings, permission: "settings.manage" },
-  { to: "/perfil", label: "Mi perfil", description: "Tus datos y preferencias", icon: UserRound, permission: null },
+  { to: "/admin/usuarios", label: "Usuarios", description: "Gestiona cuentas y roles del equipo", icon: Users, permission: "users.view" },
+  { to: "/admin/sucursales", label: "Sucursales", description: "Consulta y edita puntos de venta", icon: Building2, permission: "branches.view" },
+  { to: "/admin/roles", label: "Roles", description: "Permisos y accesos por rol", icon: ShieldCheck, permission: "roles.view" },
+  { to: "/admin/auditoria", label: "Actividad reciente", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
+  { to: "/admin/configuracion", label: "Configuración", description: "Datos generales de la empresa", icon: Settings, permission: "settings.manage" },
+  { to: "/admin/perfil", label: "Mi perfil", description: "Tus datos y preferencias", icon: UserRound, permission: null },
 ];
 
 const STOCK_STATUS_LABEL: Record<string, string> = { LOW: "Bajo", CRITICAL: "Crítico", OUT: "Agotado" };

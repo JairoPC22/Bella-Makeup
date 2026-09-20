@@ -41,7 +41,7 @@ export function HomePage() {
               Descubre nuestra selección de maquillaje y cuidado de la piel. Ordena en línea y recoge en tu
               sucursal más cercana o recíbelo a domicilio.
             </p>
-            <Link to="/tienda/catalogo" className="storefront-hero__cta">
+            <Link to="/catalogo" className="storefront-hero__cta">
               Ver catálogo <ArrowRight size={18} aria-hidden="true" />
             </Link>
           </div>
@@ -89,7 +89,7 @@ export function HomePage() {
             {categories.map((category) => (
               <Link
                 key={category.id}
-                to={`/tienda/catalogo?categoria=${category.id}`}
+                to={`/catalogo?categoria=${category.id}`}
                 className="storefront-category-card"
               >
                 <span>{category.name}</span>
@@ -103,7 +103,7 @@ export function HomePage() {
       <section className="storefront-section">
         <div className="storefront-section__header">
           <h2>Destacados</h2>
-          <Link to="/tienda/catalogo" className="storefront-section__link">
+          <Link to="/catalogo" className="storefront-section__link">
             Ver todo <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>
@@ -121,7 +121,7 @@ export function HomePage() {
               const hasPromo = product.promoPrice != null && Number(product.promoPrice) < Number(product.price);
               const image = product.images[0];
               return (
-                <Link key={product.id} to={`/tienda/producto/${product.id}`} className="storefront-product-card">
+                <Link key={product.id} to={`/producto/${product.id}`} className="storefront-product-card">
                   <div className="storefront-product-card__image">
                     {image ? <img src={buildPublicImageUrl(image.url)} alt={product.name} /> : <Sparkles size={22} aria-hidden="true" />}
                   </div>

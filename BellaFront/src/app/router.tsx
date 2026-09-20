@@ -39,11 +39,12 @@ function NotFoundPage() {
 }
 
 export const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
-  // Public, unauthenticated storefront ("la tienda en línea") — a sibling
-  // top-level route tree, NOT nested inside ProtectedRoute/AppShell like
-  // everything below. CartProvider wraps StorefrontLayout so cart state is
-  // available to every storefront page via its own <Outlet/>.
+  { path: "/admin/login", element: <LoginPage /> },
+  // Public, unauthenticated storefront ("la tienda en línea") — now the
+  // site's root, a sibling top-level route tree, NOT nested inside
+  // ProtectedRoute/AppShell like the admin panel below. CartProvider wraps
+  // StorefrontLayout so cart state is available to every storefront page
+  // via its own <Outlet/>.
   {
     element: (
       <CartProvider>
@@ -51,14 +52,14 @@ export const router = createBrowserRouter([
       </CartProvider>
     ),
     children: [
-      { path: "/tienda", element: <StorefrontHomePage /> },
-      { path: "/tienda/catalogo", element: <StorefrontCatalogPage /> },
-      { path: "/tienda/producto/:id", element: <StorefrontProductDetailPage /> },
-      { path: "/tienda/checkout", element: <StorefrontCheckoutPage /> },
-      { path: "/tienda/pedido/:orderNumber", element: <StorefrontOrderConfirmationPage /> },
-      { path: "/tienda/nosotros", element: <StorefrontAboutPage /> },
-      { path: "/tienda/preguntas-frecuentes", element: <StorefrontFaqPage /> },
-      { path: "/tienda/envios", element: <StorefrontShippingPage /> },
+      { path: "/", element: <StorefrontHomePage /> },
+      { path: "/catalogo", element: <StorefrontCatalogPage /> },
+      { path: "/producto/:id", element: <StorefrontProductDetailPage /> },
+      { path: "/checkout", element: <StorefrontCheckoutPage /> },
+      { path: "/pedido/:orderNumber", element: <StorefrontOrderConfirmationPage /> },
+      { path: "/nosotros", element: <StorefrontAboutPage /> },
+      { path: "/preguntas-frecuentes", element: <StorefrontFaqPage /> },
+      { path: "/envios", element: <StorefrontShippingPage /> },
     ],
   },
   {
@@ -67,49 +68,49 @@ export const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
-          { path: "/", element: <DashboardPage /> },
-          { path: "/perfil", element: <ProfilePage /> },
-          { path: "/acceso-denegado", element: <AccessDeniedPage /> },
+          { path: "/admin", element: <DashboardPage /> },
+          { path: "/admin/perfil", element: <ProfilePage /> },
+          { path: "/admin/acceso-denegado", element: <AccessDeniedPage /> },
           {
             element: <PermissionRoute code="users.view" />,
-            children: [{ path: "/usuarios", element: <UsersPage /> }],
+            children: [{ path: "/admin/usuarios", element: <UsersPage /> }],
           },
           {
             element: <PermissionRoute code="roles.view" />,
-            children: [{ path: "/roles", element: <RolesPage /> }],
+            children: [{ path: "/admin/roles", element: <RolesPage /> }],
           },
           {
             element: <PermissionRoute code="branches.view" />,
-            children: [{ path: "/sucursales", element: <BranchesPage /> }],
+            children: [{ path: "/admin/sucursales", element: <BranchesPage /> }],
           },
           {
             element: <PermissionRoute code="products.view" />,
-            children: [{ path: "/productos", element: <ProductsPage /> }],
+            children: [{ path: "/admin/productos", element: <ProductsPage /> }],
           },
           {
             element: <PermissionRoute code="inventory.view" />,
-            children: [{ path: "/inventario", element: <InventoryPage /> }],
+            children: [{ path: "/admin/inventario", element: <InventoryPage /> }],
           },
           {
             element: <PermissionRoute code="transfers.view" />,
-            children: [{ path: "/transferencias", element: <TransfersPage /> }],
+            children: [{ path: "/admin/transferencias", element: <TransfersPage /> }],
           },
           {
             element: <PermissionRoute code="sales.create" />,
-            children: [{ path: "/pos", element: <PosPage /> }],
+            children: [{ path: "/admin/pos", element: <PosPage /> }],
           },
           {
             element: <PermissionRoute code="sales.view" />,
-            children: [{ path: "/ventas", element: <SalesPage /> }],
+            children: [{ path: "/admin/ventas", element: <SalesPage /> }],
           },
-          { path: "/configuracion", element: <CompanySettingsPage /> },
+          { path: "/admin/configuracion", element: <CompanySettingsPage /> },
           {
             element: <PermissionRoute code="audit.view" />,
-            children: [{ path: "/auditoria", element: <AuditPage /> }],
+            children: [{ path: "/admin/auditoria", element: <AuditPage /> }],
           },
           {
             element: <PermissionRoute code="messages.view" />,
-            children: [{ path: "/mensajes", element: <MessagesPage /> }],
+            children: [{ path: "/admin/mensajes", element: <MessagesPage /> }],
           },
         ],
       },

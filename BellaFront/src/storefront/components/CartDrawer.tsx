@@ -123,7 +123,7 @@ export function CartDrawer() {
               <span>Subtotal</span>
               <strong>{currencyFormatter.format(subtotal)}</strong>
             </div>
-            <Link to="/tienda/checkout" className="cart-drawer__checkout" onClick={closeCart}>
+            <Link to="/checkout" className="cart-drawer__checkout" onClick={closeCart}>
               Continuar al pago
             </Link>
           </div>

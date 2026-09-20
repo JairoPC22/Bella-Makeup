@@ -167,7 +167,7 @@ export function CompanySettingsPage() {
               <p>Historial completo de acciones realizadas en el sistema.</p>
             </div>
           </header>
-          <Link to="/auditoria" className="settings-section__audit-link">
+          <Link to="/admin/auditoria" className="settings-section__audit-link">
             Ver actividad reciente
             <ArrowUpRight size={16} />
           </Link>

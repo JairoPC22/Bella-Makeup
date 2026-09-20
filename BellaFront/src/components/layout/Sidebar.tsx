@@ -23,17 +23,17 @@ const STORAGE_KEY = "bellafront:sidebar-collapsed";
 const linkClass = ({ isActive }: { isActive: boolean }) => `sidebar__link${isActive ? " sidebar__link--active" : ""}`;
 
 const NAV_ITEMS = [
-  { to: "/", end: true, label: "Inicio", icon: LayoutDashboard, permission: null },
-  { to: "/usuarios", end: false, label: "Usuarios", icon: Users, permission: "users.view" },
-  { to: "/roles", end: false, label: "Roles", icon: ShieldCheck, permission: "roles.view" },
-  { to: "/sucursales", end: false, label: "Sucursales", icon: Building2, permission: "branches.view" },
-  { to: "/productos", end: false, label: "Productos", icon: Package, permission: "products.view" },
-  { to: "/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
-  { to: "/transferencias", end: false, label: "Transferencias", icon: ArrowLeftRight, permission: "transfers.view" },
-  { to: "/pos", end: false, label: "Punto de venta", icon: ShoppingCart, permission: "sales.create" },
-  { to: "/ventas", end: false, label: "Ventas", icon: Receipt, permission: "sales.view" },
-  { to: "/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },
-  { to: "/configuracion", end: false, label: "Configuración", icon: Settings, permission: "settings.manage" },
+  { to: "/admin", end: true, label: "Inicio", icon: LayoutDashboard, permission: null },
+  { to: "/admin/usuarios", end: false, label: "Usuarios", icon: Users, permission: "users.view" },
+  { to: "/admin/roles", end: false, label: "Roles", icon: ShieldCheck, permission: "roles.view" },
+  { to: "/admin/sucursales", end: false, label: "Sucursales", icon: Building2, permission: "branches.view" },
+  { to: "/admin/productos", end: false, label: "Productos", icon: Package, permission: "products.view" },
+  { to: "/admin/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
+  { to: "/admin/transferencias", end: false, label: "Transferencias", icon: ArrowLeftRight, permission: "transfers.view" },
+  { to: "/admin/pos", end: false, label: "Punto de venta", icon: ShoppingCart, permission: "sales.create" },
+  { to: "/admin/ventas", end: false, label: "Ventas", icon: Receipt, permission: "sales.view" },
+  { to: "/admin/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },
+  { to: "/admin/configuracion", end: false, label: "Configuración", icon: Settings, permission: "settings.manage" },
 ] as const;
 
 function readStoredCollapsed(): boolean {

@@ -117,7 +117,7 @@ export function InventoryPage() {
       <p className="inventory-page__subtitle">
         El inventario muestra el stock de cada producto por sucursal. Para crear o editar productos, ve a{" "}
         <PermissionGate code="products.view" fallback="Productos">
-          <Link to="/productos">Productos</Link>
+          <Link to="/admin/productos">Productos</Link>
         </PermissionGate>
         .
       </p>

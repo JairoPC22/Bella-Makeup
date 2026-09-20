@@ -22,14 +22,14 @@ export function StorefrontLayout() {
     <div className="storefront">
       <header className="storefront-header">
         <div className="storefront-header__inner">
-          <Link to="/tienda" className="storefront-header__brand">
+          <Link to="/" className="storefront-header__brand">
             <img src="/brand/logo-full-480.png" alt={COMPANY_NAME} />
           </Link>
           <nav className="storefront-header__nav" aria-label="Navegación principal">
-            <NavLink to="/tienda" end className={({ isActive }) => (isActive ? "is-active" : undefined)}>
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "is-active" : undefined)}>
               Inicio
             </NavLink>
-            <NavLink to="/tienda/catalogo" className={({ isActive }) => (isActive ? "is-active" : undefined)}>
+            <NavLink to="/catalogo" className={({ isActive }) => (isActive ? "is-active" : undefined)}>
               Catálogo
             </NavLink>
           </nav>
@@ -54,9 +54,9 @@ export function StorefrontLayout() {
             </div>
           </div>
           <nav className="storefront-footer__links" aria-label="Enlaces de la tienda">
-            <Link to="/tienda/nosotros">Sobre nosotros</Link>
-            <Link to="/tienda/preguntas-frecuentes">Preguntas frecuentes</Link>
-            <Link to="/tienda/envios">Envíos</Link>
+            <Link to="/nosotros">Sobre nosotros</Link>
+            <Link to="/preguntas-frecuentes">Preguntas frecuentes</Link>
+            <Link to="/envios">Envíos</Link>
           </nav>
           <p className="storefront-footer__copy">
             &copy; {new Date().getFullYear()} {COMPANY_NAME}. Todos los derechos reservados.

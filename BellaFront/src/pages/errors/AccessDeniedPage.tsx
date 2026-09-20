@@ -8,7 +8,7 @@ export function AccessDeniedPage() {
       <ShieldAlert size={40} />
       <h1>Acceso denegado</h1>
       <p>No tienes permiso para ver esta sección.</p>
-      <Link to="/" className="error-page__link">Volver al inicio</Link>
+      <Link to="/admin" className="error-page__link">Volver al inicio</Link>
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function UserMenu() {
       </button>
       {open && (
         <div className="user-menu__dropdown">
-          <Link to="/perfil" onClick={() => setOpen(false)}><UserIcon size={16} /> Mi perfil</Link>
+          <Link to="/admin/perfil" onClick={() => setOpen(false)}><UserIcon size={16} /> Mi perfil</Link>
           <button onClick={() => logout()}><LogOut size={16} /> Cerrar sesión</button>
         </div>
       )}

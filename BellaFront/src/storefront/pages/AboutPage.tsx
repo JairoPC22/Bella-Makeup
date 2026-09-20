@@ -54,7 +54,7 @@ export function AboutPage() {
             la misma actitud de asesoría antes que venta, ahora disponible desde donde estés — con la opción de
             recoger en tu sucursal favorita o recibirlo directamente en tu domicilio.
           </p>
-          <Link to="/tienda/catalogo" className="storefront-about__story-link">
+          <Link to="/catalogo" className="storefront-about__story-link">
             Explorar el catálogo <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>

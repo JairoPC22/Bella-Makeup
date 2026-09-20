@@ -38,7 +38,7 @@ export function OrderConfirmationPage() {
           }
         />
         <p className="storefront-confirmation__back">
-          <Link to="/tienda">Volver a la tienda</Link>
+          <Link to="/">Volver a la tienda</Link>
         </p>
       </div>
     );
@@ -97,7 +97,7 @@ export function OrderConfirmationPage() {
       </div>
 
       <p className="storefront-confirmation__back">
-        <Link to="/tienda/catalogo">Seguir comprando</Link>
+        <Link to="/catalogo">Seguir comprando</Link>
       </p>
     </div>
   );

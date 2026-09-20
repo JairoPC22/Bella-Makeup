@@ -93,7 +93,7 @@ export function CheckoutPage() {
       <div className="storefront-section">
         <StatusState kind="empty" message="Tu carrito está vacío. Agrega productos antes de continuar al pago." />
         <p className="storefront-checkout__back">
-          <Link to="/tienda/catalogo">Ir al catálogo</Link>
+          <Link to="/catalogo">Ir al catálogo</Link>
         </p>
       </div>
     );
@@ -147,7 +147,7 @@ export function CheckoutPage() {
     try {
       const order = await createOnlineOrder(input);
       clearCart();
-      navigate(`/tienda/pedido/${order.orderNumber}`, { state: order });
+      navigate(`/pedido/${order.orderNumber}`, { state: order });
     } catch (err) {
       setError(err instanceof PublicApiError ? err.message : "No se pudo enviar tu pedido. Intenta de nuevo.");
     } finally {

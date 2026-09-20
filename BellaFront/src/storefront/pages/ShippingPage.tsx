@@ -76,7 +76,7 @@ export function ShippingPage() {
             pagos con tarjeta dentro del sitio. Puedes elegir entre efectivo, tarjeta o transferencia bancaria
             directamente en el checkout.
           </p>
-          <Link to="/tienda/catalogo" className="storefront-shipping__note-link">
+          <Link to="/catalogo" className="storefront-shipping__note-link">
             Empezar mi pedido <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>

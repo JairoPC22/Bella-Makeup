@@ -47,7 +47,7 @@ export function ProductDetailPage() {
       <div className="storefront-section">
         <StatusState kind="error" message="No se pudo cargar este producto. Puede que ya no esté disponible." />
         <p className="storefront-detail__back-link">
-          <Link to="/tienda/catalogo">
+          <Link to="/catalogo">
             <ChevronLeft size={16} aria-hidden="true" /> Volver al catálogo
           </Link>
         </p>
@@ -93,7 +93,7 @@ export function ProductDetailPage() {
   return (
     <div className="storefront-section storefront-detail">
       <p className="storefront-detail__back-link">
-        <Link to="/tienda/catalogo">
+        <Link to="/catalogo">
           <ChevronLeft size={16} aria-hidden="true" /> Volver al catálogo
         </Link>
       </p>

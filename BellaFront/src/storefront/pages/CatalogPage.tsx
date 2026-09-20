@@ -137,13 +137,13 @@ export function CatalogPage() {
               const hasVariants = product.variants.length > 0;
               return (
                 <div key={product.id} className="storefront-product-card">
-                  <Link to={`/tienda/producto/${product.id}`} className="storefront-product-card__image">
+                  <Link to={`/producto/${product.id}`} className="storefront-product-card__image">
                     {image ? <img src={buildPublicImageUrl(image.url)} alt={product.name} /> : <Sparkles size={22} aria-hidden="true" />}
                   </Link>
-                  <Link to={`/tienda/producto/${product.id}`} className="storefront-product-card__brand">
+                  <Link to={`/producto/${product.id}`} className="storefront-product-card__brand">
                     {product.brand?.name ?? " "}
                   </Link>
-                  <Link to={`/tienda/producto/${product.id}`} className="storefront-product-card__name">
+                  <Link to={`/producto/${product.id}`} className="storefront-product-card__name">
                     {product.name}
                   </Link>
                   <p className="storefront-product-card__price">
@@ -162,7 +162,7 @@ export function CatalogPage() {
                   </p>
                   <div className="storefront-product-card__actions">
                     {hasVariants ? (
-                      <Link to={`/tienda/producto/${product.id}`} className="storefront-add-btn storefront-add-btn--outline">
+                      <Link to={`/producto/${product.id}`} className="storefront-add-btn storefront-add-btn--outline">
                         Ver opciones
                       </Link>
                     ) : (
