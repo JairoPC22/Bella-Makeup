@@ -28,6 +28,10 @@ const PERMISSIONS: Array<{ code: string; description: string }> = [
   { code: "sales.create", description: "Registrar ventas" },
   { code: "sales.cancel", description: "Cancelar ventas" },
   { code: "sales.return", description: "Registrar devoluciones" },
+  { code: "transfers.view", description: "Ver transferencias entre sucursales" },
+  { code: "transfers.create", description: "Crear transferencias entre sucursales" },
+  { code: "transfers.receive", description: "Recibir transferencias entre sucursales" },
+  { code: "transfers.cancel", description: "Cancelar transferencias entre sucursales" },
   { code: "discounts.create", description: "Crear descuentos" },
   { code: "discounts.apply", description: "Aplicar descuentos" },
   { code: "discounts.authorize", description: "Autorizar descuentos" },
@@ -68,6 +72,7 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     permissions: [
       "products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive",
       "sales.view", "sales.cancel", "sales.return", "discounts.authorize",
+      "transfers.view", "transfers.create", "transfers.receive", "transfers.cancel",
       "users.view", "branches.view", "purchases.view", "purchases.receive", "reports.view", "audit.view",
       "messages.view", "messages.send",
     ],
@@ -84,7 +89,7 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     name: "Almacenista",
     description:
       "Gestiona entradas, salidas, inventarios físicos, movimientos de mercancía y transferencias autorizadas.",
-    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "messages.view", "messages.send"],
+    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "messages.view", "messages.send"],
   },
   {
     code: "purchasing",
@@ -102,7 +107,7 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     code: "viewer",
     name: "Consulta / Reportes",
     description: "Puede consultar información y reportes autorizados sin modificar operaciones críticas.",
-    permissions: ["products.view", "inventory.view", "sales.view", "reports.view", "branches.view", "messages.view"],
+    permissions: ["products.view", "inventory.view", "sales.view", "transfers.view", "reports.view", "branches.view", "messages.view"],
   },
 ];
 

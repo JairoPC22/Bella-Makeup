@@ -66,6 +66,8 @@ model Branch {
   inventory    Inventory[]
   inventoryMovements InventoryMovement[]
   sales        Sale[]
+  transfersOut Transfer[]   @relation("TransferSourceBranch")
+  transfersIn  Transfer[]   @relation("TransferDestinationBranch")
 
   @@map("branches")
 }
@@ -95,6 +97,8 @@ model User {
   conversationParticipations ConversationParticipant[]
   messagesAuthored Message[]      @relation("MessagesAuthored")
   salesMade     Sale[]         @relation("SalesMade")
+  transfersRequested Transfer[]  @relation("TransfersRequested")
+  transfersReceived  Transfer[]  @relation("TransfersReceived")
 
   @@map("users")
 }
@@ -221,6 +225,7 @@ model Product {
   inventory     Inventory[]
   movements     InventoryMovement[]
   saleItems     SaleItem[]
+  transferItems TransferItem[]
 
   @@map("products")
   @@index([categoryId])
@@ -256,6 +261,7 @@ model ProductVariant {
   inventory   Inventory[]
   movements   InventoryMovement[]
   saleItems   SaleItem[]
+  transferItems TransferItem[]
 
   @@map("product_variants")
 }
@@ -450,4 +456,53 @@ model SalePayment {
   sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   @@map("sale_payments")
+}
+
+enum TransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+model Transfer {
+  id                  String         @id @default(uuid())
+  folio               Int            @default(autoincrement())
+  sourceBranchId      String         @map("source_branch_id")
+  destinationBranchId String         @map("destination_branch_id")
+  status              TransferStatus @default(PENDING)
+  requestedByUserId   String         @map("requested_by_user_id")
+  receivedByUserId    String?        @map("received_by_user_id")
+  notes               String?
+  cancelReason        String?        @map("cancel_reason")
+  dispatchedAt        DateTime?      @map("dispatched_at")
+  completedAt         DateTime?      @map("completed_at")
+  cancelledAt         DateTime?      @map("cancelled_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  sourceBranch      Branch @relation("TransferSourceBranch", fields: [sourceBranchId], references: [id])
+  destinationBranch Branch @relation("TransferDestinationBranch", fields: [destinationBranchId], references: [id])
+  requestedBy       User   @relation("TransfersRequested", fields: [requestedByUserId], references: [id])
+  receivedBy        User?  @relation("TransfersReceived", fields: [receivedByUserId], references: [id])
+  items             TransferItem[]
+
+  @@map("transfers")
+  @@index([sourceBranchId])
+  @@index([destinationBranchId])
+  @@index([createdAt])
+}
+
+model TransferItem {
+  id         String @id @default(uuid())
+  transferId String @map("transfer_id")
+  productId  String @map("product_id")
+  variantId  String? @map("variant_id")
+  quantity   Int
+
+  transfer Transfer        @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product         @relation(fields: [productId], references: [id])
+  variant  ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("transfer_items")
 }

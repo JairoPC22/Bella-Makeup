@@ -21,6 +21,7 @@ import inventoryRoutes from "./routes/inventory.routes";
 import messageRoutes from "./routes/message.routes";
 import customerRoutes from "./routes/customer.routes";
 import saleRoutes from "./routes/sale.routes";
+import transferRoutes from "./routes/transfer.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -100,6 +101,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/sales", saleRoutes);
+app.use("/api/transfers", transferRoutes);
 app.use(errorHandler);
 
 export default app;

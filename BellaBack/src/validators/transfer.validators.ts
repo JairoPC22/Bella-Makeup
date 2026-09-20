@@ -1,0 +1,42 @@
+import { z } from "zod";
+
+// Same recurring bug class documented in sale.validators.ts and every other
+// validator file: Zod's strict `.uuid()` rejects the deterministic seed ids
+// ("00000000-...-000000000001") used by seeded branches, which are
+// valid UUID-shaped strings but fail the RFC version/variant check.
+// sourceBranchId/destinationBranchId can reference those seeded fixtures, so
+// they use this shape-only regex. productId/variantId/transferId stay on the
+// strict `.uuid()` below since products, variants, and transfers always get
+// Prisma's real v4 `uuid()` default, never one of these fixture ids.
+const uuidShape = z
+  .string()
+  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
+
+const transferItemSchema = z.object({
+  productId: z.string().uuid(),
+  variantId: z.string().uuid().optional(),
+  quantity: z.number().int().positive(),
+});
+
+export const createTransferSchema = z
+  .object({
+    sourceBranchId: uuidShape,
+    destinationBranchId: uuidShape,
+    notes: z.string().trim().min(1).optional(),
+    items: z.array(transferItemSchema).min(1, "La transferencia debe tener al menos un artículo"),
+  })
+  .refine((data) => data.sourceBranchId !== data.destinationBranchId, {
+    message: "La sucursal de origen y destino no pueden ser la misma",
+    path: ["destinationBranchId"],
+  });
+
+export const cancelTransferSchema = z.object({
+  reason: z.string().trim().min(3, "El motivo debe tener al menos 3 caracteres"),
+});
+
+export const listTransfersQuerySchema = z.object({
+  branchId: uuidShape.optional(),
+  status: z.enum(["PENDING", "IN_TRANSIT", "COMPLETED", "CANCELLED"]).optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+});
