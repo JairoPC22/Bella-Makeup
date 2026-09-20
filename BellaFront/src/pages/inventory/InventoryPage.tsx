@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PackageSearch, SlidersHorizontal, History, Search, Info } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
+import { Select } from "../../components/common/Select";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { ReportExportButtons } from "../../components/common/ReportExportButtons";
 import * as branchService from "../../services/branchService";
@@ -23,6 +24,14 @@ const STATUS_LABEL: Record<InventoryRow["status"], string> = {
 const STATUS_OPTIONS: InventoryRow["status"][] = ["AVAILABLE", "LOW", "CRITICAL", "OUT"];
 
 type FetchStatus = "loading" | "ready" | "error";
+
+// Same --stagger-delay custom-property pattern as ProductsPage.tsx/
+// DashboardPage.tsx's staggerStyle, paired with the sitewide
+// .animate-in-stagger utility in global.css — this table previously only
+// faded in as one whole block (no per-row stagger), unlike Products'.
+function staggerStyle(ms: number): CSSProperties {
+  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
 
 export function InventoryPage() {
   const [rows, setRows] = useState<InventoryRow[] | null>(null);
@@ -114,18 +123,18 @@ export function InventoryPage() {
       </p>
 
       <div className="inventory-filters">
-        <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+        <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
           <option value="">Todas las sucursales</option>
           {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        </Select>
+        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="">Todas las categorías</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as InventoryRow["status"] | "")}>
+        </Select>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as InventoryRow["status"] | "")}>
           <option value="">Todos los estados</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-        </select>
+        </Select>
         <label className="inventory-filters__search">
           <Search size={16} />
           <input
@@ -175,8 +184,8 @@ export function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map((row) => (
-              <tr key={row.id}>
+            {visibleRows.map((row, i) => (
+              <tr key={row.id} className="animate-in-stagger" style={staggerStyle(Math.min(i, 10) * 35)}>
                 <td>
                   <p className="inventory-table__product-name">{row.product.name}</p>
                   <p className="inventory-table__product-sku">{row.product.sku}</p>

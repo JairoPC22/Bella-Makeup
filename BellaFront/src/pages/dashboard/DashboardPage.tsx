@@ -12,6 +12,7 @@ import {
   SprayCan,
   Sparkles,
   Flower2,
+  Gem,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePermission } from "../../hooks/usePermission";
@@ -49,16 +50,36 @@ function staggerStyle(ms: number): CSSProperties {
   return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
 }
 
-// Hero visual, redesigned to read unmistakably as "beauty retail" rather
-// than generic abstract blobs: a perfume-spray glyph as the centerpiece
-// (the one motif most people immediately associate with a makeup/beauty
-// brand), a soft radial glow behind it, a slow-rotating dashed ring, a
-// diagonal shimmer sweep across the spray icon itself, and two small
-// orbiting accents (a flower — botanical/skincare association — and a
-// sparkle/twinkle). Pure CSS/SVG layering, no canvas/WebGL, no new
-// dependency; every animation uses `animation`/`transition`, so the
+// Sets the two CSS custom properties an orbiting icon's wrapper/keyframes
+// read (--orbit-radius, --orbit-duration) plus a real animation-delay, so
+// each icon can start mid-cycle at a different point on its circle instead
+// of every orbit visibly "launching" from the same angle on page load.
+// Same `as unknown as CSSProperties` escape hatch as staggerStyle above —
+// custom properties aren't part of csstype's CSSProperties.
+function orbitStyle(radiusPx: number, durationS: number, delayS = 0): CSSProperties {
+  return {
+    "--orbit-radius": `${radiusPx}px`,
+    "--orbit-duration": `${durationS}s`,
+    animationDelay: `${delayS}s`,
+  } as unknown as CSSProperties;
+}
+
+// Hero visual, pushed further than the previous "beauty retail" pass
+// (spray-can centerpiece + two icons bobbing in place) into something that
+// actually reads as *moving*: three lucide glyphs genuinely orbit the
+// centerpiece along circular paths at three different radii, speeds, and
+// directions (Flower2 tight and fast, Gem tighter still and quickest,
+// Sparkles wide, slow, and counter-rotating), each icon kept upright the
+// whole way around by counter-spinning at the same rate its orbit sweeps —
+// the classic two-layer "orbit wrapper rotates, icon cancels the rotation"
+// CSS trick, not a bob/pulse. Sparkles also gets its own independent
+// twinkle (opacity) animation layered on top, since `transform` and
+// `opacity` don't conflict — one icon that's simultaneously orbiting AND
+// twinkling, so the whole composition doesn't move in lockstep. Centerpiece
+// keeps its glow/ring/shimmer/gentle-bob treatment underneath. Pure CSS,
+// no canvas/WebGL/animation library; every motion uses `animation`, so the
 // existing sitewide `prefers-reduced-motion` rule in global.css freezes
-// it automatically for users who need that.
+// all of it automatically.
 function DashboardVisual() {
   return (
     <div className="dashboard-visual" aria-hidden="true">
@@ -68,8 +89,16 @@ function DashboardVisual() {
         <SprayCan size={30} strokeWidth={1.5} />
         <span className="dashboard-visual__shimmer" />
       </span>
-      <Flower2 className="dashboard-visual__icon dashboard-visual__icon--flower" size={16} strokeWidth={1.75} />
-      <Sparkles className="dashboard-visual__icon dashboard-visual__icon--sparkle" size={15} strokeWidth={1.75} />
+
+      <span className="dashboard-visual__orbit" style={orbitStyle(34, 10)}>
+        <Flower2 className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--flower" size={14} strokeWidth={1.75} />
+      </span>
+      <span className="dashboard-visual__orbit dashboard-visual__orbit--reverse" style={orbitStyle(46, 16, -5)}>
+        <Sparkles className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--sparkle" size={13} strokeWidth={1.75} />
+      </span>
+      <span className="dashboard-visual__orbit" style={orbitStyle(24, 7, -2)}>
+        <Gem className="dashboard-visual__orbit-icon dashboard-visual__orbit-icon--gem" size={11} strokeWidth={1.75} />
+      </span>
     </div>
   );
 }
@@ -293,12 +322,24 @@ export function DashboardPage() {
           )}
         </div>
         <div className="dashboard-hero__side">
-          <DashboardVisual />
-          {user && (
-            <div className="dashboard-hero__avatar">
-              <Avatar avatarStyle={user.avatarStyle} avatarSeed={user.avatarSeed} displayName={user.displayName} size="lg" />
-            </div>
-          )}
+          {/* Full icon+wordmark lockup — the fuller brand mark that, until
+              now, only ever appeared pre-cropped as the sidebar's small
+              monogram. Small and quiet on purpose (a subtle brand touch
+              above the existing visual/avatar row, not a second hero) —
+              the greeting text block to the left is untouched. */}
+          <img
+            src="/brand/logo-full-240.png"
+            alt="Bella Makeup"
+            className="dashboard-hero__brandmark"
+          />
+          <div className="dashboard-hero__visual-row">
+            <DashboardVisual />
+            {user && (
+              <div className="dashboard-hero__avatar">
+                <Avatar avatarStyle={user.avatarStyle} avatarSeed={user.avatarSeed} displayName={user.displayName} size="lg" />
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

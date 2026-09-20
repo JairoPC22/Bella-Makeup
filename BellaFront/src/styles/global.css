@@ -64,7 +64,17 @@ button {
    new invented color). Multi-selects (select[multiple], e.g. the Users
    table's branch assignment) keep native listbox rendering — a single
    trailing chevron doesn't make sense on a scrollable multi-row box — but
-   still inherit the shared border/radius/token treatment below. */
+   still inherit the shared border/radius/token treatment below.
+
+   The most-visible selects in the app (product form, Products/Inventory
+   filter bars, Users/Branches selects) have since been migrated to
+   components/common/Select.tsx, which wraps the native <select> and layers
+   a real lucide ChevronDown icon on top instead of this data-URI — see
+   that file's comment for why (a real icon uses currentColor, no baked-in
+   hex, and sidesteps whatever it was about the data-URI +
+   appearance:none combination that a client screenshot showed smearing/
+   tiling in one browser). Any <select> NOT yet migrated still relies on
+   the data-URI treatment below as a functional fallback. */
 select {
   font-family: var(--font-body);
   font-size: 0.9rem;

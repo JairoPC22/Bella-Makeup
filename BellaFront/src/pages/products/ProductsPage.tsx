@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
+import { Select } from "../../components/common/Select";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { ReportExportButtons } from "../../components/common/ReportExportButtons";
 import { ApiError } from "../../services/apiClient";
@@ -150,19 +151,19 @@ export function ProductsPage() {
       {actionError && <p className="products-page__error">{actionError}</p>}
 
       <div className="products-filters animate-in" style={{ animationDelay: "80ms" }}>
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="">Todas las categorías</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+        </Select>
+        <Select value={brandId} onChange={(e) => setBrandId(e.target.value)}>
           <option value="">Todas las marcas</option>
           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Product["status"] | "")}>
+        </Select>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Product["status"] | "")}>
           <option value="">Todos los estados</option>
           <option value="ACTIVE">Activo</option>
           <option value="INACTIVE">Inactivo</option>
-        </select>
+        </Select>
         <label className="products-filters__search">
           <Search size={16} />
           <input

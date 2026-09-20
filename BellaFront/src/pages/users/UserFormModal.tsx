@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Modal } from "../../components/common/Modal";
+import { Select } from "../../components/common/Select";
 import * as userService from "../../services/userService";
 import type { Branch, Role, User } from "../../types/api";
 
@@ -68,9 +69,9 @@ export function UserFormModal({ open, onClose, onSaved, roles, branches, editing
           <label>Contraseña<input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
         )}
         <label>Rol
-          <select value={form.roleId} onChange={(e) => setForm({ ...form, roleId: e.target.value })}>
+          <Select value={form.roleId} onChange={(e) => setForm({ ...form, roleId: e.target.value })}>
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
+          </Select>
         </label>
 
         <div className="user-form__branches">

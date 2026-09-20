@@ -11,8 +11,18 @@
 .users-page__error { color: #B3261E; margin-bottom: var(--space-3); }
 .users-table { width: 100%; border-collapse: collapse; background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; animation: fade-in-up 0.6s var(--ease-premium) both; }
 .users-table th, .users-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; }
-.users-table tbody tr { transition: background-color var(--transition-base) var(--ease-premium); }
-.users-table tbody tr:hover { background: var(--color-bg); }
+/* Subtle hover-lift (translateY + shadow) — same treatment as
+   ProductsPage.css's .products-table tbody tr:hover, applied here so both
+   tables feel consistent instead of this one only changing background. */
+.users-table tbody tr {
+  position: relative;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-fast) var(--ease-premium);
+}
+.users-table tbody tr:hover {
+  background: var(--color-bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 .users-table button {
   background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-secondary);
   border-radius: var(--radius-sm);

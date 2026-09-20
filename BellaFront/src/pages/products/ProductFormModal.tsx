@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Plus, X, Check, AlertTriangle, CheckCircle2, Info, DollarSign, Boxes, Layers, Image as ImageIcon } from "lucide-react";
 import { Modal } from "../../components/common/Modal";
+import { Select } from "../../components/common/Select";
 import { ImageUploader } from "../../components/common/ImageUploader";
 import { ApiError } from "../../services/apiClient";
 import * as productService from "../../services/productService";
@@ -229,10 +230,10 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
               <label>Categoría
                 {!creatingCategory ? (
                   <div className="product-form__select-with-add">
-                    <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+                    <Select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
                       <option value="">Sin categoría</option>
                       {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                    </Select>
                     <button
                       type="button"
                       className="product-form__add-inline"
@@ -281,10 +282,10 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
               <label>Marca
                 {!creatingBrand ? (
                   <div className="product-form__select-with-add">
-                    <select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
+                    <Select value={form.brandId} onChange={(e) => setForm({ ...form, brandId: e.target.value })}>
                       <option value="">Sin marca</option>
                       {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
+                    </Select>
                     <button
                       type="button"
                       className="product-form__add-inline"
@@ -389,14 +390,14 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
 
             {isExistingProduct && (
               <label>Estado
-                <select
+                <Select
                   value={product!.status}
                   disabled={statusSaving}
                   onChange={(e) => handleStatusChange(e.target.value as Product["status"])}
                 >
                   <option value="ACTIVE">Activo</option>
                   <option value="INACTIVE">Inactivo</option>
-                </select>
+                </Select>
               </label>
             )}
           </div>

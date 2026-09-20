@@ -1,0 +1,55 @@
+/* ---------- Select wrapper ----------
+   Positions a real lucide ChevronDown over a native <select>'s own
+   reserved padding-right space (global.css's select:not([multiple]) rule
+   already carves out that space and keeps appearance:none/border/focus-ring
+   — this only replaces the chevron itself).
+
+   `display: inline-flex` + `select { width: 100% }` is the load-bearing
+   trick that lets the exact same markup work in both layout contexts this
+   app already has selects in, with zero per-page CSS changes:
+     - Filter bars (`display:flex; align-items:center`, no stretch): the
+       wrapper isn't forced to any width, so it shrinks to the select's own
+       intrinsic content width, same as an unwrapped <select> would.
+     - Modal form labels (`.modal__body label { display:flex;
+       flex-direction:column }`, default align-items:stretch): the wrapper
+       — like any flex child — stretches to the label's full width, and the
+       select fills the wrapper via width:100%, matching the full-width
+       fields every modal form already has. */
+.select-wrapper {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+.select-wrapper select {
+  width: 100%;
+  /* Overrides global.css's data-URI background-image chevron (both the
+     resting-state rule and the hover/focus color-swap rule) — this wrapper
+     renders a real icon in the same reserved space instead. `!important` is
+     deliberate and scoped to this one property: specificity alone doesn't
+     reliably win here since the two rules live in separately-bundled CSS
+     files with no guaranteed load order relative to each other. */
+  background-image: none !important;
+}
+
+.select-wrapper__chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-base) var(--ease-premium), transform var(--transition-base) var(--ease-premium);
+}
+.select-wrapper select:hover + .select-wrapper__chevron,
+.select-wrapper select:focus + .select-wrapper__chevron {
+  color: var(--color-pink-elegant);
+}
+/* Small "open" affordance — the chevron flips on focus, echoing a real
+   listbox's open/closed state even though this stays a native <select>. */
+.select-wrapper select:focus + .select-wrapper__chevron {
+  transform: translateY(-50%) rotate(180deg);
+}
+.select-wrapper select:disabled + .select-wrapper__chevron {
+  opacity: 0.5;
+}

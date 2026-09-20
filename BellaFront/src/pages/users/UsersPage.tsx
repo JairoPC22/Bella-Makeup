@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { Plus, Pencil, Ban, CheckCircle2 } from "lucide-react";
 import { Avatar } from "../../components/common/Avatar";
 import { Badge } from "../../components/common/Badge";
@@ -11,6 +11,13 @@ import * as roleService from "../../services/roleService";
 import * as branchService from "../../services/branchService";
 import type { User, Role, Branch } from "../../types/api";
 import "./UsersPage.css";
+
+// Same --stagger-delay custom-property pattern used across
+// ProductsPage/InventoryPage/DashboardPage — this table previously only
+// had the CSS-level animation on the whole <table>, no per-row stagger.
+function staggerStyle(ms: number): CSSProperties {
+  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[] | null>(null);
@@ -77,8 +84,8 @@ export function UsersPage() {
             <tr><th></th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Sucursales</th><th>Estado</th><th></th></tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
+            {users.map((u, i) => (
+              <tr key={u.id} className="animate-in-stagger" style={staggerStyle(Math.min(i, 10) * 35)}>
                 <td><Avatar avatarStyle={u.avatarStyle} avatarSeed={u.avatarSeed} displayName={u.displayName} size="sm" /></td>
                 <td>{u.displayName}</td>
                 <td>{u.username}</td>

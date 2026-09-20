@@ -376,7 +376,11 @@
    .product-form__variant-remove (bordered, danger-on-hover) treatments so
    this reads as part of the same design language. */
 .modal__body .product-form__select-with-add { display: flex; gap: 6px; align-items: center; }
-.modal__body .product-form__select-with-add select { flex: 1 1 auto; min-width: 0; }
+/* Targets .select-wrapper (the Select.tsx wrapper div), not `select`
+   directly — since the wrapper migration, the wrapper is the actual flex
+   item here, and `flex`/`min-width` on the select itself wouldn't do
+   anything without a flex-item parent to apply to. */
+.modal__body .product-form__select-with-add .select-wrapper { flex: 1 1 auto; min-width: 0; }
 .modal__body .product-form__add-inline {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; flex-shrink: 0;

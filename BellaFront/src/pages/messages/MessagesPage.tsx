@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
 import {
   Plus,
   Paperclip,
@@ -38,6 +38,14 @@ const EXCEL_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 const GROUP_NAME_LABEL_LIMIT = 2;
+
+// Same --stagger-delay custom-property pattern used across
+// ProductsPage/InventoryPage/UsersPage/DashboardPage — the conversation
+// list previously had no entrance animation at all (individual message
+// bubbles already fade in via .message-row's own animation).
+function staggerStyle(ms: number): CSSProperties {
+  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
+}
 
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -325,7 +333,7 @@ export function MessagesPage() {
           )}
           {conversationsStatus === "ready" && conversations && conversations.length > 0 && (
             <ul className="messages-list__items">
-              {conversations.map((conv) => {
+              {conversations.map((conv, i) => {
                 const other = otherParticipant(conv, user?.id);
                 const displayName = conversationDisplayName(conv, user?.id);
                 const last = conv.messages?.[0];
@@ -334,7 +342,11 @@ export function MessagesPage() {
                   : "Sin mensajes todavía";
                 const isConfirming = confirmHideId === conv.id;
                 return (
-                  <li key={conv.id} className="messages-list__row">
+                  <li
+                    key={conv.id}
+                    className="messages-list__row animate-in-stagger"
+                    style={staggerStyle(Math.min(i, 12) * 35)}
+                  >
                     <button
                       type="button"
                       className={`messages-list__item${conv.id === selectedId ? " messages-list__item--active" : ""}`}

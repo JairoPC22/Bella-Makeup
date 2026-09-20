@@ -52,11 +52,36 @@
   color: var(--color-text-muted);
 }
 
+/* Column, not row: the brand lockup sits above the existing visual+avatar
+   row rather than squeezing into it, so it reads as a distinct "brand
+   touch" instead of fighting the animated visual for space. */
 .dashboard-hero__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ---------- Full icon+wordmark lockup ----------
+   Small and quiet: sized off logo-full-240.png's own 240×147 aspect ratio
+   (height set, width auto) rather than stretched/cropped, kept well under
+   the visual/avatar row's own footprint, and slightly transparent so it
+   reads as a discreet signature rather than a second logo competing with
+   the sidebar's monogram. */
+.dashboard-hero__brandmark {
+  display: block;
+  height: 28px;
+  width: auto;
+  opacity: 0.88;
+  transition: opacity var(--transition-base) var(--ease-premium);
+}
+.dashboard-hero__side:hover .dashboard-hero__brandmark { opacity: 1; }
+
+.dashboard-hero__visual-row {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  flex-shrink: 0;
 }
 
 .dashboard-hero__avatar {
@@ -68,15 +93,21 @@
 .dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
 
 /* ---------- Hero visual ----------
-   Redesigned to read as "beauty retail" at a glance rather than abstract
-   blobs: a perfume-spray glyph centerpiece in a gradient badge (the motif
-   most immediately associated with a makeup/beauty brand), a soft glow
-   behind it, a slow-rotating dashed ring framing it, a diagonal shimmer
-   sweep across the badge, and two small orbiting accents (a flower for
-   the botanical/skincare association, a twinkle for polish/glow). Frozen
-   automatically under prefers-reduced-motion by the existing sitewide
-   rule in global.css (it only targets animation/transition durations,
-   which is all this uses). */
+   Pushed a step further than the previous "beauty retail" pass (a
+   perfume-spray centerpiece with two icons bobbing in place): three
+   lucide glyphs now genuinely ORBIT the centerpiece along circular paths —
+   not up/down bobbing — at three different radii, speeds, and directions,
+   each one kept upright throughout via the standard two-layer CSS orbit
+   trick: the `.dashboard-visual__orbit` wrapper sweeps a full rotation,
+   and the icon inside counter-rotates at the exact same rate so the net
+   rotation on the icon itself is zero — only its position moves. Radius
+   and duration are read from `--orbit-radius`/`--orbit-duration` custom
+   properties set inline per icon (DashboardPage.tsx's orbitStyle()), so
+   one shared pair of keyframes drives all three instead of one keyframe
+   per icon. Centerpiece keeps its glow / dashed ring / diagonal shimmer /
+   gentle bob underneath. Frozen automatically under prefers-reduced-motion
+   by the existing sitewide rule in global.css (targets animation/
+   transition durations globally, which is all any of this uses). */
 
 .dashboard-visual {
   position: relative;
@@ -123,6 +154,7 @@
   color: var(--color-white);
   box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
   animation: dashboard-centerpiece-bob 5s var(--ease-premium) infinite;
+  z-index: 1;
 }
 
 .dashboard-visual__shimmer {
@@ -136,22 +168,53 @@
   animation: dashboard-shimmer-sweep 3.6s ease-in-out infinite;
 }
 
-.dashboard-visual__icon {
+/* ---------- Orbiting icons ----------
+   .dashboard-visual__orbit is a zero-size point pinned at the visual's
+   exact center; it rotates a full turn every --orbit-duration. The icon
+   inside is offset from that point by --orbit-radius (baked into the
+   dashboard-orbit-icon-spin keyframe alongside its own counter-rotation),
+   so as the wrapper sweeps around, the icon traces a circle at that radius
+   while staying visually upright the whole way. `--reverse` flips both the
+   wrapper's sweep direction and the icon's counter-spin together (via
+   animation-direction, not a second keyframe) so the cancellation still
+   holds for orbits that sweep counter-clockwise instead of clockwise. */
+.dashboard-visual__orbit {
   position: absolute;
-  color: var(--color-pink-deep);
-  filter: drop-shadow(0 4px 8px rgba(0, 102, 204, 0.25));
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  animation-name: dashboard-orbit-spin;
+  animation-duration: var(--orbit-duration, 12s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
-.dashboard-visual__icon--flower {
-  bottom: 6px;
-  left: 2px;
-  opacity: 0.9;
-  animation: dashboard-icon-bob 6.5s var(--ease-premium) infinite reverse;
-}
-.dashboard-visual__icon--sparkle {
+.dashboard-visual__orbit--reverse { animation-direction: reverse; }
+.dashboard-visual__orbit--reverse .dashboard-visual__orbit-icon { animation-direction: reverse; }
+
+.dashboard-visual__orbit-icon {
+  position: absolute;
   top: 0;
-  right: 8px;
-  animation: dashboard-icon-twinkle 3.2s var(--ease-premium) infinite;
+  left: 0;
+  color: var(--color-pink-deep);
+  filter: drop-shadow(0 3px 6px rgba(0, 102, 204, 0.28));
+  animation-name: dashboard-orbit-icon-spin;
+  animation-duration: var(--orbit-duration, 12s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
+/* Sparkles gets a second, independent animation layered on top — opacity
+   doesn't conflict with the transform-driven orbit/counter-spin above, so
+   it can simultaneously orbit AND twinkle instead of moving in lockstep
+   with the other two icons. */
+.dashboard-visual__orbit-icon--sparkle {
+  animation-name: dashboard-orbit-icon-spin, dashboard-icon-twinkle;
+  animation-duration: var(--orbit-duration, 12s), 2.4s;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: reverse, normal;
+}
+.dashboard-visual__orbit-icon--gem { color: var(--color-primary-on-dark); }
 
 .dashboard-visual:hover .dashboard-visual__ring { opacity: 0.95; }
 
@@ -171,13 +234,29 @@
   0% { left: -60%; }
   55%, 100% { left: 130%; }
 }
-@keyframes dashboard-icon-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+@keyframes dashboard-orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* Bakes the radius offset and the counter-rotation into the same keyframe
+   on purpose — `transform` can only hold one value per frame, so the
+   offset has to travel along with the rotation rather than living on a
+   separate static rule. Per the CSS transform composition order, `rotate`
+   (listed second) is applied to the icon first — spinning it in place
+   around its own center — and `translate` (listed first) is applied after,
+   shifting that already-spinning icon by a fixed vector in the parent's
+   unrotated axes. Net result: the icon spins in place at a fixed offset
+   from the orbit wrapper's center, and since the spin direction/speed here
+   is the exact inverse of the wrapper's own rotation, the two cancel out —
+   the icon's world-space orientation stays upright while only its
+   position sweeps around the circle. */
+@keyframes dashboard-orbit-icon-spin {
+  from { transform: translate(var(--orbit-radius, 36px), -50%) rotate(0deg); }
+  to { transform: translate(var(--orbit-radius, 36px), -50%) rotate(-360deg); }
 }
 @keyframes dashboard-icon-twinkle {
-  0%, 100% { opacity: 0.6; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.08); }
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 /* ---------- Stat grid ---------- */
