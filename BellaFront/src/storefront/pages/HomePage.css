@@ -205,7 +205,7 @@
      a smaller max-height pulls the visible content in from the left AND
      right at once — smaller and shifted right together, from one number. */
   height: 100%;
-  max-height: 490px;
+  max-height: 450px;
   width: auto;
   max-width: none;
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
@@ -256,7 +256,26 @@
     height: auto;
     padding: var(--space-3) 0 0;
   }
-  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 280px; object-position: bottom center; }
+  /* The source canvas is a 1671x941 landscape frame with the subject living
+     only in its right ~55% — the rest is transparent dead space (the
+     model_cutout.png keeps the full frame so desktop's edge-to-edge bleed
+     has room to breathe). Sizing this the same way as desktop (width-
+     constrained, height:auto, full canvas aspect ratio) meant most of a
+     small 280px-wide mobile box was invisible padding, with the actual
+     subject shrunk down small and pushed into its right-hand corner — the
+     "posición" the client flagged. A fixed, subject-shaped aspect-ratio
+     box with object-fit:cover crops straight to the part of the canvas
+     that actually has content, so the photo fills its box on mobile the
+     same way the storefront's OWN product photography already does. */
+  .storefront-hero__media img {
+    height: auto;
+    max-height: none;
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    object-position: 78% 15%;
+  }
 
   .storefront-hero__trust { flex-direction: column; align-items: flex-start; gap: 8px; }
   .storefront-hero__trust-item { border-right: none; padding-right: 0; }
