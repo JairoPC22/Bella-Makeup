@@ -1,6 +1,11 @@
+/* Plain block stacking. This was `display: flex; flex-direction: column`,
+   which combined with the auto left/right margins on .storefront-section
+   suppressed flex stretch and shrank every section to fit-content — the
+   page header, the story block and the values grid each ended up a
+   different width, centered independently. See the note in
+   storefront-shared.css. */
 .storefront-about {
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 /* ---------- Brand story ---------- */
@@ -60,17 +65,35 @@
 }
 
 .storefront-about__value-card {
-  padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-5) var(--space-4) var(--space-4);
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), transform var(--transition-base) var(--ease-premium);
+}
+/* A hairline accent that draws itself across the top edge on hover —
+   quieter than a border-color flash, and it gives the four otherwise
+   identical cards something to do. */
+.storefront-about__value-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-pink-deep), var(--color-pink-elegant));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-slow) var(--ease-premium);
 }
 .storefront-about__value-card:hover {
-  border-color: var(--color-pink-elegant);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 55%, var(--color-border));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
 }
+.storefront-about__value-card:hover::before { transform: scaleX(1); }
 
 .storefront-about__value-icon {
   display: inline-flex;

@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { ArrowRight, Heart, LayoutGrid, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { listPublicCategories, listPublicProducts, buildPublicImageUrl } from "../../services/storefrontService";
 import type { PublicCategory, PublicProduct } from "../../types/api";
@@ -86,7 +86,18 @@ export function HomePage() {
 
       <section className="storefront-section">
         <div className="storefront-section__header">
-          <h2>Compra por categoría</h2>
+          <div className="storefront-section__heading">
+            <p className="storefront-section__eyebrow">
+              <LayoutGrid size={13} aria-hidden="true" /> Categorías
+            </p>
+            <h2>Compra por categoría</h2>
+            <p className="storefront-section__sub">
+              Encuentra justo lo que buscas, desde maquillaje hasta cuidado de la piel.
+            </p>
+          </div>
+          <Link to="/catalogo" className="storefront-section__link">
+            Ver catálogo <ArrowRight size={14} aria-hidden="true" />
+          </Link>
         </div>
 
         {categoriesStatus === "loading" && <StatusState kind="loading" />}
@@ -98,14 +109,20 @@ export function HomePage() {
         )}
         {categoriesStatus === "ready" && categories.length > 0 && (
           <div className="storefront-category-strip">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <Link
                 key={category.id}
                 to={`/catalogo?categoria=${category.id}`}
-                className="storefront-category-card"
+                className="storefront-category-card animate-in-stagger"
+                style={staggerStyle(index * 70)}
               >
-                <span>{category.name}</span>
-                <ArrowRight size={16} aria-hidden="true" />
+                <span className="storefront-category-card__label">
+                  <span className="storefront-category-card__hint">Explorar</span>
+                  <span className="storefront-category-card__name">{category.name}</span>
+                </span>
+                <span className="storefront-category-card__arrow">
+                  <ArrowRight size={16} aria-hidden="true" />
+                </span>
               </Link>
             ))}
           </div>
@@ -114,7 +131,15 @@ export function HomePage() {
 
       <section className="storefront-section">
         <div className="storefront-section__header">
-          <h2>Destacados</h2>
+          <div className="storefront-section__heading">
+            <p className="storefront-section__eyebrow">
+              <Sparkles size={13} aria-hidden="true" /> Selección del mes
+            </p>
+            <h2>Destacados</h2>
+            <p className="storefront-section__sub">
+              Lo que más nos piden y lo que más recomendamos, disponible para retiro o entrega.
+            </p>
+          </div>
           <Link to="/catalogo" className="storefront-section__link">
             Ver todo <ArrowRight size={14} aria-hidden="true" />
           </Link>
@@ -134,25 +159,34 @@ export function HomePage() {
               const image = product.images[0];
               return (
                 <Link key={product.id} to={`/producto/${product.id}`} className="storefront-product-card">
-                  <div className="storefront-product-card__image">
-                    {image ? <img src={buildPublicImageUrl(image.url)} alt={product.name} /> : <Sparkles size={22} aria-hidden="true" />}
-                  </div>
-                  <p className="storefront-product-card__brand">{product.brand?.name ?? " "}</p>
-                  <p className="storefront-product-card__name">{product.name}</p>
-                  <p className="storefront-product-card__price">
-                    {hasPromo ? (
-                      <>
-                        <span className="storefront-product-card__price--strike">
-                          {currencyFormatter.format(Number(product.price))}
-                        </span>
-                        <span className="storefront-product-card__price--promo">
-                          {currencyFormatter.format(Number(product.promoPrice))}
-                        </span>
-                      </>
-                    ) : (
-                      currencyFormatter.format(Number(product.price))
-                    )}
-                  </p>
+                  <span className="storefront-product-card__image">
+                    <span className="storefront-product-card__badges">
+                      {!product.inStock && (
+                        <span className="storefront-badge storefront-badge--out">Agotado</span>
+                      )}
+                    </span>
+                    {image
+                      ? <img src={buildPublicImageUrl(image.url)} alt={product.name} />
+                      : <Sparkles size={30} aria-hidden="true" />}
+                  </span>
+                  <span className="storefront-product-card__body">
+                    <span className="storefront-product-card__brand">{product.brand?.name ?? " "}</span>
+                    <span className="storefront-product-card__name">{product.name}</span>
+                    <span className="storefront-product-card__price">
+                      {hasPromo ? (
+                        <>
+                          <span className="storefront-product-card__price--promo">
+                            {currencyFormatter.format(Number(product.promoPrice))}
+                          </span>
+                          <span className="storefront-product-card__price--strike">
+                            {currencyFormatter.format(Number(product.price))}
+                          </span>
+                        </>
+                      ) : (
+                        currencyFormatter.format(Number(product.price))
+                      )}
+                    </span>
+                  </span>
                 </Link>
               );
             })}

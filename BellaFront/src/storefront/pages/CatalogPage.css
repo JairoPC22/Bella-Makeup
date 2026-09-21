@@ -1,43 +1,169 @@
-.storefront-catalog__filters {
+/* ---------- Filter toolbar ----------
+   Previously a bare <select> plus a bordered text input sitting loose on
+   the page background — functional, but it read like an admin filter row,
+   which is most of why the catalog felt generic. It is now one raised
+   toolbar surface holding real category chips and a pill search field. */
+
+.storefront-catalog__toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
+  padding: var(--space-2_5);
   margin-bottom: var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+}
+
+.storefront-catalog__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-left: 6px;
+}
+.storefront-catalog__chips::-webkit-scrollbar { display: none; }
+
+.storefront-chip {
+  flex-shrink: 0;
+  padding: 9px var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    border-color var(--transition-base) var(--ease-premium);
+}
+.storefront-chip:hover {
+  background: color-mix(in srgb, var(--color-pink-50) 70%, transparent);
+  color: var(--color-ink);
+}
+.storefront-chip--active {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-white);
+  font-weight: 600;
+}
+.storefront-chip--active:hover {
+  background: var(--color-pink-deep);
+  border-color: var(--color-pink-deep);
+  color: var(--color-white);
 }
 
 .storefront-catalog__search {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 240px;
+  flex: 0 1 300px;
   padding: 0 var(--space-3);
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
-  transition: border-color var(--transition-base) var(--ease-premium);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium);
 }
 .storefront-catalog__search:focus-within {
+  background: var(--color-white);
   border-color: var(--color-pink-elegant);
   box-shadow: var(--shadow-focus);
 }
 .storefront-catalog__search input {
   flex: 1 1 auto;
+  min-width: 0;
   border: none;
   background: none;
-  padding: var(--space-2_5) 0;
+  padding: 10px 0;
   font-family: var(--font-body);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: var(--color-ink);
   outline: none;
 }
+.storefront-catalog__search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-border);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.storefront-catalog__search-clear:hover { background: var(--color-pink-soft); }
 
-.storefront-product-card__image,
+/* ---------- Result meta row ---------- */
+
+.storefront-catalog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding: 0 var(--space-2);
+}
+.storefront-catalog__meta p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--color-text-secondary);
+}
+.storefront-catalog__meta strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.storefront-catalog__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium);
+}
+.storefront-catalog__clear:hover {
+  border-color: var(--color-pink-elegant);
+  color: var(--color-pink-deep);
+}
+
+/* The card's image/brand/name are <Link>s — they need their anchor
+   underline and inherited color cleared. They must NOT be forced to
+   `display: block`: this file is injected globally (the router imports
+   every page eagerly), and a blanket `display: block` here was silently
+   overriding the shared `display: flex` on .storefront-product-card__image
+   on EVERY page, which is why the placeholder glyph on image-less products
+   sat jammed in the tile's top-left corner instead of centered. */
 .storefront-product-card__brand,
 .storefront-product-card__name {
   text-decoration: none;
   color: inherit;
   display: block;
+}
+.storefront-product-card__image {
+  text-decoration: none;
+  color: inherit;
 }
 
 .storefront-pagination {
@@ -45,28 +171,43 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  margin-top: var(--space-5);
+  margin-top: var(--space-6);
   color: var(--color-text-secondary);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
+  font-weight: 500;
 }
 .storefront-pagination button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background: var(--color-white);
   color: var(--color-ink);
   cursor: pointer;
-  transition: border-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
 }
 .storefront-pagination button:hover:not(:disabled) {
   border-color: var(--color-pink-elegant);
   color: var(--color-pink-deep);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 .storefront-pagination button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .storefront-catalog__toolbar {
+    border-radius: var(--radius-lg);
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .storefront-catalog__search { flex: 1 1 auto; }
 }

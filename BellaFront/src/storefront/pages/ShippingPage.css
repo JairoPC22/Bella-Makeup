@@ -5,11 +5,39 @@
 }
 
 .storefront-shipping__option-card {
+  position: relative;
+  overflow: hidden;
   padding: var(--space-5);
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-base) var(--ease-premium);
 }
+/* Soft corner glow on hover, same color-mix technique used on the
+   category cards and the admin sidebar — these two cards are the page's
+   main choice, so they should respond to the cursor. */
+.storefront-shipping__option-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 100% 0%,
+    color-mix(in srgb, var(--color-pink-elegant) 16%, transparent) 0%,
+    transparent 58%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base) var(--ease-premium);
+}
+.storefront-shipping__option-card:hover {
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 55%, var(--color-border));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+.storefront-shipping__option-card:hover::before { opacity: 1; }
+.storefront-shipping__option-card > * { position: relative; }
 
 .storefront-shipping__option-icon {
   display: inline-flex;
@@ -66,10 +94,26 @@
   gap: var(--space-3);
 }
 
+/* Each step is its own tile with a connector line running to the next —
+   the four steps used to be four unstyled text blocks floating in a row,
+   which didn't read as a sequence at all. */
 .storefront-shipping__step {
+  position: relative;
   display: flex;
-  gap: var(--space-2_5);
-  padding: var(--space-3);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.storefront-shipping__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-4) + 19px);
+  right: calc(var(--space-4) * -1);
+  width: var(--space-4);
+  height: 1px;
+  background: var(--color-border);
 }
 
 .storefront-shipping__step-number {
@@ -77,14 +121,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--color-primary);
   color: var(--color-white);
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 .storefront-shipping__step-title {

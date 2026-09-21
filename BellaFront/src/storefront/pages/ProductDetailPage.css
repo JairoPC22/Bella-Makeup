@@ -1,3 +1,33 @@
+/* ---------- Breadcrumbs ---------- */
+/* Replaces the single "Volver al catálogo" link: on a shop, the path back
+   matters more than one step back, and a crumb row also gives the page a
+   proper opening line of type instead of starting cold on the gallery. */
+
+.storefront-detail__crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--space-4);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+.storefront-detail__crumbs a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-base) var(--ease-premium);
+}
+.storefront-detail__crumbs a:hover { color: var(--color-pink-deep); }
+.storefront-detail__crumbs span[aria-current] {
+  color: var(--color-ink);
+  font-weight: 500;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.storefront-detail__crumbs svg { flex-shrink: 0; opacity: 0.55; }
+
 .storefront-detail__back-link {
   margin: 0 0 var(--space-3);
 }
@@ -14,26 +44,51 @@
 
 .storefront-detail__layout {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 5fr);
-  gap: var(--space-6);
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: var(--space-6) var(--space-7);
+  align-items: start;
 }
+
+/* ---------- Gallery ---------- */
 
 .storefront-detail__gallery {
   display: flex;
   flex-direction: column;
   gap: var(--space-2_5);
+  position: sticky;
+  top: calc(64px + var(--space-4));
 }
 
 .storefront-detail__main-image {
-  aspect-ratio: 1;
-  background: var(--color-white);
+  position: relative;
+  /* 4:5 rather than a square. On a 6fr column a 1:1 tile ran ~600px tall,
+     which on this catalog (most products have no photo yet) meant a huge
+     empty panel dominating the page and pushing the buy controls into a
+     sea of whitespace. */
+  aspect-ratio: 4 / 5;
+  max-height: 560px;
+  /* Same tinted wash as the product-card tile, so an image-less product
+     reads as a designed placeholder surface rather than a large empty
+     white rectangle (which is exactly how it looked before). */
+  background:
+    radial-gradient(circle at 50% 35%, var(--color-white) 0%, transparent 72%),
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--color-pink-50) 85%, var(--color-white)) 0%,
+      color-mix(in srgb, var(--color-pink-100) 45%, var(--color-white)) 100%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   color: var(--color-text-muted);
+  box-shadow: var(--shadow-sm);
+}
+.storefront-detail__main-badge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 1;
 }
 .storefront-detail__main-image-inner {
   width: 100%;
@@ -60,15 +115,27 @@
   object-fit: cover;
 }
 
+.storefront-detail__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  color: color-mix(in srgb, var(--color-pink-deep) 45%, var(--color-white));
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .storefront-detail__thumbs {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
 }
 .storefront-detail__thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-sm);
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 1.5px solid var(--color-border);
   background: var(--color-white);
@@ -99,44 +166,90 @@
   transform: translateY(-1px) scale(1.04);
 }
 
+/* ---------- Info column ---------- */
+
 .storefront-detail__info {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
+}
+
+.storefront-detail__headline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .storefront-detail__brand {
   margin: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.16em;
   color: var(--color-pink-deep);
 }
 
 .storefront-detail__info h1 {
   margin: 0;
-  font-size: clamp(1.5rem, 1.4vw + 1.1rem, 2.1rem);
-  letter-spacing: var(--tracking-tight);
+  font-size: clamp(1.75rem, 1.8vw + 1.2rem, 2.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tighter);
+  color: var(--color-ink);
 }
 
+.storefront-detail__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2_5);
+  margin-top: 2px;
+}
 .storefront-detail__category {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium);
+}
+.storefront-detail__category:hover { background: var(--color-pink-100); }
+.storefront-detail__sku {
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Price panel ---------- */
+
+.storefront-detail__price-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .storefront-detail__price {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: var(--space-2) 0;
-  font-size: 1.6rem;
+  margin: 0;
+  font-size: 2rem;
   font-weight: 700;
   font-family: var(--font-heading);
+  letter-spacing: var(--tracking-tighter);
   color: var(--color-ink);
 }
 .storefront-detail__price-strike {
+  font-family: var(--font-body);
   font-size: 1rem;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -146,21 +259,67 @@
   color: var(--color-pink-deep);
 }
 
-.storefront-detail__description {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.6;
+.storefront-detail__price-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.storefront-detail__stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-pink-50) 70%, var(--color-white));
+  border: 1px solid color-mix(in srgb, var(--color-pink-elegant) 30%, transparent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-pink-deep);
+}
+.storefront-detail__stock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.storefront-detail__stock--out {
+  background: var(--color-bg);
+  border-color: var(--color-border);
   color: var(--color-text-secondary);
 }
 
+.storefront-detail__description {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Variants ---------- */
+
 .storefront-detail__variants {
-  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2_5);
 }
 .storefront-detail__variants-label {
-  margin: 0 0 var(--space-2);
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.storefront-detail__variants-label strong {
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-ink);
 }
 .storefront-detail__variant-pills {
   display: flex;
@@ -176,16 +335,25 @@
   border: 1.5px solid var(--color-border);
   background: var(--color-white);
   color: var(--color-ink);
-  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color var(--transition-base) var(--ease-premium), background-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
 }
-.storefront-detail__variant-pill:hover:not(:disabled) { border-color: var(--color-pink-elegant); }
+.storefront-detail__variant-pill:hover:not(:disabled) {
+  border-color: var(--color-pink-elegant);
+  transform: translateY(-1px);
+}
 .storefront-detail__variant-pill.is-active {
   border-color: var(--color-pink-deep);
   background: var(--color-pink-deep);
   color: var(--color-white);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-pink-deep) 26%, transparent);
 }
 .storefront-detail__variant-pill:disabled {
   opacity: 0.5;
@@ -199,11 +367,12 @@
   opacity: 0.85;
 }
 
+/* ---------- Actions ---------- */
+
 .storefront-detail__actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-3);
 }
 
 .storefront-detail__stepper {
@@ -212,11 +381,12 @@
   gap: var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  padding: 4px;
+  background: var(--color-white);
+  padding: 5px;
 }
 .storefront-detail__stepper button {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
   background: var(--color-bg);
@@ -225,35 +395,45 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--transition-fast) var(--ease-premium);
+  transition: background-color var(--transition-fast) var(--ease-premium),
+    color var(--transition-fast) var(--ease-premium);
 }
-.storefront-detail__stepper button:hover { background: var(--color-pink-100); }
+.storefront-detail__stepper button:hover {
+  background: var(--color-pink-100);
+  color: var(--color-pink-deep);
+}
 .storefront-detail__stepper span {
-  min-width: 22px;
+  min-width: 26px;
   text-align: center;
+  font-family: var(--font-heading);
   font-weight: 600;
 }
 
 .storefront-detail__actions .storefront-primary-btn {
   flex: 1 1 auto;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
 }
 
 .storefront-detail__added {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-pink-50);
-  border: 1px solid var(--color-pink-100);
-  border-radius: var(--radius-sm);
-  color: var(--color-pink-deep);
-  font-size: 0.85rem;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
+  padding: var(--space-2_5) var(--space-3);
+  background: color-mix(in srgb, var(--color-pink-50) 80%, var(--color-white));
+  border: 1px solid color-mix(in srgb, var(--color-pink-elegant) 35%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-pink-deep);
+  font-size: 0.88rem;
+  font-weight: 500;
+  animation: fade-in-up 0.4s var(--ease-premium) both;
 }
 .storefront-detail__added button {
   background: none;
   border: none;
   padding: 0;
+  font-family: var(--font-body);
   font-weight: 700;
   text-decoration: underline;
   color: inherit;
@@ -261,18 +441,59 @@
   font-size: inherit;
 }
 
+/* ---------- Trust list ---------- */
+/* Was a single grey line of text ("Retiro en tienda disponible"). Now a
+   proper reassurance block, which is also what fills the dead whitespace
+   that used to sit under the buy button on a short product record. */
+
 .storefront-detail__trust {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--color-divider-soft);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-4);
+}
+.storefront-detail__trust li {
   display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: var(--space-2);
+}
+.storefront-detail__trust-icon {
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: var(--space-3) 0 0;
-  font-size: 0.85rem;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+}
+.storefront-detail__trust-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.storefront-detail__trust-text strong {
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.storefront-detail__trust-text span {
+  font-size: 0.78rem;
+  line-height: 1.45;
   color: var(--color-text-secondary);
 }
-.storefront-detail__trust svg { color: var(--color-pink-elegant); }
 
-@media (max-width: 820px) {
+@media (max-width: 900px) {
   .storefront-detail__layout {
     grid-template-columns: 1fr;
   }
+  .storefront-detail__gallery { position: static; }
+  .storefront-detail__trust { grid-template-columns: 1fr; }
 }

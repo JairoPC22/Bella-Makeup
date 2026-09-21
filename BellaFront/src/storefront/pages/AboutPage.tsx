@@ -28,17 +28,19 @@ const VALUES = [
 export function AboutPage() {
   return (
     <div className="storefront-about">
-      <section className="storefront-page-header">
-        <span className="storefront-page-header__eyebrow">
-          <Sparkles size={14} aria-hidden="true" /> Sobre nosotros
-        </span>
-        <h1>Belleza que se siente tan bien como se ve.</h1>
-        <p>
-          Bella Makeup nació de una idea simple: el maquillaje y el cuidado de la piel deberían sentirse
-          accesibles, personales y de verdad efectivos. Hoy seguimos esa misma idea todos los días, en cada
-          sucursal y ahora también aquí, en línea.
-        </p>
-      </section>
+      <div className="storefront-page-header__band">
+        <header className="storefront-page-header">
+          <span className="storefront-page-header__eyebrow">
+            <Sparkles size={13} aria-hidden="true" /> Sobre nosotros
+          </span>
+          <h1>Belleza que se siente tan bien como se ve.</h1>
+          <p>
+            Bella Makeup nació de una idea simple: el maquillaje y el cuidado de la piel deberían sentirse
+            accesibles, personales y de verdad efectivos. Hoy seguimos esa misma idea todos los días, en cada
+            sucursal y ahora también aquí, en línea.
+          </p>
+        </header>
+      </div>
 
       <section className="storefront-section storefront-about__story">
         <div className="storefront-about__story-text">
@@ -65,7 +67,15 @@ export function AboutPage() {
 
       <section className="storefront-section">
         <div className="storefront-section__header">
-          <h2>Nuestros valores</h2>
+          <div className="storefront-section__heading">
+            <p className="storefront-section__eyebrow">
+              <Gem size={13} aria-hidden="true" /> Lo que nos mueve
+            </p>
+            <h2>Nuestros valores</h2>
+            <p className="storefront-section__sub">
+              Cuatro principios que se notan igual en sucursal que en cada pedido en línea.
+            </p>
+          </div>
         </div>
         <div className="storefront-about__values">
           {VALUES.map((value) => {

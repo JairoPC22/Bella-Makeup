@@ -1,3 +1,101 @@
+/* ---------- Header / stage rail ---------- */
+
+.storefront-checkout__header h1 {
+  max-width: none;
+}
+
+/* Where the shopper is in the real three-step order flow (cart → this
+   page → confirmation). Not a fake wizard over a single-page form. */
+.storefront-checkout__stages {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2_5);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+.storefront-checkout__stages li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 7px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.storefront-checkout__stage-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.storefront-checkout__stages li.is-done {
+  color: var(--color-text-secondary);
+}
+.storefront-checkout__stages li.is-done .storefront-checkout__stage-dot {
+  background: color-mix(in srgb, var(--color-pink-deep) 14%, var(--color-white));
+  border-color: transparent;
+  color: var(--color-pink-deep);
+}
+.storefront-checkout__stages li.is-current {
+  background: var(--color-white);
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 40%, transparent);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.storefront-checkout__stages li.is-current .storefront-checkout__stage-dot {
+  background: var(--color-pink-deep);
+  border-color: var(--color-pink-deep);
+  color: var(--color-white);
+}
+
+/* ---------- Empty cart state ---------- */
+/* Was a bare StatusState plus a text link. Now an intentional, centered
+   moment with its own icon and a real CTA button. */
+
+.storefront-checkout__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-8);
+}
+.storefront-checkout__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+}
+.storefront-checkout__empty h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+}
+.storefront-checkout__empty p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
 .storefront-checkout__back {
   margin-top: var(--space-2);
 }
@@ -5,6 +103,8 @@
   color: var(--color-pink-deep);
   font-weight: 600;
 }
+
+/* ---------- Layout ---------- */
 
 .storefront-checkout__layout {
   display: grid;
@@ -22,25 +122,81 @@
 .storefront-checkout__block {
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
-.storefront-checkout__block h3 {
+
+/* Numbered block headings: the cheapest way to turn four visually
+   identical boxes into a sequence the eye can follow. */
+.storefront-checkout__block-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+.storefront-checkout__block-num {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.storefront-checkout__block-head h2 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+}
+.storefront-checkout__block-head p {
+  margin: 3px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+.storefront-checkout__optional {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  vertical-align: middle;
 }
 
 .storefront-checkout__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-4);
 }
 
 .storefront-toggle-group--payment {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.storefront-checkout__sublabel {
+  margin: 0 0 var(--space-2);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .storefront-checkout__branches {
@@ -50,63 +206,112 @@
 .storefront-branch-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-2_5);
 }
 
 .storefront-branch-card {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: var(--space-3);
   text-align: left;
-  padding: var(--space-2_5) var(--space-3);
+  padding: var(--space-3);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-white);
   cursor: pointer;
-  transition: border-color var(--transition-base) var(--ease-premium), background-color var(--transition-base) var(--ease-premium);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
 }
-.storefront-branch-card:hover { border-color: var(--color-pink-elegant); }
+.storefront-branch-card:hover {
+  border-color: var(--color-pink-elegant);
+  transform: translateY(-1px);
+}
 .storefront-branch-card--active {
   border-color: var(--color-pink-deep);
+  background: color-mix(in srgb, var(--color-pink-50) 72%, var(--color-white));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pink-deep) 10%, transparent);
+}
+.storefront-branch-card__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+  transition: background-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium);
+}
+.storefront-branch-card--active .storefront-branch-card__icon {
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+}
+.storefront-branch-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .storefront-branch-card__name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-family: var(--font-heading);
   font-weight: 600;
   color: var(--color-ink);
-  font-size: 0.92rem;
+  font-size: 0.96rem;
+  letter-spacing: var(--tracking-tight);
 }
-.storefront-branch-card__name svg { color: var(--color-pink-deep); }
 .storefront-branch-card__meta {
-  font-size: 0.78rem;
+  font-size: 0.79rem;
+  line-height: 1.4;
   color: var(--color-text-secondary);
-  margin-left: 21px;
+}
+.storefront-branch-card__check {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--color-pink-deep);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity var(--transition-base) var(--ease-premium),
+    transform var(--transition-base) var(--ease-premium);
+}
+.storefront-branch-card--active .storefront-branch-card__check {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .storefront-checkout__delivery {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-2_5);
 }
 
 .storefront-location-btn {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: var(--space-2) var(--space-3);
-  background: var(--color-bg);
+  background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   color: var(--color-ink);
+  font-family: var(--font-body);
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium);
 }
-.storefront-location-btn:hover:not(:disabled) { border-color: var(--color-pink-elegant); color: var(--color-pink-deep); }
+.storefront-location-btn:hover:not(:disabled) {
+  border-color: var(--color-pink-elegant);
+  background: var(--color-pink-50);
+  color: var(--color-pink-deep);
+}
 .storefront-location-btn:disabled { opacity: 0.7; cursor: default; }
 
 .storefront-checkout__hint {
@@ -114,7 +319,8 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
   color: var(--color-text-secondary);
 }
 .storefront-checkout__hint--strong {
@@ -123,15 +329,6 @@
 }
 .storefront-checkout__hint svg { color: var(--color-pink-elegant); flex-shrink: 0; }
 
-.storefront-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
-
 /* ---------- Summary sidebar ---------- */
 
 .storefront-checkout__summary {
@@ -139,15 +336,33 @@
   top: calc(64px + var(--space-4));
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  box-shadow: var(--shadow-md);
 }
-.storefront-checkout__summary h3 {
+
+.storefront-checkout__summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+.storefront-checkout__summary-head h2 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+}
+.storefront-checkout__summary-head span {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .storefront-checkout__summary-lines {
@@ -156,44 +371,132 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  max-height: 260px;
+  gap: var(--space-3);
+  max-height: 280px;
   overflow-y: auto;
 }
 .storefront-checkout__summary-lines li {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-size: 0.85rem;
+  align-items: center;
+  gap: var(--space-2_5);
+  font-size: 0.86rem;
   color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-divider-soft);
-  padding-bottom: var(--space-2);
 }
-.storefront-checkout__summary-lines li:last-child { border-bottom: none; }
-.storefront-checkout__summary-lines li span:last-child {
+
+/* Line items now carry the product thumbnail, with the quantity as a
+   badge on its corner — the previous "2× Nombre" text row gave the
+   summary no visual anchor at all. */
+.storefront-checkout__summary-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--color-pink-50) 85%, var(--color-white)) 0%,
+    color-mix(in srgb, var(--color-pink-100) 45%, var(--color-white)) 100%);
+  border: 1px solid var(--color-divider-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  color: color-mix(in srgb, var(--color-pink-deep) 45%, var(--color-white));
+}
+.storefront-checkout__summary-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: calc(var(--radius-sm) - 1px);
+}
+.storefront-checkout__summary-qty {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
+  font-size: 0.66rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.storefront-checkout__summary-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--color-ink);
+  line-height: 1.35;
+}
+.storefront-checkout__summary-amount {
+  flex-shrink: 0;
   font-weight: 600;
   color: var(--color-ink);
+}
+
+.storefront-checkout__summary-facts {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-divider-soft);
+  border-bottom: 1px solid var(--color-divider-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.storefront-checkout__summary-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+.storefront-checkout__summary-facts svg {
   flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-pink-deep);
+}
+.storefront-checkout__summary-facts span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .storefront-checkout__summary-total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--color-text-secondary);
 }
 .storefront-checkout__summary-total strong {
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tighter);
   color: var(--color-ink);
 }
 
 .storefront-checkout__submit {
   width: 100%;
 }
+
+.storefront-checkout__reassure {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+.storefront-checkout__reassure svg { flex-shrink: 0; margin-top: 2px; }
 
 @media (max-width: 900px) {
   .storefront-checkout__layout {
@@ -209,4 +512,5 @@
   .storefront-checkout__grid {
     grid-template-columns: 1fr;
   }
+  .storefront-checkout__block { padding: var(--space-4); }
 }

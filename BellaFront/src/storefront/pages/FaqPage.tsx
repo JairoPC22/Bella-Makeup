@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, HelpCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
 import "./FaqPage.css";
 
 type FaqItem = { question: string; answer: string };
@@ -48,18 +49,21 @@ export function FaqPage() {
 
   return (
     <div className="storefront-faq">
-      <section className="storefront-page-header">
-        <span className="storefront-page-header__eyebrow">
-          <HelpCircle size={14} aria-hidden="true" /> Preguntas frecuentes
-        </span>
-        <h1>¿Tienes dudas? Aquí tenemos respuestas.</h1>
-        <p>
-          Reunimos las preguntas que más nos hacen sobre pedidos, pagos y entregas. Si no encuentras lo que
-          buscas, con gusto te ayudamos directamente en tu sucursal más cercana.
-        </p>
-      </section>
+      <div className="storefront-page-header__band">
+        <header className="storefront-page-header">
+          <span className="storefront-page-header__eyebrow">
+            <HelpCircle size={13} aria-hidden="true" /> Preguntas frecuentes
+          </span>
+          <h1>¿Tienes dudas? Aquí tenemos respuestas.</h1>
+          <p>
+            Reunimos las preguntas que más nos hacen sobre pedidos, pagos y entregas. Si no encuentras lo que
+            buscas, con gusto te ayudamos directamente en tu sucursal más cercana.
+          </p>
+        </header>
+      </div>
 
-      <section className="storefront-section storefront-faq__list">
+      <section className="storefront-section storefront-faq__layout">
+        <div className="storefront-faq__list">
         {FAQS.map((item, index) => {
           const isOpen = openIndex === index;
           const buttonId = `faq-trigger-${index}`;
@@ -91,6 +95,26 @@ export function FaqPage() {
             </div>
           );
         })}
+        </div>
+
+        {/* Every FAQ answer ends with "pregúntanos en sucursal" — this
+            makes that an actual affordance instead of a dead sentence. */}
+        <aside className="storefront-faq__aside">
+          <span className="storefront-faq__aside-icon">
+            <MessageCircle size={22} aria-hidden="true" />
+          </span>
+          <h2>¿No encuentras tu respuesta?</h2>
+          <p>
+            Escríbenos por WhatsApp o pásate por la sucursal más cercana. Nuestro equipo te asesora
+            sin compromiso.
+          </p>
+          <Link to="/ubicacion" className="storefront-faq__aside-link">
+            Ver sucursales <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+          <Link to="/envios" className="storefront-faq__aside-alt">
+            Info de envíos y entregas
+          </Link>
+        </aside>
       </section>
     </div>
   );

@@ -1,60 +1,88 @@
 .storefront-location__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-4);
 }
 
 .storefront-location-card {
   display: flex;
   flex-direction: column;
-  padding: var(--space-4);
+  padding: var(--space-5);
   background: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+  border-radius: var(--radius-xl);
+  transition: border-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-base) var(--ease-premium);
 }
 .storefront-location-card:hover {
-  border-color: var(--color-pink-elegant);
-  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 55%, var(--color-border));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
 }
 
+/* The branch name now carries a small pin marker to its left, which also
+   gives the card a consistent left rhythm with the fact list below it. */
 .storefront-location-card h2 {
-  margin: 0 0 var(--space-2_5);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider-soft);
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
   color: var(--color-ink);
+}
+.storefront-location-card h2::before {
+  content: "";
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-pink-deep);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-pink-deep) 16%, transparent);
 }
 
 .storefront-location-card__facts {
   list-style: none;
-  margin: 0 0 var(--space-3);
+  margin: 0 0 var(--space-4);
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2_5);
 }
 .storefront-location-card__facts li {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 0.88rem;
+  gap: 10px;
+  font-size: 0.9rem;
   color: var(--color-text-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .storefront-location-card__facts svg {
   flex-shrink: 0;
-  margin-top: 2px;
+  box-sizing: content-box;
+  width: 15px;
+  height: 15px;
+  padding: 7px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: var(--color-pink-50);
   color: var(--color-pink-deep);
 }
 
 .storefront-location-card__map {
   margin-top: auto;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--color-divider-soft);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 .storefront-location-card__map iframe {
   display: block;
   width: 100%;
-  height: 220px;
+  height: 240px;
 }

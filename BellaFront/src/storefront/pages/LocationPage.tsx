@@ -28,16 +28,18 @@ export function LocationPage() {
 
   return (
     <div className="storefront-location">
-      <section className="storefront-page-header">
-        <span className="storefront-page-header__eyebrow">
-          <MapPinned size={14} aria-hidden="true" /> Ubicación
-        </span>
-        <h1>Visítanos en cualquiera de nuestras sucursales.</h1>
-        <p>
-          Encuentra la sucursal más cercana a ti, con su dirección, teléfono y horario. También puedes recoger
-          tu pedido en línea directamente en cualquiera de estos puntos.
-        </p>
-      </section>
+      <div className="storefront-page-header__band">
+        <header className="storefront-page-header">
+          <span className="storefront-page-header__eyebrow">
+            <MapPinned size={13} aria-hidden="true" /> Ubicación
+          </span>
+          <h1>Visítanos en cualquiera de nuestras sucursales.</h1>
+          <p>
+            Encuentra la sucursal más cercana a ti, con su dirección, teléfono y horario. También puedes recoger
+            tu pedido en línea directamente en cualquiera de estos puntos.
+          </p>
+        </header>
+      </div>
 
       <section className="storefront-section storefront-location__list">
         {status === "loading" && <StatusState kind="loading" />}

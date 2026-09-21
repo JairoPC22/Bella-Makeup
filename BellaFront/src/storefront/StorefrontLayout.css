@@ -5,16 +5,51 @@
   background: var(--color-bg);
 }
 
+/* ---------- Announcement rail ---------- */
+/* Deliberately dark (ink) so the white header below reads as a distinct
+   layer rather than the page just starting with a grey smear, and so the
+   ink→white→content sequence echoes the hero's ink surface further down. */
+
+.storefront-announce {
+  background: var(--color-primary);
+  color: color-mix(in srgb, var(--color-white) 72%, transparent);
+}
+.storefront-announce__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 9px var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.storefront-announce__inner span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.storefront-announce__inner svg { color: var(--color-primary-on-dark); }
+.storefront-announce__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-white) 35%, transparent);
+}
+
 /* ---------- Header ---------- */
 
 .storefront-header {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-white) 86%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 
 .storefront-header__inner {
@@ -29,70 +64,88 @@
 
 .storefront-header__brand img {
   display: block;
-  height: 40px;
+  height: 42px;
   width: auto;
+  transition: opacity var(--transition-base) var(--ease-premium);
 }
+.storefront-header__brand:hover img { opacity: 0.78; }
 
 .storefront-header__nav {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: 2px;
   flex: 1 1 auto;
   justify-content: center;
 }
 
+/* Pill hover instead of a bare underline — the active item keeps a solid
+   tinted pill so the current section is unambiguous, matching how the
+   admin sidebar marks its active rail item. */
 .storefront-header__nav a {
+  position: relative;
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
   color: var(--color-text-secondary);
   text-decoration: none;
-  padding: 6px 2px;
-  border-bottom: 2px solid transparent;
-  transition: color var(--transition-base) var(--ease-premium), border-color var(--transition-base) var(--ease-premium);
+  padding: 8px var(--space-3);
+  border-radius: var(--radius-pill);
+  transition: color var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium);
 }
 
 .storefront-header__nav a:hover {
   color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-pink-50) 70%, transparent);
 }
 
 .storefront-header__nav a.is-active {
   color: var(--color-pink-deep);
-  border-bottom-color: var(--color-pink-deep);
+  background: var(--color-pink-50);
+  font-weight: 600;
 }
 
 .storefront-header__cart {
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+  gap: 8px;
+  padding: 9px var(--space-3);
   border-radius: var(--radius-pill);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  color: var(--color-ink);
+  background: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  color: var(--color-white);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--transition-base) var(--ease-premium), border-color var(--transition-base) var(--ease-premium);
+  transition: background-color var(--transition-base) var(--ease-premium),
+    border-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
 }
 
 .storefront-header__cart:hover {
-  background: var(--color-pink-50);
-  border-color: var(--color-pink-elegant);
-  color: var(--color-pink-deep);
+  background: var(--color-pink-deep);
+  border-color: var(--color-pink-deep);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-pink-deep) 26%, transparent);
+  transform: translateY(-1px);
 }
+.storefront-header__cart:active { transform: scale(0.98); }
 
 .storefront-header__cart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  top: -5px;
+  right: -5px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
   border-radius: var(--radius-pill);
   background: var(--color-pink-deep);
   color: var(--color-white);
-  font-size: 0.66rem;
+  border: 2px solid var(--color-white);
+  font-size: 0.64rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -107,22 +160,58 @@
 }
 
 /* ---------- Footer ---------- */
+/* Rebuilt from a single thin row (brand | links | map | copyright, all on
+   one baseline) into a real four-column editorial footer with its own
+   column headings, live contact facts and a separate bottom bar. The old
+   version carried almost no visual weight, which made every page end
+   abruptly — the most-visible symptom of the "se ve muy sencilla"
+   complaint below the fold. */
 
 .storefront-footer {
+  position: relative;
   background: var(--color-primary);
-  color: rgba(247, 243, 241, 0.72);
+  color: color-mix(in srgb, var(--color-white) 70%, transparent);
   margin-top: var(--space-8);
+}
+/* Faint blue wash bleeding in from the top-right, the same radial-glow
+   language as the home hero and the admin login panel. */
+.storefront-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 88% 0%,
+    color-mix(in srgb, var(--color-pink-elegant) 16%, transparent) 0%,
+    transparent 55%
+  );
 }
 
 .storefront-footer__inner {
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) var(--space-4);
+  padding: var(--space-7) var(--space-4) var(--space-6);
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-6) var(--space-5);
+}
+
+.storefront-footer__col {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-5);
+  flex-direction: column;
+  gap: var(--space-2_5);
+  min-width: 0;
+}
+
+.storefront-footer__col-title {
+  margin: 0 0 2px;
+  font-family: var(--font-heading);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-white) 55%, transparent);
 }
 
 .storefront-footer__brand {
@@ -132,64 +221,120 @@
 }
 
 .storefront-footer__brand img {
-  height: 36px;
+  height: 40px;
   width: auto;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .storefront-footer__name {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
   color: var(--color-white);
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 
 .storefront-footer__tagline {
   margin: 2px 0 0;
   font-size: 0.82rem;
-  color: rgba(247, 243, 241, 0.6);
+  color: color-mix(in srgb, var(--color-white) 55%, transparent);
+}
+
+.storefront-footer__blurb {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-white) 58%, transparent);
+}
+
+.storefront-footer__social {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-white) 18%, transparent);
+  color: color-mix(in srgb, var(--color-white) 78%, transparent);
+  transition: background-color var(--transition-base) var(--ease-premium),
+    border-color var(--transition-base) var(--ease-premium),
+    color var(--transition-base) var(--ease-premium),
+    transform var(--transition-fast) var(--ease-premium);
+}
+.storefront-footer__social:hover {
+  background: var(--color-pink-deep);
+  border-color: var(--color-pink-deep);
+  color: var(--color-white);
+  transform: translateY(-2px);
 }
 
 .storefront-footer__links {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
+  flex-direction: column;
+  gap: 10px;
 }
 .storefront-footer__links a {
+  position: relative;
+  align-self: flex-start;
   font-size: 0.86rem;
-  font-weight: 500;
-  color: rgba(247, 243, 241, 0.72);
+  font-weight: 400;
+  color: color-mix(in srgb, var(--color-white) 68%, transparent);
   text-decoration: none;
-  transition: color var(--transition-base) var(--ease-premium);
+  transition: color var(--transition-base) var(--ease-premium),
+    transform var(--transition-base) var(--ease-premium);
 }
 .storefront-footer__links a:hover {
   color: var(--color-white);
-  text-decoration: underline;
+  transform: translateX(3px);
+}
+
+.storefront-footer__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.storefront-footer__facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--color-white) 66%, transparent);
+}
+.storefront-footer__facts svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-primary-on-dark);
 }
 
 /* ---------- Footer mini map ---------- */
 /* "El maps en pequeño en la sección de abajo" — a compact preview of the
-   primary branch's location sitting alongside the footer link column, with
-   a link through to the full /ubicacion page for the bigger version. */
+   primary branch's location, now living inside the contact column rather
+   than floating as its own unlabeled block. */
 
 .storefront-footer__map {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 220px;
+  gap: 8px;
+  margin-top: var(--space-1);
 }
 
 .storefront-footer__map-frame {
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid rgba(247, 243, 241, 0.16);
+  border: 1px solid color-mix(in srgb, var(--color-white) 14%, transparent);
+  box-shadow: var(--shadow-md);
 }
 .storefront-footer__map-frame iframe {
   display: block;
   width: 100%;
-  height: 140px;
+  height: 132px;
   /* The map tiles render in full color regardless — this just keeps the
      surrounding footer chrome (border/link) legible against the dark
      footer background without fighting the iframe's own white canvas. */
@@ -198,30 +343,76 @@
 
 .storefront-footer__map-link {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
   font-size: 0.8rem;
   font-weight: 600;
-  color: rgba(247, 243, 241, 0.85);
+  color: var(--color-primary-on-dark);
   text-decoration: none;
+  transition: color var(--transition-base) var(--ease-premium);
 }
 .storefront-footer__map-link:hover {
   color: var(--color-white);
   text-decoration: underline;
 }
 
+/* ---------- Footer bottom bar ---------- */
+
+.storefront-footer__bar {
+  position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+}
+.storefront-footer__bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .storefront-footer__copy {
-  flex-basis: 100%;
   margin: 0;
-  padding-top: var(--space-3);
-  border-top: 1px solid rgba(247, 243, 241, 0.12);
   font-size: 0.78rem;
-  color: rgba(247, 243, 241, 0.45);
+  color: color-mix(in srgb, var(--color-white) 42%, transparent);
+}
+
+.storefront-footer__pay {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+.storefront-footer__pay li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: color-mix(in srgb, var(--color-white) 50%, transparent);
+}
+.storefront-footer__pay svg { color: color-mix(in srgb, var(--color-white) 40%, transparent); }
+
+@media (max-width: 960px) {
+  .storefront-footer__inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .storefront-footer__col--brand { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
   .storefront-header__nav {
-    gap: var(--space-3);
+    gap: 0;
+    justify-content: flex-end;
   }
-  .storefront-header__brand img {
-    height: 32px;
-  }
+  .storefront-header__nav a { padding: 8px 10px; font-size: 0.84rem; }
+  .storefront-header__brand img { height: 34px; }
+  .storefront-header__cart-label { display: none; }
+  .storefront-header__cart { padding: 10px; }
+  .storefront-announce__inner { font-size: 0.7rem; gap: var(--space-2); }
+  .storefront-footer__inner { grid-template-columns: 1fr; gap: var(--space-5); }
 }

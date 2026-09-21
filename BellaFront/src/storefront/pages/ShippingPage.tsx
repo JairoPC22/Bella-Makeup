@@ -12,16 +12,18 @@ const STEPS = [
 export function ShippingPage() {
   return (
     <div className="storefront-shipping">
-      <section className="storefront-page-header">
-        <span className="storefront-page-header__eyebrow">
-          <Truck size={14} aria-hidden="true" /> Envíos y entregas
-        </span>
-        <h1>Recíbelo como te quede mejor.</h1>
-        <p>
-          Ofrecemos dos formas de recibir tu pedido: retiro sin costo en la sucursal que elijas, o entrega
-          directa en tu domicilio. Ambas opciones se confirman en el mismo paso de pago dentro del checkout.
-        </p>
-      </section>
+      <div className="storefront-page-header__band">
+        <header className="storefront-page-header">
+          <span className="storefront-page-header__eyebrow">
+            <Truck size={13} aria-hidden="true" /> Envíos y entregas
+          </span>
+          <h1>Recíbelo como te quede mejor.</h1>
+          <p>
+            Ofrecemos dos formas de recibir tu pedido: retiro sin costo en la sucursal que elijas, o entrega
+            directa en tu domicilio. Ambas opciones se confirman en el mismo paso de pago dentro del checkout.
+          </p>
+        </header>
+      </div>
 
       <section className="storefront-section storefront-shipping__options">
         <div className="storefront-shipping__option-card">
