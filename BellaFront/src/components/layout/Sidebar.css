@@ -12,6 +12,15 @@
      outside the sidebar's own box (left: 100% + offset) and would get
      clipped. The decorative glow/grid are clipped by their own wrapper
      (.sidebar__decor) instead, so this element stays overflow:visible. */
+  /* position:sticky establishes its own stacking context, which traps the
+     collapsed-rail tooltip's z-index:30 (below) inside it — without a
+     z-index here, that stacking context still paints below
+     .app-shell__content's normal-flow siblings (e.g. the topbar's white
+     background), so the tooltip rendered but was visibly sliced off at
+     the sidebar's own right edge. Raising the whole sidebar's stacking
+     context above the rest of the shell fixes it without touching
+     AppShell.css. */
+  z-index: 20;
   background: var(--color-primary);
   padding: var(--space-4) var(--space-3);
   display: flex;
