@@ -232,20 +232,29 @@
   .storefront-hero__copy h1 { max-width: none; }
   .storefront-hero__copy p { max-width: none; }
 
-  /* Previously just floated the image centered in a tall empty dark area
-     above the text with a lot of dead space on every side — read as a
-     random photo dropped in, not a considered banner. A soft centered glow
-     grounds the cutout instead of leaving it adrift, and tightening the
-     image's own height (was capped at up to 560px, taller than it needs to
-     be next to a phone-width column) shrinks the empty margin around it. */
+  /* FOURTH ATTEMPT on the mobile treatment — read before changing again.
+     The previous pass floated the image in a tall empty dark area and
+     added a radial-gradient "glow" directly on .storefront-hero__media to
+     ground it. That glow was the actual bug the client flagged next: a
+     radial-gradient painted on a tightly auto-height, auto-width flex box
+     has a real rectangular bounding box, and "transparent" at its edge
+     still means "the gradient layer ends here" — against this section's
+     OWN differently-centered background gradient behind it, the two edges
+     don't line up and read as a visible lighter box around the photo
+     ("que parezca que es parte de la página" was exactly the opposite of
+     this). No background on this element at all now — it's fully
+     transparent, so .storefront-hero's own gradient (one continuous layer,
+     not two competing ones) shows through everywhere, exactly as it does
+     on desktop. The "floating in a void" problem is solved by tightening
+     spacing instead (less top padding, a shorter image) rather than by
+     painting a second background under it. */
   .storefront-hero__media {
     order: -1;
     justify-content: center;
     height: auto;
-    padding: var(--space-4) 0 0;
-    background: radial-gradient(circle at 50% 60%, rgba(41, 151, 255, 0.28) 0%, transparent 68%);
+    padding: var(--space-3) 0 0;
   }
-  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 300px; object-position: bottom center; }
+  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 280px; object-position: bottom center; }
 
   .storefront-hero__trust { flex-direction: column; align-items: flex-start; gap: 8px; }
   .storefront-hero__trust-item { border-right: none; padding-right: 0; }
