@@ -24,6 +24,8 @@ import saleRoutes from "./routes/sale.routes";
 import transferRoutes from "./routes/transfer.routes";
 import purchaseRoutes from "./routes/purchase.routes";
 import cashSessionRoutes from "./routes/cashSession.routes";
+import returnRoutes from "./routes/return.routes";
+import mermaRoutes from "./routes/merma.routes";
 import supplierRoutes from "./routes/supplier.routes";
 import publicRoutes from "./routes/public.routes";
 import orderRoutes from "./routes/order.routes";
@@ -109,6 +111,8 @@ app.use("/api/sales", saleRoutes);
 app.use("/api/transfers", transferRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/cash-sessions", cashSessionRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/mermas", mermaRoutes);
 app.use("/api/suppliers", supplierRoutes);
 // /api/public — the anonymous storefront surface, a sibling root next to
 // every authenticated /api/* router above, not nested under any of them.

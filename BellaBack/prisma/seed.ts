@@ -57,6 +57,22 @@ const PERMISSIONS: Array<{ code: string; description: string }> = [
   // the purchasing module day to day.
   { code: "purchases.authorize", description: "Autorizar con PIN operaciones sensibles de compras" },
   { code: "suppliers.manage", description: "Gestionar proveedores" },
+  // Devoluciones y cambios. Three codes, mirroring the purchases trio's
+  // split exactly: an operator code (create), a read code (view), and a
+  // supervisor co-sign code (authorize) that is NEVER checked against the
+  // acting cashier — it is the permission verifySupervisorPin requires of
+  // the PIN HOLDER standing next to them. `sales.return` already existed as
+  // a placeholder from the phase-1 seed and is deliberately left untouched:
+  // it gates nothing in this module, and silently repurposing an existing
+  // code would change what every role already holding it can suddenly do.
+  { code: "returns.view", description: "Ver devoluciones y cambios" },
+  { code: "returns.create", description: "Registrar devoluciones y cambios" },
+  { code: "returns.authorize", description: "Autorizar con PIN devoluciones y cambios" },
+  // Mermas (shrinkage write-offs), same three-way split and the same
+  // authorize-is-for-the-PIN-holder rule.
+  { code: "shrinkage.view", description: "Ver mermas" },
+  { code: "shrinkage.create", description: "Registrar mermas" },
+  { code: "shrinkage.authorize", description: "Autorizar con PIN mermas" },
   // Caja (cash-drawer sessions). `cash.manage` is the POS-operator
   // permission: open your OWN shift and submit your OWN blind close.
   // `cash.audit` is the manager-oversight permission: read ANY session
@@ -111,6 +127,17 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
       // carries the documented manager-override power to close a shift a
       // cashier walked away from.
       "cash.audit",
+      // Devoluciones/mermas: oversight and co-sign, not operation. A branch
+      // manager gets view + authorize but deliberately NOT returns.create /
+      // shrinkage.create, for the same reason they have no sales.create —
+      // they do not stand at the register. Granting both the operator code
+      // and the authorize code to one role would also let that person
+      // self-approve their own write-off, which is precisely the
+      // two-person control this module exists to enforce. (The PIN
+      // primitive checks the SUPERVISOR's permissions, not the actor's, so
+      // a manager can still authorize a cashier's request all day.)
+      "returns.view", "returns.authorize",
+      "shrinkage.view", "shrinkage.authorize",
       "messages.view", "messages.send",
       // Online orders placed via the public storefront need to be
       // fulfillable by staff on the ground — a branch manager, like an
@@ -130,7 +157,14 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // may ring up a POS sale are precisely the roles that need a drawer to
     // open and blind-close, so it mirrors sales.create's role set
     // (Administrator + Vendedor/Cajero) one for one.
-    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "cash.manage", "discounts.apply", "messages.view", "messages.send"],
+    // returns.create/shrinkage.create sit exactly alongside sales.create
+    // here, mirroring its role set (Administrator + Vendedor/Cajero) one for
+    // one, because both flows START at the register: the cashier is the
+    // person the customer hands the merchandise back to, and the person who
+    // notices the tester ran dry. Neither code lets them complete anything
+    // alone — both endpoints require a supervisor PIN that this role's own
+    // permissions can never satisfy.
+    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "cash.manage", "discounts.apply", "returns.view", "returns.create", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send"],
   },
   {
     code: "warehouse",
@@ -143,7 +177,12 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // matching purchases.view/create/receive. It does NOT get
     // purchases.cancel, mirroring exactly how it does not get
     // transfers.cancel.
-    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "purchases.view", "purchases.create", "purchases.receive", "messages.view", "messages.send"],
+    // Mermas but not devoluciones: an Almacenista is the role that finds the
+    // broken bottle and the expired stock in the back room, so they get
+    // shrinkage.view/create. They get no returns.* at all — a return is a
+    // counter transaction with a customer standing there, which is the
+    // register's job, and this role has no sales.* permissions either.
+    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "purchases.view", "purchases.create", "purchases.receive", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send"],
   },
   {
     code: "purchasing",
@@ -168,7 +207,11 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // purchases.view added for the same reason this role already has
     // sales.view and transfers.view: purchases are read-only operational
     // data of exactly that class. Still no create/receive/cancel/authorize.
-    permissions: ["products.view", "inventory.view", "sales.view", "transfers.view", "purchases.view", "reports.view", "branches.view", "messages.view"],
+    // returns.view/shrinkage.view added for the same reason this role
+    // already has sales.view and purchases.view: both are read-only
+    // operational data, and loss reporting (cost vs retail impact) is
+    // exactly what a reports role is for. No create/authorize.
+    permissions: ["products.view", "inventory.view", "sales.view", "transfers.view", "purchases.view", "returns.view", "shrinkage.view", "reports.view", "branches.view", "messages.view"],
   },
 ];
 

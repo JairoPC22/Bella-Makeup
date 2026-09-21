@@ -5,17 +5,27 @@ import { prisma } from "../src/config/prisma";
 import { hashPassword } from "../src/utils/password";
 import { signAccessToken } from "../src/utils/jwt";
 
-// The seeded "cashier" permission set (prisma/seed.ts) — kept as one
-// constant instead of repeating the literal array at each restore point.
-// A prior version of this file hardcoded the pre-messaging-feature set
-// (missing messages.view/messages.send) at three separate call sites; the
-// "restore" ones silently stripped those two permissions from cashier every
-// run, and the "diff" one asserted a removed:[] that would only hold by
-// accident once the strip had already happened earlier in the same run.
-const CASHIER_SEEDED_PERMISSIONS = [
-  "products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply",
-  "messages.view", "messages.send",
-];
+// The seeded "cashier" permission set — snapshotted from the DATABASE
+// before this file mutates anything, never hardcoded.
+//
+// History of why it is derived rather than literal: a first version of this
+// file hardcoded the pre-messaging set (missing messages.view/send) at three
+// call sites, so every run silently stripped those two permissions from
+// cashier. That was fixed by centralising the literal into one constant —
+// but the constant itself then went stale AGAIN, twice, as later tasks added
+// permissions to the cashier role in prisma/seed.ts (`cash.manage` for the
+// caja feature, then returns.view/returns.create/shrinkage.view/
+// shrinkage.create for devoluciones y mermas). Each time, this file's
+// "restore" silently downgraded the cashier role mid-run and the affected
+// feature's own test file failed with a wall of 403s that had nothing to do
+// with its code — while passing in isolation, which is the most misleading
+// possible symptom.
+//
+// Any literal list here is a copy of prisma/seed.ts that nothing forces
+// anyone to update. Reading the role's real permissions at runtime removes
+// the duplicate entirely: whatever the seed grants cashier today is exactly
+// what gets restored, forever, with no maintenance.
+let CASHIER_SEEDED_PERMISSIONS: string[] = [];
 
 describe("GET /api/roles", () => {
   let cookie: string;
@@ -64,6 +74,16 @@ describe("PUT /api/roles/:id/permissions", () => {
       },
     });
     cookie = `access_token=${signAccessToken({ sub: user.id, roleId: adminRole.id })}`;
+
+    // Snapshot the cashier role's REAL current permission set before any
+    // test in this describe mutates it. Every restore below replays exactly
+    // this, so the role is left byte-for-byte as the seed created it and no
+    // later feature's permissions can be silently dropped.
+    const seededCashier = await prisma.role.findUniqueOrThrow({
+      where: { code: "cashier" },
+      include: { rolePermissions: { include: { permission: true } } },
+    });
+    CASHIER_SEEDED_PERMISSIONS = seededCashier.rolePermissions.map((rp) => rp.permission.code);
   });
 
   it("replaces a role's permission set with a valid, known permission list", async () => {

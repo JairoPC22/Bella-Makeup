@@ -78,6 +78,8 @@ model Branch {
   orders       Order[]
   purchases    Purchase[]
   cashSessions CashSession[]
+  returns      Return[]
+  mermas       Merma[]
 
   @@map("branches")
 }
@@ -122,6 +124,10 @@ model User {
   purchasesCreated   Purchase[]  @relation("PurchasesCreated")
   purchasesReceived  Purchase[]  @relation("PurchasesReceived")
   cashSessions       CashSession[] @relation("CashSessionsOpened")
+  returnsProcessed   Return[]      @relation("ReturnsProcessed")
+  returnsAuthorized  Return[]      @relation("ReturnsAuthorized")
+  mermasRequested    Merma[]       @relation("MermasRequested")
+  mermasAuthorized   Merma[]       @relation("MermasAuthorized")
 
   @@map("users")
 }
@@ -259,6 +265,8 @@ model Product {
   transferItems TransferItem[]
   orderItems    OrderItem[]
   purchaseItems PurchaseItem[]
+  returnItems   ReturnItem[]
+  mermaItems    MermaItem[]
 
   @@map("products")
   @@index([categoryId])
@@ -297,6 +305,8 @@ model ProductVariant {
   transferItems TransferItem[]
   orderItems  OrderItem[]
   purchaseItems PurchaseItem[]
+  returnItems ReturnItem[]
+  mermaItems  MermaItem[]
 
   @@map("product_variants")
 }
@@ -469,6 +479,7 @@ model Sale {
   cashSession CashSession?  @relation(fields: [cashSessionId], references: [id])
   items       SaleItem[]
   payments    SalePayment[]
+  returns     Return[]
 
   @@map("sales")
   @@index([branchId, createdAt])
@@ -486,9 +497,10 @@ model SaleItem {
   discount  Decimal  @default(0) @db.Decimal(10, 2)
   lineTotal Decimal  @map("line_total") @db.Decimal(10, 2)
 
-  sale    Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  product Product         @relation(fields: [productId], references: [id])
-  variant ProductVariant? @relation(fields: [variantId], references: [id])
+  sale        Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product         @relation(fields: [productId], references: [id])
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  returnItems ReturnItem[]
 
   @@map("sale_items")
 }
@@ -785,4 +797,192 @@ model CashSession {
   @@index([branchId, status])
   @@index([userId, status])
   @@index([openedAt])
+}
+
+// ---------- Devoluciones y cambios (returns / exchanges) ----------
+// One Return row is ONE counter transaction: the customer hands back some
+// lines of an original ticket and may simultaneously take new merchandise in
+// their place. Both directions live in the same ReturnItem table,
+// discriminated by `direction`, because they are two halves of a single
+// negotiated event — splitting them into separate tables would let a refund
+// exist without its exchange or vice versa, and the whole point of this
+// module is that the two are reconciled into ONE balance the cashier settles
+// at the counter.
+//
+// Deliberately NOT modelled as a negative Sale: a Sale is an immutable
+// revenue document, and cancelSale already covers the "undo the whole
+// ticket" case. A partial return against an old ticket is a different fact
+// with a different authorization trail (a supervisor co-signed it) and its
+// own folio series, so it gets its own document.
+
+enum ReturnResolution {
+  // newItemsTotal == returnedTotal — the customer swapped like for like and
+  // no money changes hands.
+  EXACT_EXCHANGE
+  // newItemsTotal > returnedTotal — the customer pays the difference now,
+  // which is why `paymentMethod` is only meaningful in this case.
+  CUSTOMER_OWES
+  // newItemsTotal < returnedTotal (including a pure refund, where
+  // newItemsTotal is 0) — the business owes the customer.
+  REFUND_OWED
+}
+
+enum ReturnItemDirection {
+  // Physically came back over the counter, priced at what the customer
+  // originally paid on the source SaleItem.
+  RETURNED
+  // Went back out with the customer in exchange, priced fresh at today's
+  // resolved price.
+  NEW
+}
+
+model Return {
+  id             String @id @default(uuid())
+  folio          Int    @default(autoincrement())
+  originalSaleId String @map("original_sale_id")
+  branchId       String @map("branch_id")
+  // The cashier who ran the flow. Distinct from authorizedByUserId on
+  // purpose: the entire control is that two different people are recorded,
+  // one operating and one approving.
+  processedByUserId  String @map("processed_by_user_id")
+  // The supervisor whose PIN matched, straight from verifySupervisorPin's
+  // supervisorId. Non-nullable because a Return row can only ever be
+  // written after that check has already passed.
+  authorizedByUserId String @map("authorized_by_user_id")
+
+  returnedTotal Decimal @map("returned_total") @db.Decimal(10, 2)
+  newItemsTotal Decimal @default(0) @map("new_items_total") @db.Decimal(10, 2)
+  // newItemsTotal - returnedTotal, signed: positive = customer owes,
+  // negative = refund owed, 0 = even exchange. Stored rather than derived on
+  // read so a later change to pricing logic can never retroactively restate
+  // what was actually settled at the counter.
+  balance    Decimal          @db.Decimal(10, 2)
+  resolution ReturnResolution
+  // Only meaningful when resolution = CUSTOMER_OWES (how the difference was
+  // paid). Reuses the existing PaymentMethod enum shared with
+  // Sale/SalePayment — deliberately not a second parallel enum.
+  paymentMethod PaymentMethod? @map("payment_method")
+  notes         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  originalSale Sale         @relation(fields: [originalSaleId], references: [id])
+  branch       Branch       @relation(fields: [branchId], references: [id])
+  processedBy  User         @relation("ReturnsProcessed", fields: [processedByUserId], references: [id])
+  authorizedBy User         @relation("ReturnsAuthorized", fields: [authorizedByUserId], references: [id])
+  items        ReturnItem[]
+
+  @@map("returns")
+  @@index([branchId, createdAt])
+  @@index([originalSaleId])
+  @@index([createdAt])
+}
+
+model ReturnItem {
+  id        String              @id @default(uuid())
+  returnId  String              @map("return_id")
+  direction ReturnItemDirection
+  // Which line of the ORIGINAL ticket this came back against. Null for NEW
+  // lines, which have no originating sale item. Not in the task brief's
+  // literal field list, but the cumulative over-return rule ("never return
+  // more of a line than was ever bought, summed across every prior partial
+  // return") is only enforceable if each returned line remembers the exact
+  // SaleItem it consumes — matching on productId/variantId alone would
+  // conflate two separate lines of the same product on one ticket.
+  saleItemId String? @map("sale_item_id")
+  productId  String  @map("product_id")
+  variantId  String? @map("variant_id")
+  quantity   Int
+  // Snapshotted at the moment of the return. RETURNED lines carry the
+  // original SaleItem unitPrice (the customer is credited what they actually
+  // paid, that line's discount included); NEW lines carry today's freshly
+  // resolved price (a new item is a new sale and does not inherit the old
+  // ticket's promo).
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  // Did this specific line go back onto the sellable shelf? False means it
+  // came back damaged/unsellable: no stock movement was applied, but the row
+  // is still written so the loss stays auditable. Only meaningful for
+  // RETURNED lines; always false for NEW ones.
+  restocked Boolean @default(false)
+
+  return   Return          @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  saleItem SaleItem?       @relation(fields: [saleItemId], references: [id])
+  product  Product         @relation(fields: [productId], references: [id])
+  variant  ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("return_items")
+  @@index([returnId])
+  // The index the cumulative-limit check reads: "everything ever returned
+  // against this SaleItem".
+  @@index([saleItemId, direction])
+}
+
+// ---------- Mermas (shrinkage write-offs) ----------
+// Stock that leaves without being sold: testers on the display counter,
+// in-store breakage, expiry, gifted samples, and defective units from a
+// supplier. Every merma is supervisor-authorized by PIN and carries a
+// mandatory written explanation — an unexplained inventory decrement is
+// exactly the shape internal theft takes, so `comments` is required at the
+// DB level, not merely encouraged in the UI.
+//
+// A merma deliberately does NOT get its own MovementType. It IS a manual
+// stock adjustment (MovementType.ADJUSTMENT) with a specific audited
+// reason; the reason lives here, on the document the movement references,
+// where it can carry the category, the authorizer and the money impact.
+
+enum MermaType {
+  TESTER_EXHIBICION
+  DANO_EN_TIENDA
+  CADUCIDAD_VENCIDO
+  MUESTRA_REGALO_CLIENTE
+  DEFECTO_PROVEEDOR
+}
+
+model Merma {
+  id                 String    @id @default(uuid())
+  folio              Int       @default(autoincrement())
+  branchId           String    @map("branch_id")
+  requestedByUserId  String    @map("requested_by_user_id")
+  authorizedByUserId String    @map("authorized_by_user_id")
+  type               MermaType
+  // Required, not optional — see the note above.
+  comments           String
+  // Two different losses from the same event, both stored because they
+  // answer different questions: cost impact is the real P&L hit (what the
+  // business paid for goods it can no longer sell), retail impact is the
+  // revenue-equivalent that walked out the door. Snapshotted totals rather
+  // than live joins to Product.cost/price, which drift.
+  totalCostImpact   Decimal  @map("total_cost_impact") @db.Decimal(10, 2)
+  totalRetailImpact Decimal  @map("total_retail_impact") @db.Decimal(10, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  branch       Branch      @relation(fields: [branchId], references: [id])
+  requestedBy  User        @relation("MermasRequested", fields: [requestedByUserId], references: [id])
+  authorizedBy User        @relation("MermasAuthorized", fields: [authorizedByUserId], references: [id])
+  items        MermaItem[]
+
+  @@map("mermas")
+  @@index([branchId, createdAt])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model MermaItem {
+  id        String  @id @default(uuid())
+  mermaId   String  @map("merma_id")
+  productId String  @map("product_id")
+  variantId String? @map("variant_id")
+  quantity  Int
+  // Snapshotted from Product.cost / the resolved sale price at write-off
+  // time, for the same reason PurchaseItem.unitCost is snapshotted: a
+  // historical loss report must keep showing the numbers that were true when
+  // the loss happened, independent of later price changes.
+  unitCost   Decimal @map("unit_cost") @db.Decimal(10, 2)
+  unitRetail Decimal @map("unit_retail") @db.Decimal(10, 2)
+
+  merma   Merma           @relation(fields: [mermaId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("merma_items")
+  @@index([mermaId])
 }

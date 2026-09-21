@@ -40,7 +40,15 @@ function round2(n: number): number {
 // must never be used to upcharge a customer, so it's ignored in that case.
 // A variant's own `price` (when set) overrides the product's price/promo
 // logic entirely — variants don't have their own promo field in the schema.
-function resolveUnitPrice(
+//
+// Exported (was private) so returnService and mermaService price against the
+// exact same function rather than a copy of it. Both genuinely need THIS
+// rule: an exchange's NEW line is a fresh sale and must be priced like one,
+// and a merma's retail impact is "what this would have sold for today",
+// which is the same question. A duplicated copy would drift the first time
+// the promo rule changes, and the two modules would silently start pricing
+// differently from the POS.
+export function resolveUnitPrice(
   product: { price: Prisma.Decimal; promoPrice: Prisma.Decimal | null },
   variant: { price: Prisma.Decimal | null } | null
 ): number {
