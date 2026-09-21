@@ -72,42 +72,69 @@
 }
 .dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
 
-/* ---------- Hero visual ----------
-   Replaces the earlier icon-orbit composition (lucide glyphs circling a
-   spray-can centerpiece) after explicit client rejection of anything
-   icon-based here — the ask was for an abstract, elegant, *genuinely*
-   three-dimensional piece, closer to Anthropic/Claude's own soft
-   warm-toned geometric motion-design language than clip-art. This is a
-   real CSS 3D scene, not a 2D orbit trick:
+/* ---------- Hero visual (round 3: the vanity display) ----------
+   History: round 1 was lucide icons orbiting a hub (rejected — no icons);
+   round 2 was abstract translucent spheres + a tilted halo (rejected — real
+   3D and elegant, but "no tiene que ver con la página": a blue glass sphere
+   belongs to any SaaS dashboard, not to a makeup retailer). Round 3 keeps the
+   3D machinery and replaces the abstraction with recognisable cosmetics: a
+   lipstick and a serum/dropper bottle standing on a slowly turning mirrored
+   podium, with shimmer sparkles drifting around them.
 
-   - `.dashboard-visual` is the camera: it sets `perspective`, which makes
-     any `translateZ` on its 3D descendants actually foreshorten/enlarge
-     (closer = bigger, farther = smaller) instead of doing nothing.
-   - `.dashboard-visual__stage` is `transform-style: preserve-3d` and
-     itself slowly tilts on two axes (rotateX + rotateY) — the whole scene
-     gently rocks, like a snowglobe tipping, rather than spinning flat.
-   - Each shape inside independently animates its OWN translateZ (and a
-     little translate/scale) on a different duration, so as the stage
-     tilts, shapes at different depths visibly part ways from one another
-     — that relative drift under a shared perspective is what reads as
-     real depth/parallax instead of everything moving in lockstep.
-   - One flattened ring (`rotateX` most of the way to edge-on, so it
-     renders as a thin ellipse/halo) spins on its own axis like a slim ring
-     around the core sphere.
+   How the shapes are made (this is the important part — they are CSS
+   constructions, not icon glyphs):
+   - A rectangle reads as a cylinder when it carries a horizontal
+     dark to specular to dark gradient. That single trick turns the lipstick
+     barrel into brushed chrome, the bullet into a round stick of colour, and
+     the serum body into a glass vial. The specular band sits left of centre
+     on every piece so the whole scene shares one light direction.
+   - The lipstick is barrel + chrome collar + bullet, stacked at real
+     proportions. Its bullet is cut on a slant with clip-path, and that cut is
+     faced by `.dashboard-visual__lip-tip` — a real ellipse rotated to the same
+     angle — so the top of the stick is a visible angled surface. That slanted
+     cut is the single cue that makes the object unmistakably a lipstick.
+   - The serum bottle is body + trapezoid shoulder (clip-path) + neck + a
+     ridged cap (a repeating-linear-gradient of translucent darks laid over the
+     cylinder shading, so the ridges wrap the curve instead of flattening it).
+   - The sparkles are four-point stars via clip-path, twinkling at different
+     depths — cosmetic shimmer, and the only purely decorative element.
 
-   No lucide icons anywhere in this composition. Every shape is a radial
-   gradient built from the existing blue token ramp via color-mix() (never
-   a new invented hex), at varied stops/opacity for a soft glassy look.
-   Every motion runs on `animation`, so the sitewide prefers-reduced-motion
-   rule in global.css (global.css:130) freezes all of it automatically. */
+   How the 3D is real (not a 2D illusion):
+   - `.dashboard-visual` is the camera and sets `perspective`. It is short on
+     purpose (420px for a 112px box) so translateZ actually changes apparent
+     size instead of being a no-op at this scale.
+   - `.dashboard-visual__stage` is `transform-style: preserve-3d` and rotates
+     on rotateX + rotateY, so the whole scene turns like a display turntable.
+   - `.dashboard-visual__podium` is a circle laid down onto the ground plane
+     with `rotateX(78deg)` — it renders as a thin ellipse because it genuinely
+     is a disc seen edge-on, and it spins on rotateZ so its off-centre
+     highlight sweeps around like light across a mirrored vanity top.
+   - Each product sits at its own `translateZ` and animates through its own
+     depth range on its own duration, so they cross in front of / behind one
+     another as the stage turns. That relative drift under a shared
+     perspective is what reads as depth.
+   - Products use `transform-origin` near their foot, so when they pivot they
+     stay planted on the podium rather than swinging around their middle.
+   - Each product carries a flattened, blurred contact-shadow ellipse
+     (`::after`, also on the ground plane) so it sits on the podium instead of
+     hovering in front of it.
+
+   Every colour is color-mix() over the existing token ramp — never a new hex.
+   (The tokens are named pink-* but are blue-valued; that is this codebase's
+   long-standing deliberate quirk.) Every motion is an `animation`, so the
+   sitewide prefers-reduced-motion rule (global.css:130) freezes all of it.
+   Note that each animated element also declares a static `transform` equal to
+   its own 0% keyframe: when that rule cuts the animation short the element
+   falls back to its own transform property, so the scene holds its composed
+   pose instead of collapsing to an untransformed pile. */
 
 .dashboard-visual {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 112px;
+  height: 112px;
   flex-shrink: 0;
   display: none;
-  perspective: 480px;
+  perspective: 420px;
 }
 @media (min-width: 560px) {
   .dashboard-visual { display: block; }
@@ -117,119 +144,343 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  animation: dashboard-stage-tilt 20s var(--ease-premium) infinite;
+  transform: rotateX(7deg) rotateY(-16deg);
+  animation: dashboard-vanity-turn 24s var(--ease-premium) infinite;
 }
 
-.dashboard-visual__orb,
-.dashboard-visual__ring {
+/* ----- The mirrored podium: a real disc laid onto the ground plane ----- */
+
+.dashboard-visual__podium {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 94px;
+  height: 94px;
+  margin: -47px 0 0 -47px;
   border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-pink-elegant) 32%, transparent);
+  background:
+    radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--color-white) 92%, transparent) 0%,
+      transparent 46%),
+    radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--color-pink-100) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-pink-soft) 36%, transparent) 56%,
+      transparent 78%);
+  box-shadow: inset 0 0 18px color-mix(in srgb, var(--color-pink-soft) 34%, transparent);
+  transform: translateY(33px) rotateX(78deg) rotateZ(0deg);
+  animation: dashboard-podium-spin 32s linear infinite;
+}
+
+/* ----- Lipstick ----- */
+
+.dashboard-visual__lipstick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 66px;
+  margin: -33px 0 0 -12px;
   transform-style: preserve-3d;
-  will-change: transform;
+  transform-origin: 50% 96%;
+  transform: translate3d(10px, 4px, 20px) rotateY(-9deg);
+  animation: dashboard-lipstick-pose 16s ease-in-out infinite;
 }
 
-/* Core sphere: the visual's anchor point, largest and most opaque, sitting
-   at the stage's own center so the tilt animation above reads as rotating
-   *around* it rather than dragging it along for the ride. */
-.dashboard-visual__orb--core {
-  top: 50%;
-  left: 50%;
-  width: 54px;
-  height: 54px;
-  margin: -27px 0 0 -27px;
-  background: radial-gradient(circle at 32% 28%,
-    color-mix(in srgb, var(--color-white) 92%, transparent) 0%,
-    color-mix(in srgb, var(--color-pink-elegant) 88%, transparent) 42%,
-    color-mix(in srgb, var(--color-pink-deep) 92%, transparent) 100%);
+/* Contact shadow, laid flat on the ground plane so the tube sits on the
+   podium rather than floating in front of it. */
+.dashboard-visual__lipstick::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  bottom: -13px;
+  width: 36px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%,
+    color-mix(in srgb, var(--color-pink-800) 30%, transparent) 0%,
+    transparent 68%);
+  transform: rotateX(78deg);
+  filter: blur(2px);
+}
+
+/* Brushed-chrome barrel. The horizontal dark to white to dark ramp is what
+   makes this rectangle read as a round metal tube. */
+.dashboard-visual__lip-barrel {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 24px;
+  height: 30px;
+  border-radius: 3px 3px 4px 4px / 2px 2px 8px 8px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-800) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-700) 80%, transparent) 13%,
+    color-mix(in srgb, var(--color-pink-100) 92%, transparent) 30%,
+    color-mix(in srgb, var(--color-white) 96%, transparent) 38%,
+    color-mix(in srgb, var(--color-pink-soft) 82%, transparent) 54%,
+    color-mix(in srgb, var(--color-pink-500) 80%, transparent) 76%,
+    color-mix(in srgb, var(--color-pink-800) 92%, transparent) 100%);
   box-shadow:
-    0 16px 32px color-mix(in srgb, var(--color-pink-deep) 35%, transparent),
-    inset -8px -10px 18px color-mix(in srgb, var(--color-pink-800) 45%, transparent),
-    inset 6px 8px 14px color-mix(in srgb, var(--color-white) 55%, transparent);
-  animation: dashboard-core-float 9s ease-in-out infinite;
+    0 6px 12px color-mix(in srgb, var(--color-pink-800) 26%, transparent),
+    inset 0 -3px 5px color-mix(in srgb, var(--color-pink-800) 30%, transparent);
 }
 
-/* Three smaller satellite spheres, each on its own depth/drift cycle so
-   they cross in front of / behind one another and the core as the stage
-   tilts — the actual source of the parallax. */
-.dashboard-visual__orb--a {
-  top: 8%;
-  left: 4%;
-  width: 32px;
-  height: 32px;
-  background: radial-gradient(circle at 35% 30%,
-    color-mix(in srgb, var(--color-white) 85%, transparent) 0%,
-    color-mix(in srgb, var(--color-pink-soft) 80%, transparent) 55%,
-    transparent 100%);
-  animation: dashboard-orb-a-drift 13s ease-in-out infinite;
+/* The polished ring where cap meets base — slightly wider than the barrel so
+   it catches the light as a distinct band. */
+.dashboard-visual__lip-collar {
+  position: absolute;
+  left: -1px;
+  bottom: 28px;
+  width: 26px;
+  height: 6px;
+  border-radius: 2px / 3px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-800) 92%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 95%, transparent) 32%,
+    color-mix(in srgb, var(--color-pink-soft) 88%, transparent) 52%,
+    color-mix(in srgb, var(--color-pink-700) 86%, transparent) 84%,
+    color-mix(in srgb, var(--color-pink-800) 94%, transparent) 100%);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-pink-800) 26%, transparent);
 }
 
-.dashboard-visual__orb--b {
-  bottom: 10%;
-  right: 2%;
-  width: 38px;
-  height: 38px;
-  background: radial-gradient(circle at 40% 35%,
-    color-mix(in srgb, var(--color-white) 80%, transparent) 0%,
-    color-mix(in srgb, var(--color-pink-300) 70%, transparent) 60%,
-    transparent 100%);
-  animation: dashboard-orb-b-drift 17s ease-in-out infinite;
+/* The stick of colour itself, cut on a slant (clip-path) the way a used
+   lipstick is. Same cylinder ramp, saturated end of the ramp. */
+.dashboard-visual__lip-bullet {
+  position: absolute;
+  left: 2.5px;
+  bottom: 33px;
+  width: 19px;
+  height: 31px;
+  border-radius: 2px 2px 1px 1px;
+  clip-path: polygon(0% 38%, 76% 4%, 100% 0%, 100% 100%, 0% 100%);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-800) 95%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-700) 92%, transparent) 16%,
+    color-mix(in srgb, var(--color-pink-elegant) 90%, transparent) 34%,
+    color-mix(in srgb, var(--color-pink-deep) 96%, transparent) 54%,
+    color-mix(in srgb, var(--color-pink-700) 94%, transparent) 78%,
+    color-mix(in srgb, var(--color-pink-800) 96%, transparent) 100%);
 }
 
-.dashboard-visual__orb--c {
-  top: 58%;
-  right: 12%;
-  width: 20px;
-  height: 20px;
-  background: radial-gradient(circle at 40% 35%,
-    color-mix(in srgb, var(--color-white) 88%, transparent) 0%,
-    color-mix(in srgb, var(--color-primary-on-dark) 75%, transparent) 65%,
-    transparent 100%);
-  animation: dashboard-orb-c-drift 10.5s ease-in-out infinite;
+/* Specular sheen down the bullet — a soft vertical highlight, blurred, that
+   sells the waxy gloss of the stick. */
+.dashboard-visual__lip-bullet::before {
+  content: "";
+  position: absolute;
+  left: 24%;
+  top: 26%;
+  width: 17%;
+  height: 66%;
+  border-radius: 50%;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-white) 72%, transparent) 0%,
+    transparent 78%);
+  filter: blur(1px);
 }
 
-/* A flattened halo — most of the way to edge-on via rotateX — that spins
-   slowly around the core on its own axis, like a slim ring around a
-   planet, adding a second distinct kind of motion (rotation, not drift)
-   to the composition. */
-.dashboard-visual__ring {
+/* The angled cut surface: a real ellipse rotated into the slant of the
+   clip-path above, so the top of the stick is a face you look across rather
+   than a flat edge. */
+.dashboard-visual__lip-tip {
+  position: absolute;
+  left: 0.5px;
+  top: 3.1px;
+  width: 23px;
+  height: 9.5px;
+  border-radius: 50%;
+  transform: rotateZ(-31.8deg);
+  background: linear-gradient(118deg,
+    color-mix(in srgb, var(--color-pink-elegant) 94%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 68%, transparent) 36%,
+    color-mix(in srgb, var(--color-pink-deep) 94%, transparent) 72%,
+    color-mix(in srgb, var(--color-pink-700) 96%, transparent) 100%);
+  box-shadow: inset 0 -1px 2px color-mix(in srgb, var(--color-pink-800) 42%, transparent);
+}
+
+/* ----- Serum / dropper bottle: glassy, smaller, and set back in Z ----- */
+
+.dashboard-visual__serum {
+  position: absolute;
   top: 50%;
   left: 50%;
-  width: 88px;
-  height: 88px;
-  margin: -44px 0 0 -44px;
-  border: 1.5px solid color-mix(in srgb, var(--color-pink-elegant) 45%, transparent);
-  background: transparent;
-  box-shadow: inset 0 0 16px color-mix(in srgb, var(--color-pink-elegant) 12%, transparent);
-  animation: dashboard-ring-spin 24s linear infinite;
+  width: 22px;
+  height: 47px;
+  margin: -23.5px 0 0 -11px;
+  transform-style: preserve-3d;
+  transform-origin: 50% 96%;
+  transform: translate3d(-25px, 14px, -26px) rotateY(9deg);
+  animation: dashboard-serum-drift 20s ease-in-out infinite;
 }
 
-.dashboard-visual:hover .dashboard-visual__ring {
-  border-color: color-mix(in srgb, var(--color-pink-elegant) 70%, transparent);
+.dashboard-visual__serum::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  bottom: -11px;
+  width: 34px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%,
+    color-mix(in srgb, var(--color-pink-800) 24%, transparent) 0%,
+    transparent 68%);
+  transform: rotateX(78deg);
+  filter: blur(2px);
 }
 
-@keyframes dashboard-stage-tilt {
-  0%, 100% { transform: rotateX(8deg) rotateY(-14deg); }
-  50% { transform: rotateX(-6deg) rotateY(12deg); }
+/* Glass vial: the same cylinder ramp, but pale and translucent so it reads as
+   glass next to the lipstick's opaque chrome. */
+.dashboard-visual__serum-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 3px 3px 5px 5px / 2px 2px 8px 8px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-500) 72%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-300) 58%, transparent) 18%,
+    color-mix(in srgb, var(--color-white) 88%, transparent) 36%,
+    color-mix(in srgb, var(--color-pink-soft) 62%, transparent) 58%,
+    color-mix(in srgb, var(--color-pink-500) 68%, transparent) 82%,
+    color-mix(in srgb, var(--color-pink-700) 78%, transparent) 100%);
+  box-shadow:
+    inset 0 -4px 6px color-mix(in srgb, var(--color-pink-700) 26%, transparent),
+    0 4px 9px color-mix(in srgb, var(--color-pink-800) 18%, transparent);
 }
-@keyframes dashboard-core-float {
-  0%, 100% { transform: translateZ(0) translateY(0) scale(1); }
-  50% { transform: translateZ(16px) translateY(-3px) scale(1.03); }
+
+/* Fill line — the meniscus of the serum inside the vial. */
+.dashboard-visual__serum-body::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 7px;
+  height: 1.5px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-pink-deep) 50%, transparent);
 }
-@keyframes dashboard-orb-a-drift {
-  0%, 100% { transform: translateZ(-14px) translate(0, 0); }
-  50% { transform: translateZ(20px) translate(3px, -5px); }
+
+/* Trapezoid shoulder tapering into the neck. */
+.dashboard-visual__serum-shoulder {
+  position: absolute;
+  left: 0;
+  bottom: 22px;
+  width: 22px;
+  height: 7px;
+  clip-path: polygon(0% 100%, 27% 0%, 73% 0%, 100% 100%);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-500) 70%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 84%, transparent) 36%,
+    color-mix(in srgb, var(--color-pink-soft) 58%, transparent) 60%,
+    color-mix(in srgb, var(--color-pink-700) 74%, transparent) 100%);
 }
-@keyframes dashboard-orb-b-drift {
-  0%, 100% { transform: translateZ(10px) translate(0, 0); }
-  50% { transform: translateZ(-18px) translate(-4px, 4px); }
+
+.dashboard-visual__serum-neck {
+  position: absolute;
+  left: 7.5px;
+  bottom: 29px;
+  width: 7px;
+  height: 5px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--color-pink-700) 82%, transparent) 0%,
+    color-mix(in srgb, var(--color-white) 82%, transparent) 40%,
+    color-mix(in srgb, var(--color-pink-500) 76%, transparent) 72%,
+    color-mix(in srgb, var(--color-pink-800) 84%, transparent) 100%);
 }
-@keyframes dashboard-orb-c-drift {
-  0%, 100% { transform: translateZ(-6px) scale(1); }
-  50% { transform: translateZ(18px) scale(1.15); }
+
+/* Ridged dropper cap: the repeating gradient is translucent, so the knurling
+   rides on top of the cylinder shading instead of flattening it. */
+.dashboard-visual__serum-cap {
+  position: absolute;
+  left: 4px;
+  bottom: 34px;
+  width: 14px;
+  height: 13px;
+  border-radius: 2px 2px 1px 1px / 3px 3px 1px 1px;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 1.5px,
+      color-mix(in srgb, var(--color-pink-800) 34%, transparent) 1.5px 3px),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--color-pink-800) 94%, transparent) 0%,
+      color-mix(in srgb, var(--color-pink-500) 80%, transparent) 34%,
+      color-mix(in srgb, var(--color-pink-300) 78%, transparent) 46%,
+      color-mix(in srgb, var(--color-pink-700) 90%, transparent) 76%,
+      color-mix(in srgb, var(--color-pink-800) 96%, transparent) 100%);
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--color-pink-800) 26%, transparent);
 }
-@keyframes dashboard-ring-spin {
-  from { transform: rotateX(72deg) rotateZ(0deg); }
-  to { transform: rotateX(72deg) rotateZ(360deg); }
+
+/* ----- Shimmer sparkles: four-point stars at three different depths ----- */
+
+.dashboard-visual__sparkle {
+  position: absolute;
+  border-radius: 1px;
+  clip-path: polygon(50% 0%, 59% 41%, 100% 50%, 59% 59%, 50% 100%, 41% 59%, 0% 50%, 41% 41%);
+  background: radial-gradient(circle at 50% 50%,
+    color-mix(in srgb, var(--color-white) 96%, transparent) 0%,
+    color-mix(in srgb, var(--color-pink-elegant) 88%, transparent) 55%,
+    color-mix(in srgb, var(--color-pink-deep) 70%, transparent) 100%);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-pink-elegant) 60%, transparent));
+  will-change: transform, opacity;
+}
+
+.dashboard-visual__sparkle--1 {
+  top: 8%;
+  left: 10%;
+  width: 14px;
+  height: 14px;
+  transform: translateZ(26px) scale(1);
+  animation: dashboard-sparkle-a 7s ease-in-out infinite;
+}
+.dashboard-visual__sparkle--2 {
+  top: 28%;
+  right: 3%;
+  width: 11px;
+  height: 11px;
+  transform: translateZ(-14px) scale(0.85);
+  animation: dashboard-sparkle-b 9.5s ease-in-out infinite;
+}
+.dashboard-visual__sparkle--3 {
+  top: 58%;
+  left: 1%;
+  width: 8px;
+  height: 8px;
+  transform: translateZ(8px) scale(0.9);
+  animation: dashboard-sparkle-c 6s ease-in-out infinite;
+}
+
+.dashboard-visual:hover .dashboard-visual__podium {
+  border-color: color-mix(in srgb, var(--color-pink-elegant) 62%, transparent);
+}
+
+@keyframes dashboard-vanity-turn {
+  0%, 100% { transform: rotateX(7deg) rotateY(-16deg); }
+  50% { transform: rotateX(-3deg) rotateY(15deg); }
+}
+@keyframes dashboard-podium-spin {
+  from { transform: translateY(33px) rotateX(78deg) rotateZ(0deg); }
+  to { transform: translateY(33px) rotateX(78deg) rotateZ(360deg); }
+}
+@keyframes dashboard-lipstick-pose {
+  0%, 100% { transform: translate3d(10px, 4px, 20px) rotateY(-9deg); }
+  50% { transform: translate3d(10px, 1px, 32px) rotateY(11deg); }
+}
+@keyframes dashboard-serum-drift {
+  0%, 100% { transform: translate3d(-25px, 14px, -26px) rotateY(9deg); }
+  50% { transform: translate3d(-25px, 11px, -8px) rotateY(-10deg); }
+}
+@keyframes dashboard-sparkle-a {
+  0%, 100% { transform: translateZ(26px) scale(1); opacity: 0.95; }
+  50% { transform: translateZ(10px) scale(0.6) rotate(45deg); opacity: 0.5; }
+}
+@keyframes dashboard-sparkle-b {
+  0%, 100% { transform: translateZ(-14px) scale(0.85); opacity: 0.55; }
+  50% { transform: translateZ(14px) scale(1.15) rotate(-40deg); opacity: 0.95; }
+}
+@keyframes dashboard-sparkle-c {
+  0%, 100% { transform: translateZ(8px) scale(0.9); opacity: 0.8; }
+  50% { transform: translateZ(22px) scale(0.55) rotate(50deg); opacity: 0.45; }
 }
 
 /* ---------- Stat grid ---------- */

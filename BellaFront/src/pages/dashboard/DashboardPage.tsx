@@ -46,33 +46,64 @@ function staggerStyle(ms: number): CSSProperties {
   return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
 }
 
-// Hero visual, replacing the previous icon-orbit composition (three lucide
-// glyphs circling a spray-can centerpiece) after explicit client rejection
-// of anything icon-based there — the ask was for something abstract,
-// elegant, and *genuinely* three-dimensional, evoking Anthropic/Claude's
-// own soft warm-toned geometric motion-design language rather than
-// clip-art orbiting a hub. This is a real CSS 3D scene: `.dashboard-visual`
-// sets `perspective`, `.dashboard-visual__stage` is `transform-style:
-// preserve-3d` and slowly tilts on two axes (rotateX/rotateY), and each
-// blob/ring inside independently drifts along its own translateZ so they
-// move at different apparent depths as the stage tilts — true parallax,
-// not a 2D orbit trick. No icons, no imagery: four soft translucent
-// spheres (one "core" plus three smaller satellites) and one tilted ring
-// (a flattened ellipse via rotateX, spun on its own axis like a slim halo)
-// built purely from radial gradients derived from the existing blue token
-// ramp via color-mix(), at varied opacity/blur for a glassy look. Every
-// animation uses `animation`, so the sitewide `prefers-reduced-motion` rule
-// in global.css (global.css:130) freezes all of it automatically. Pure
-// CSS — no canvas/WebGL/animation library.
+// Hero visual — round 3. Round 1 (lucide icons orbiting a hub) was rejected
+// for being icons at all; round 2 (translucent glass spheres + a tilted halo)
+// was rejected because, although genuinely 3D and elegant, it "no tiene que
+// ver con la página" — a blue glass sphere is the hero visual of any SaaS
+// dashboard and says nothing about a cosmetics retailer. Round 3 therefore
+// keeps the 3D machinery and throws away the abstraction: it is a miniature
+// vanity display — a lipstick and a serum/dropper bottle standing on a slowly
+// turning mirrored podium, with shimmer sparkles floating around them.
+//
+// Every form here is CONSTRUCTED out of CSS — no icon glyph, no SVG, no
+// image. Each product is a stack of shaded cylinders: a horizontal
+// dark -> specular -> dark gradient is what makes a plain rectangle read as a
+// round metal barrel or a glass vial, and the pieces (barrel, chrome collar,
+// bullet / body, shoulder, neck, ridged cap) are sized and stacked like the
+// real object. The giveaway detail on the lipstick is the bullet: it is cut
+// on a slant via clip-path, and that cut is faced with a real ellipse rotated
+// into the same slant, so you are looking at the angled top surface of the
+// stick rather than at a flat blue rectangle.
+//
+// The 3D is real, not a 2D illusion: `.dashboard-visual` supplies the
+// `perspective` (deliberately short, so depth is exaggerated at this size),
+// `.dashboard-visual__stage` is `transform-style: preserve-3d` and turns on
+// rotateX/rotateY, the podium is a disc laid flat on the ground plane via
+// `rotateX(78deg)`, and each product sits at its own `translateZ` and travels
+// its own depth range on its own clock, so they visibly part ways in parallax
+// as the stage turns. Products pivot from their foot (`transform-origin` near
+// the base) so they stay planted on the podium instead of swinging.
+//
+// Colors come only from the existing blue token ramp via color-mix() (the
+// pink-* names being blue-valued is this codebase's long-standing quirk) — no
+// new hex anywhere. All motion runs on `animation`, so the sitewide
+// prefers-reduced-motion rule (global.css:130) freezes the scene; each
+// animated element also carries a static `transform` identical to its 0%
+// keyframe, so when that rule cuts the animation the composition still holds
+// its pose instead of collapsing to an untransformed state.
 function DashboardVisual() {
   return (
     <div className="dashboard-visual" aria-hidden="true">
       <div className="dashboard-visual__stage">
-        <span className="dashboard-visual__ring" />
-        <span className="dashboard-visual__orb dashboard-visual__orb--a" />
-        <span className="dashboard-visual__orb dashboard-visual__orb--b" />
-        <span className="dashboard-visual__orb dashboard-visual__orb--c" />
-        <span className="dashboard-visual__orb dashboard-visual__orb--core" />
+        <span className="dashboard-visual__podium" />
+
+        <div className="dashboard-visual__serum">
+          <span className="dashboard-visual__serum-body" />
+          <span className="dashboard-visual__serum-shoulder" />
+          <span className="dashboard-visual__serum-neck" />
+          <span className="dashboard-visual__serum-cap" />
+        </div>
+
+        <div className="dashboard-visual__lipstick">
+          <span className="dashboard-visual__lip-bullet" />
+          <span className="dashboard-visual__lip-tip" />
+          <span className="dashboard-visual__lip-barrel" />
+          <span className="dashboard-visual__lip-collar" />
+        </div>
+
+        <span className="dashboard-visual__sparkle dashboard-visual__sparkle--1" />
+        <span className="dashboard-visual__sparkle dashboard-visual__sparkle--2" />
+        <span className="dashboard-visual__sparkle dashboard-visual__sparkle--3" />
       </div>
     </div>
   );
