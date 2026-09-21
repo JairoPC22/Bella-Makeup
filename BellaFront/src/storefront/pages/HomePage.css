@@ -212,16 +212,41 @@
 }
 
 @media (max-width: 900px) {
+  /* The spotlight arcs read as ambient background light on the wide
+     desktop banner (mostly hidden behind the copy/image). On a narrow
+     phone screen the same rings shrink into the image's own footprint and
+     end up visibly slicing across the model's photo instead — reported
+     directly by the client from a real phone screenshot ("se ve rara")
+     with a ring line crossing right over her shoulder/hip. Hidden below
+     this breakpoint rather than resized, since there's no radius that
+     both stays ambient-sized AND avoids the now-much-smaller image. */
+  .storefront-hero__arc { display: none; }
+
   .storefront-hero__inner {
     grid-template-columns: 1fr;
-    padding-top: var(--space-6);
+    padding-top: var(--space-5);
     min-height: 0;
+    gap: var(--space-2);
   }
   .storefront-hero__copy { padding-bottom: var(--space-4); }
   .storefront-hero__copy h1 { max-width: none; }
   .storefront-hero__copy p { max-width: none; }
-  .storefront-hero__media { order: -1; justify-content: center; height: auto; }
-  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 340px; }
+
+  /* Previously just floated the image centered in a tall empty dark area
+     above the text with a lot of dead space on every side — read as a
+     random photo dropped in, not a considered banner. A soft centered glow
+     grounds the cutout instead of leaving it adrift, and tightening the
+     image's own height (was capped at up to 560px, taller than it needs to
+     be next to a phone-width column) shrinks the empty margin around it. */
+  .storefront-hero__media {
+    order: -1;
+    justify-content: center;
+    height: auto;
+    padding: var(--space-4) 0 0;
+    background: radial-gradient(circle at 50% 60%, rgba(41, 151, 255, 0.28) 0%, transparent 68%);
+  }
+  .storefront-hero__media img { height: auto; max-height: none; width: 100%; max-width: 300px; object-position: bottom center; }
+
   .storefront-hero__trust { flex-direction: column; align-items: flex-start; gap: 8px; }
   .storefront-hero__trust-item { border-right: none; padding-right: 0; }
 }
