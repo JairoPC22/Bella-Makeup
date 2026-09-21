@@ -201,9 +201,11 @@
   /* Bleeds to the section's own right/bottom edges — no padding, no
      max-width cap on the container — matching the reference banner where
      the model's arm/table sits flush with the banner's bottom edge instead
-     of floating centered with margin all around. */
+     of floating centered with margin all around. Anchored bottom-right, so
+     a smaller max-height pulls the visible content in from the left AND
+     right at once — smaller and shifted right together, from one number. */
   height: 100%;
-  max-height: 560px;
+  max-height: 490px;
   width: auto;
   max-width: none;
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
