@@ -188,11 +188,34 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
     }
     const changeDue = round2(paymentsTotal - total);
 
+    // Caja auto-attach. A POS sale rung up by a cashier who currently has
+    // an OPEN CashSession at this same branch accrues to that session, so
+    // the blind close can later sum "this shift's takings" without the POS
+    // frontend ever having to thread a session id through checkout. The
+    // lookup is deterministic by construction: cashSessionService.openSession
+    // refuses to create a second OPEN session for the same user (or a second
+    // one at the same branch under a different user), so this can match at
+    // most one row.
+    //
+    // Deliberately a plain nullable lookup rather than a requirement: if no
+    // session is open, cashSessionId stays null and the sale behaves exactly
+    // as it did before this module existed. That is what keeps every
+    // non-POS/online-order-adjacent path — and every existing test — working
+    // untouched. It adds one indexed SELECT to the transaction and changes
+    // none of its atomicity properties: it reads inside the same tx, so it
+    // rolls back with everything else and cannot attach a sale to a session
+    // that a concurrent close is retiring.
+    const openCashSession = await tx.cashSession.findFirst({
+      where: { branchId: input.branchId, userId: actorId, status: "OPEN" },
+      select: { id: true },
+    });
+
     const createdSale = await saleRepo.createSale(
       {
         branchId: input.branchId,
         userId: actorId,
         customerId: input.customerId,
+        cashSessionId: openCashSession?.id,
         subtotal,
         discountTotal,
         taxTotal,

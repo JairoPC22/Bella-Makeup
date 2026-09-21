@@ -57,6 +57,16 @@ const PERMISSIONS: Array<{ code: string; description: string }> = [
   // the purchasing module day to day.
   { code: "purchases.authorize", description: "Autorizar con PIN operaciones sensibles de compras" },
   { code: "suppliers.manage", description: "Gestionar proveedores" },
+  // Caja (cash-drawer sessions). `cash.manage` is the POS-operator
+  // permission: open your OWN shift and submit your OWN blind close.
+  // `cash.audit` is the manager-oversight permission: read ANY session
+  // (including other cashiers') and its revealed discrepancy history, plus
+  // close a session on someone else's behalf (the forgotten end-of-day
+  // sweep). Deliberately two separate codes rather than one: the whole
+  // blind-count control collapses if the person counting the drawer is the
+  // same person who can freely read every other drawer's expected totals.
+  { code: "cash.manage", description: "Abrir y cerrar la caja propia" },
+  { code: "cash.audit", description: "Auditar cortes de caja de cualquier cajero" },
   { code: "reports.view", description: "Ver reportes" },
   { code: "audit.view", description: "Ver auditoría" },
   { code: "ecommerce.manage", description: "Gestionar catálogo ecommerce" },
@@ -93,6 +103,14 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
       // deliberately not trusted to unwind them). purchases.authorize follows
       // discounts.authorize's precedent: supervisor-grade roles only.
       "purchases.view", "purchases.create", "purchases.receive", "purchases.cancel", "purchases.authorize",
+      // Caja: oversight only. A branch manager does NOT get cash.manage —
+      // they don't ring up sales (no sales.create above), so they have no
+      // drawer of their own to open. They get cash.audit, scoped exactly
+      // the way transfers.cancel/purchases.cancel already were for this
+      // role (Administrator + Branch Manager and nobody else), which also
+      // carries the documented manager-override power to close a shift a
+      // cashier walked away from.
+      "cash.audit",
       "messages.view", "messages.send",
       // Online orders placed via the public storefront need to be
       // fulfillable by staff on the ground — a branch manager, like an
@@ -108,7 +126,11 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     name: "Vendedor / Cajero",
     description:
       "Realiza ventas mediante POS, consulta productos y genera tickets. No puede modificar configuraciones administrativas ni realizar ajustes de inventario sin autorización.",
-    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "discounts.apply", "messages.view", "messages.send"],
+    // cash.manage sits exactly alongside sales.create here: the roles that
+    // may ring up a POS sale are precisely the roles that need a drawer to
+    // open and blind-close, so it mirrors sales.create's role set
+    // (Administrator + Vendedor/Cajero) one for one.
+    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "cash.manage", "discounts.apply", "messages.view", "messages.send"],
   },
   {
     code: "warehouse",
