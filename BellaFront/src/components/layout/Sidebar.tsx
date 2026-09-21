@@ -12,6 +12,7 @@ import {
   PackageSearch,
   Package,
   ShoppingCart,
+  ShoppingBag,
   Receipt,
   ArrowLeftRight,
 } from "lucide-react";
@@ -30,6 +31,10 @@ const NAV_ITEMS = [
   { to: "/admin/productos", end: false, label: "Productos", icon: Package, permission: "products.view" },
   { to: "/admin/inventario", end: false, label: "Inventario", icon: PackageSearch, permission: "inventory.view" },
   { to: "/admin/transferencias", end: false, label: "Transferencias", icon: ArrowLeftRight, permission: "transfers.view" },
+  // Grouped with Inventario/Transferencias rather than with Ventas: buying is
+  // an inventory-adjacent operation. Proveedores deliberately gets no entry of
+  // its own — it's secondary master data, reached from within Compras.
+  { to: "/admin/compras", end: false, label: "Compras", icon: ShoppingBag, permission: "purchases.view" },
   { to: "/admin/pos", end: false, label: "Punto de venta", icon: ShoppingCart, permission: "sales.create" },
   { to: "/admin/ventas", end: false, label: "Ventas", icon: Receipt, permission: "sales.view" },
   { to: "/admin/mensajes", end: false, label: "Mensajes", icon: MessagesSquare, permission: "messages.view" },

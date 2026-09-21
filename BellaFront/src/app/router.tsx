@@ -12,6 +12,8 @@ import { BranchesPage } from "../pages/branches/BranchesPage";
 import { ProductsPage } from "../pages/products/ProductsPage";
 import { InventoryPage } from "../pages/inventory/InventoryPage";
 import { TransfersPage } from "../pages/transfers/TransfersPage";
+import { PurchasesPage } from "../pages/purchases/PurchasesPage";
+import { SuppliersPage } from "../pages/purchases/SuppliersPage";
 import { PosPage } from "../pages/pos/PosPage";
 import { SalesPage } from "../pages/sales/SalesPage";
 import { CompanySettingsPage } from "../pages/settings/CompanySettingsPage";
@@ -96,6 +98,19 @@ export const router = createBrowserRouter([
           {
             element: <PermissionRoute code="transfers.view" />,
             children: [{ path: "/admin/transferencias", element: <TransfersPage /> }],
+          },
+          {
+            element: <PermissionRoute code="purchases.view" />,
+            children: [{ path: "/admin/compras", element: <PurchasesPage /> }],
+          },
+          // Proveedores has no sidebar entry (it's reached from the Compras
+          // page) but still needs its own route-level gate: suppliers.manage
+          // is strictly narrower than the purchases.view that gets you to
+          // Compras, so without this anyone who could see purchases could
+          // reach the supplier editor by typing the URL.
+          {
+            element: <PermissionRoute code="suppliers.manage" />,
+            children: [{ path: "/admin/proveedores", element: <SuppliersPage /> }],
           },
           {
             element: <PermissionRoute code="sales.create" />,

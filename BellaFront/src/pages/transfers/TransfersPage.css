@@ -274,3 +274,12 @@
   .transfers-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
   .transfer-create__branches { grid-template-columns: 1fr; }
 }
+
+/* ---------- Modal-scoped re-assertion ----------
+   Modal.css's `.modal__body label` (specificity 0,1,1) forces
+   flex-direction: column on every <label> inside a modal, which beats
+   .transfer-create__search's own flex-row rule (0,1,0) and stacks the
+   search icon on top of the input instead of beside it. Same latent bug
+   found and fixed the same way in PurchasesPage.css — restated here at
+   matching specificity rather than with !important. */
+.modal__body .transfer-create__search { flex-direction: row; align-items: center; }

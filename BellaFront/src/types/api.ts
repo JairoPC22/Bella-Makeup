@@ -415,3 +415,65 @@ export interface OnlineOrder {
   notes: string | null;
   createdAt: string;
 }
+
+// ---------- Purchases ("compras") ----------
+// Shapes mirror BellaBack's purchaseRepository.purchaseInclude + the
+// `mapPurchase` wrapper in purchaseService.ts exactly (read from the Prisma
+// models and the include's explicit select allow-lists, not guessed).
+// `unitCost` is a Prisma Decimal and therefore arrives as a string over JSON,
+// the same convention as Sale's money fields.
+
+export type SupplierStatus = "ACTIVE" | "INACTIVE";
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  status: SupplierStatus;
+  createdAt: string;
+}
+
+export interface PurchaseItem {
+  id: string;
+  purchaseId: string;
+  productId: string;
+  variantId?: string | null;
+  expectedQuantity: number;
+  // Null until the purchase is received. 0 is distinct and meaningful:
+  // "this line was counted and nothing arrived".
+  receivedQuantity: number | null;
+  unitCost: string;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export type PurchaseStatus = "PENDING" | "COMPLETED" | "RECEIVED_WITH_DISCREPANCIES" | "CANCELLED";
+
+export interface Purchase {
+  id: string;
+  folio: number;
+  supplierId: string;
+  branchId: string;
+  reference?: string | null;
+  status: PurchaseStatus;
+  createdByUserId: string;
+  receivedByUserId?: string | null;
+  notes?: string | null;
+  cancelReason?: string | null;
+  createdAt: string;
+  receivedAt?: string | null;
+  cancelledAt?: string | null;
+  updatedAt: string;
+  // purchaseInclude selects these supplier columns only — no createdAt.
+  supplier: { id: string; name: string; contactName: string | null; phone: string | null; email: string | null; status: SupplierStatus };
+  branch: { id: string; name: string };
+  createdBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  receivedBy?: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
+  items: PurchaseItem[];
+  // Derived server-side in mapPurchase, not stored.
+  purchaseNumber: string;
+  itemCount: number;
+  discrepancyCount: number;
+}
