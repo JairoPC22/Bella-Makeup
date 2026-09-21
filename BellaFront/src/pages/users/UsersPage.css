@@ -57,3 +57,14 @@
   .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; width: 100%; }
   .users-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
 }
+
+/* Hint shown under the (disabled) role dropdown in UserFormModal when the
+   account being edited is an Administrator — see the isAdminAccount note
+   in UserFormModal.tsx. Sits inside the form's <label>, which is a
+   flex column, so it lands directly under the field it explains. */
+.user-form__role-locked {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  line-height: 1.35;
+}

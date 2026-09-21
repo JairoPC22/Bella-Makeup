@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Avatar } from "../../components/common/Avatar";
 import { StatusState } from "../../components/common/StatusState";
+import { Select } from "../../components/common/Select";
 import { listAudit } from "../../services/auditService";
 import * as branchService from "../../services/branchService";
 import * as userService from "../../services/userService";
@@ -75,18 +76,18 @@ export function AuditPage() {
       <h1>Actividad reciente</h1>
 
       <div className="audit-filters">
-        <select value={module} onChange={(e) => { setModule(e.target.value); setPage(1); }}>
+        <Select value={module} onChange={(e) => { setModule(e.target.value); setPage(1); }}>
           <option value="">Todos los módulos</option>
           {MODULES.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setPage(1); }}>
+        </Select>
+        <Select value={branchId} onChange={(e) => { setBranchId(e.target.value); setPage(1); }}>
           <option value="">Todas las sucursales</option>
           {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <select value={userId} onChange={(e) => { setUserId(e.target.value); setPage(1); }}>
+        </Select>
+        <Select value={userId} onChange={(e) => { setUserId(e.target.value); setPage(1); }}>
           <option value="">Todos los usuarios</option>
           {users.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
-        </select>
+        </Select>
         <label className="audit-filters__date">
           Desde
           <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />

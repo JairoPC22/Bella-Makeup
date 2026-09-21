@@ -34,7 +34,18 @@ export async function uploadProductImage(productId: string, file: Express.Multer
     throw new AppError(404, "Producto no encontrado");
   }
 
-  await resizeInPlace(file.path);
+  // A corrupt/truncated upload (bytes that pass multer's MIME sniff but
+  // that libvips can't actually decode) used to escape as a raw 500 with
+  // "Error interno del servidor" AND leave multer's already-written file
+  // orphaned in uploads/products forever, since nothing below this point
+  // ran. Mirror the not-found branch above: clean the stray file up and
+  // surface it as a 400 the user can act on.
+  try {
+    await resizeInPlace(file.path);
+  } catch {
+    await fs.unlink(file.path).catch(() => {});
+    throw new AppError(400, "La imagen está dañada o no se pudo procesar");
+  }
 
   const image = await productImageRepository.createImageWithAutoPrimary(productId, toRelativeUrl(file.filename));
 

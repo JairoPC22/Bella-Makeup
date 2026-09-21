@@ -32,6 +32,18 @@ export function UserFormModal({ open, onClose, onSaved, roles, branches, editing
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mirrors the backend guard in BellaBack/src/services/userService.ts's
+  // updateUser: an Administrator account's roleId can never be changed —
+  // not by that admin editing themselves (self-demotion), and not by a
+  // different admin editing them. The backend already throws a 400 for
+  // this, so what's here is purely the matching UI affordance: without it
+  // the dropdown looked fully editable and only failed on save, which
+  // reads as a bug rather than as an intentional rule. Keyed off
+  // role.code (stable) rather than role.name (renameable by an admin on
+  // the Roles page). Only applies when editing — a brand-new user can
+  // still be created with the admin role.
+  const isAdminAccount = editingUser?.role.code === "admin";
+
   function toggleBranch(id: string) {
     setBranchIds((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
   }
@@ -69,9 +81,18 @@ export function UserFormModal({ open, onClose, onSaved, roles, branches, editing
           <label>Contraseña<input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label>
         )}
         <label>Rol
-          <Select value={form.roleId} onChange={(e) => setForm({ ...form, roleId: e.target.value })}>
+          <Select
+            value={form.roleId}
+            onChange={(e) => setForm({ ...form, roleId: e.target.value })}
+            disabled={isAdminAccount}
+          >
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </Select>
+          {isAdminAccount && (
+            <span className="user-form__role-locked">
+              El rol de una cuenta de Administrador no se puede cambiar.
+            </span>
+          )}
         </label>
 
         <div className="user-form__branches">

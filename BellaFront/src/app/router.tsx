@@ -105,7 +105,21 @@ export const router = createBrowserRouter([
             element: <PermissionRoute code="sales.view" />,
             children: [{ path: "/admin/ventas", element: <SalesPage /> }],
           },
-          { path: "/admin/configuracion", element: <CompanySettingsPage /> },
+          // Gated to match Sidebar.tsx's NAV_ITEMS entry for this same
+          // path, which has always hidden "Configuración" behind
+          // settings.manage. Without this route-level gate the sidebar
+          // hiding was cosmetic only: any authenticated user (e.g. a
+          // cashier) could still reach the full company-settings form by
+          // typing the URL. The backend's PUT /api/company-settings is
+          // already requirePermission("settings.manage"), so a save would
+          // have 403'd — but the form still rendered and leaked company
+          // data. Note the backend GET is deliberately requireAuth-only
+          // (SaleReceipt.tsx needs company name/currency for every
+          // cashier's printed ticket), so this gate has to live here.
+          {
+            element: <PermissionRoute code="settings.manage" />,
+            children: [{ path: "/admin/configuracion", element: <CompanySettingsPage /> }],
+          },
           {
             element: <PermissionRoute code="audit.view" />,
             children: [{ path: "/admin/auditoria", element: <AuditPage /> }],

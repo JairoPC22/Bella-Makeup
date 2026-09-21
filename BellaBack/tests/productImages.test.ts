@@ -236,4 +236,32 @@ describe("Product images", () => {
       .attach("image", buffer, "test.jpg");
     expect(res.status).toBe(403);
   });
+
+  // An 8x8 PNG whose header parses (so multer's image/png MIME check and
+  // sharp's metadata() both succeed) but whose pixel data libpng refuses to
+  // fully decode. Before this was handled, it escaped as a bare 500 and left
+  // multer's already-written file orphaned in uploads/products.
+  const CORRUPT_PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAJUlEQVR42mP8z8BQz0AEYBxVSF+FjAxkAaYRHzBSPQxHFVJHIQCE7gX9b0zJfQAAAABJRU5ErkJggg==",
+    "base64"
+  );
+
+  it("rejects a corrupt image with 400 and leaves no orphaned file on disk", async () => {
+    const before = new Set(fs.readdirSync(UPLOADS_DIR));
+
+    const res = await request(app)
+      .post(`/api/products/${productId}/images`)
+      .set("Cookie", [cookie])
+      .attach("image", CORRUPT_PNG, { filename: "corrupt.png", contentType: "image/png" });
+
+    expect(res.status).toBe(400);
+
+    // No DB row for it...
+    const images = await prisma.productImage.findMany({ where: { productId } });
+    expect(images.every((i) => !i.url.includes("corrupt"))).toBe(true);
+
+    // ...and no stray file left behind by multer.
+    const after = fs.readdirSync(UPLOADS_DIR).filter((n) => !before.has(n));
+    expect(after).toEqual([]);
+  });
 });

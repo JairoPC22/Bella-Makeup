@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Camera, Share2, MessageCircle, CheckCircle2, FileText, Globe, Receipt, Link2, Undo2, ScrollText, ArrowUpRight } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
+import { Select } from "../../components/common/Select";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import * as settingsService from "../../services/companySettingsService";
 import type { CompanySettings } from "../../types/api";
@@ -73,12 +74,12 @@ export function CompanySettingsPage() {
           <div className="settings-section__grid">
             <label>Nombre comercial<input value={settings.companyName} onChange={(e) => setSettings({ ...settings, companyName: e.target.value })} required /></label>
             <label>Moneda
-              <select value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value })}>
+              <Select value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value })}>
                 <option value="MXN">MXN — Peso mexicano</option>
                 <option value="USD">USD — Dólar estadounidense</option>
                 <option value="EUR">EUR — Euro</option>
                 <option value="COP">COP — Peso colombiano</option>
-              </select>
+              </Select>
             </label>
             <label>Dirección<input value={settings.address ?? ""} onChange={(e) => setSettings({ ...settings, address: e.target.value })} /></label>
             <label>Teléfono<input value={settings.phone ?? ""} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} /></label>

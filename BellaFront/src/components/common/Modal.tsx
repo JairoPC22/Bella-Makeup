@@ -40,6 +40,23 @@ export function Modal({
     if (!open) setMounted(false);
   }
 
+  // Close on Escape. The overlay click and the header's X button were the
+  // only two ways out before this, which left every modal in the admin app
+  // (product form, Kardex, inventory adjustment, user form, attachment
+  // preview) ignoring the key users reach for first — and contradicted the
+  // note in UserMenu.tsx that closing on Escape is "how every other
+  // dropdown/menu in the app is expected to behave". Also what the
+  // WAI-ARIA dialog pattern requires. Bound while mounted only, so a
+  // closed modal never holds a listener.
+  useEffect(() => {
+    if (!mounted) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mounted, onClose]);
+
   // Lock background scroll while the modal is mounted so the page behind
   // it can't scroll independently of the modal's own internal scroll area.
   useEffect(() => {
