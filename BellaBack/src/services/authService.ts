@@ -8,10 +8,23 @@ import { mapRole } from "../utils/roleMapper";
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+// The single chokepoint through which every user object leaves this API
+// (/api/auth/me, /api/users, /api/profile all route through here), so it is
+// also the single place credential hashes get stripped. `pinHash` is
+// destructured out alongside `passwordHash` for exactly that reason: it is a
+// bcrypt hash of a 4-6 digit secret, which is brute-forceable offline in
+// seconds if it ever leaked, and the whole point of the supervisor-PIN
+// primitive is that nobody — not even an admin reading GET /api/users — can
+// learn who holds which PIN. Adding the field to the schema without adding
+// it here would have silently published it on three existing endpoints.
 export function toPublicUser(user: any) {
-  const { passwordHash, role, userBranches, ...rest } = user;
+  const { passwordHash, pinHash, role, userBranches, ...rest } = user;
   return {
     ...rest,
+    // Booleans, not the hash: the frontend legitimately needs to know
+    // whether the current user has a PIN configured (to show "set" vs
+    // "change" in the profile UI) without ever receiving the hash itself.
+    hasPin: Boolean(pinHash),
     role: mapRole(role),
     branches: userBranches?.map((ub: any) => ub.branch) ?? [],
   };

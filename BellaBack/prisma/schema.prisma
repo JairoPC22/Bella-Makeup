@@ -76,6 +76,7 @@ model Branch {
   transfersOut Transfer[]   @relation("TransferSourceBranch")
   transfersIn  Transfer[]   @relation("TransferDestinationBranch")
   orders       Order[]
+  purchases    Purchase[]
 
   @@map("branches")
 }
@@ -89,6 +90,16 @@ model User {
   email        String     @unique
   phone        String?
   passwordHash String     @map("password_hash")
+  // Supervisor authorization PIN — a SECOND credential, distinct from
+  // passwordHash, used only for the in-person co-sign primitive
+  // (POST /api/auth/verify-pin): a supervisor physically types it on the
+  // cashier's already-logged-in screen to authorize a sensitive action,
+  // the way a manager's key-turn authorizes a register override.
+  // Nullable because most staff never set one — only supervisor/manager/
+  // admin-grade users are expected to. Hashed with the exact same bcrypt
+  // utility as passwordHash (utils/password.ts), never stored in plaintext,
+  // and stripped at the API boundary by toPublicUser alongside passwordHash.
+  pinHash      String?    @map("pin_hash")
   avatarStyle  String     @default("adventurer") @map("avatar_style")
   avatarSeed   String     @map("avatar_seed")
   roleId       String     @map("role_id")
@@ -107,6 +118,8 @@ model User {
   salesMade     Sale[]         @relation("SalesMade")
   transfersRequested Transfer[]  @relation("TransfersRequested")
   transfersReceived  Transfer[]  @relation("TransfersReceived")
+  purchasesCreated   Purchase[]  @relation("PurchasesCreated")
+  purchasesReceived  Purchase[]  @relation("PurchasesReceived")
 
   @@map("users")
 }
@@ -243,6 +256,7 @@ model Product {
   saleItems     SaleItem[]
   transferItems TransferItem[]
   orderItems    OrderItem[]
+  purchaseItems PurchaseItem[]
 
   @@map("products")
   @@index([categoryId])
@@ -280,6 +294,7 @@ model ProductVariant {
   saleItems   SaleItem[]
   transferItems TransferItem[]
   orderItems  OrderItem[]
+  purchaseItems PurchaseItem[]
 
   @@map("product_variants")
 }
@@ -598,4 +613,96 @@ model OrderItem {
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@map("order_items")
+}
+
+// ---------- Compras (purchasing / supplier receiving) ----------
+// Mirrors the Transfer lifecycle's discipline ("congelado en tránsito, solo
+// se suma lo confirmado") but for supplier deliveries: a Purchase is created
+// with EXPECTED quantities and moves no stock at all, then a single receive
+// step records what physically ARRIVED and applies only that. A short or
+// over delivery is not an error — it's recorded as a discrepancy and the
+// stock still moves by the real amount, exactly like receiveTransfer never
+// blocks on a mismatch.
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// Deliberately no separate RECEIVING state: like Transfer, receiving happens
+// in one shot inside a single transaction, so a persisted intermediate state
+// would never be observable. PENDING is the only pre-receipt state; the two
+// terminal "received" states differ only by whether every line matched.
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  RECEIVED_WITH_DISCREPANCIES
+  CANCELLED
+}
+
+model Supplier {
+  id          String         @id @default(uuid())
+  name        String
+  contactName String?        @map("contact_name")
+  phone       String?
+  email       String?
+  status      SupplierStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  purchases Purchase[]
+
+  @@map("suppliers")
+}
+
+model Purchase {
+  id               String         @id @default(uuid())
+  folio            Int            @default(autoincrement())
+  supplierId       String         @map("supplier_id")
+  branchId         String         @map("branch_id")
+  // Free-text invoice/remission number printed on the supplier's paperwork —
+  // not unique and not validated, since suppliers each use their own format.
+  reference        String?
+  status           PurchaseStatus @default(PENDING)
+  createdByUserId  String         @map("created_by_user_id")
+  receivedByUserId String?        @map("received_by_user_id")
+  notes            String?
+  cancelReason     String?        @map("cancel_reason")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  receivedAt       DateTime?      @map("received_at")
+  cancelledAt      DateTime?      @map("cancelled_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  supplier   Supplier       @relation(fields: [supplierId], references: [id])
+  branch     Branch         @relation(fields: [branchId], references: [id])
+  createdBy  User           @relation("PurchasesCreated", fields: [createdByUserId], references: [id])
+  receivedBy User?          @relation("PurchasesReceived", fields: [receivedByUserId], references: [id])
+  items      PurchaseItem[]
+
+  @@map("purchases")
+  @@index([branchId])
+  @@index([supplierId])
+  @@index([createdAt])
+}
+
+model PurchaseItem {
+  id               String  @id @default(uuid())
+  purchaseId       String  @map("purchase_id")
+  productId        String  @map("product_id")
+  variantId        String? @map("variant_id")
+  expectedQuantity Int     @map("expected_quantity")
+  // Null until the purchase is received. 0 is a meaningful, distinct value
+  // ("the line was checked and nothing arrived"), which is exactly why this
+  // is nullable rather than defaulting to 0.
+  receivedQuantity Int?    @map("received_quantity")
+  // What was actually paid for this line on THIS delivery. Kept per-line and
+  // immutable so historical purchases still show the cost in effect at the
+  // time, independent of Product.cost drifting later.
+  unitCost         Decimal @map("unit_cost") @db.Decimal(10, 2)
+
+  purchase Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product         @relation(fields: [productId], references: [id])
+  variant  ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@map("purchase_items")
+  @@index([purchaseId])
 }

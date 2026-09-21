@@ -46,6 +46,17 @@ const PERMISSIONS: Array<{ code: string; description: string }> = [
   { code: "purchases.view", description: "Ver compras" },
   { code: "purchases.create", description: "Crear compras" },
   { code: "purchases.receive", description: "Recibir compras" },
+  { code: "purchases.cancel", description: "Cancelar compras" },
+  // Supervisor co-sign permission for the PIN primitive
+  // (POST /api/auth/verify-pin). Named after the existing
+  // "discounts.authorize" precedent — an *authorize* permission marks
+  // "this role may approve someone else's sensitive action", which is
+  // exactly the question verify-pin asks of each candidate supervisor.
+  // Granted to the same supervisor-grade roles discounts.authorize is
+  // (Administrator + Branch Manager) and to nobody who merely operates
+  // the purchasing module day to day.
+  { code: "purchases.authorize", description: "Autorizar con PIN operaciones sensibles de compras" },
+  { code: "suppliers.manage", description: "Gestionar proveedores" },
   { code: "reports.view", description: "Ver reportes" },
   { code: "audit.view", description: "Ver auditoría" },
   { code: "ecommerce.manage", description: "Gestionar catálogo ecommerce" },
@@ -73,7 +84,15 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
       "products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive",
       "sales.view", "sales.cancel", "sales.return", "discounts.authorize",
       "transfers.view", "transfers.create", "transfers.receive", "transfers.cancel",
-      "users.view", "branches.view", "purchases.view", "purchases.receive", "reports.view", "audit.view",
+      "users.view", "branches.view", "reports.view", "audit.view",
+      // Compras: a branch manager runs receiving on the ground, so they get
+      // view/create/receive. They also get purchases.cancel because that is
+      // exactly the precedent transfers.cancel already set for this role
+      // (Administrator + Branch Manager are the only roles that may cancel a
+      // transfer; the operator roles that create them — Almacenista — are
+      // deliberately not trusted to unwind them). purchases.authorize follows
+      // discounts.authorize's precedent: supervisor-grade roles only.
+      "purchases.view", "purchases.create", "purchases.receive", "purchases.cancel", "purchases.authorize",
       "messages.view", "messages.send",
       // Online orders placed via the public storefront need to be
       // fulfillable by staff on the ground — a branch manager, like an
@@ -96,13 +115,23 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     name: "Almacenista",
     description:
       "Gestiona entradas, salidas, inventarios físicos, movimientos de mercancía y transferencias autorizadas.",
-    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "messages.view", "messages.send"],
+    // Almacenista already holds inventory.receive ("Recibir
+    // transferencias/compras") and transfers.view/create/receive — receiving
+    // supplier deliveries is literally this role's job, so it gets the
+    // matching purchases.view/create/receive. It does NOT get
+    // purchases.cancel, mirroring exactly how it does not get
+    // transfers.cancel.
+    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "purchases.view", "purchases.create", "purchases.receive", "messages.view", "messages.send"],
   },
   {
     code: "purchasing",
     name: "Compras",
     description: "Gestiona proveedores, órdenes/compras y recepción de mercancía.",
-    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "inventory.view", "messages.view", "messages.send"],
+    // Owns the supplier master data (suppliers.manage) since suppliers are a
+    // purchasing concern, not a branch-owned one. Still no purchases.cancel:
+    // same conservative line drawn for Almacenista above — the role that
+    // raises a purchase order is not the role that may unwind it.
+    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "suppliers.manage", "inventory.view", "messages.view", "messages.send"],
   },
   {
     code: "online_store_admin",
@@ -114,7 +143,10 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     code: "viewer",
     name: "Consulta / Reportes",
     description: "Puede consultar información y reportes autorizados sin modificar operaciones críticas.",
-    permissions: ["products.view", "inventory.view", "sales.view", "transfers.view", "reports.view", "branches.view", "messages.view"],
+    // purchases.view added for the same reason this role already has
+    // sales.view and transfers.view: purchases are read-only operational
+    // data of exactly that class. Still no create/receive/cancel/authorize.
+    permissions: ["products.view", "inventory.view", "sales.view", "transfers.view", "purchases.view", "reports.view", "branches.view", "messages.view"],
   },
 ];
 

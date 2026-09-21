@@ -22,6 +22,8 @@ import messageRoutes from "./routes/message.routes";
 import customerRoutes from "./routes/customer.routes";
 import saleRoutes from "./routes/sale.routes";
 import transferRoutes from "./routes/transfer.routes";
+import purchaseRoutes from "./routes/purchase.routes";
+import supplierRoutes from "./routes/supplier.routes";
 import publicRoutes from "./routes/public.routes";
 import orderRoutes from "./routes/order.routes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -104,6 +106,8 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/transfers", transferRoutes);
+app.use("/api/purchases", purchaseRoutes);
+app.use("/api/suppliers", supplierRoutes);
 // /api/public — the anonymous storefront surface, a sibling root next to
 // every authenticated /api/* router above, not nested under any of them.
 // No requireAuth anywhere in public.routes.ts by design.
