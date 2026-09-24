@@ -135,8 +135,12 @@ export function DateRangePicker({
   const previewStart = draftFrom && !draftTo && hoverDate ? (draftFrom < hoverDate ? draftFrom : hoverDate) : rangeStart;
   const previewEnd = draftFrom && !draftTo && hoverDate ? (draftFrom < hoverDate ? hoverDate : draftFrom) : rangeEnd;
 
+  function formatShort(iso: string): string {
+    return fromIso(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+  }
+
   const label = from && to
-    ? (from === to ? fromIso(from).toLocaleDateString("es-MX", { day: "2-digit", month: "short" }) : `${fromIso(from).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })} – ${fromIso(to).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}`)
+    ? (from === to ? formatShort(from) : `${formatShort(from)} – ${formatShort(to)}`)
     : "Selecciona un rango";
 
   return (
@@ -207,7 +211,11 @@ export function DateRangePicker({
 
           <div className="date-range-picker__footer">
             <span className="date-range-picker__footer-hint">
-              {draftFrom && !draftTo ? "Elige la fecha final" : draftFrom && draftTo ? `${draftFrom} a ${draftTo}` : "Elige la fecha inicial"}
+              {draftFrom && !draftTo
+                ? "Elige la fecha final"
+                : draftFrom && draftTo
+                  ? (draftFrom === draftTo ? formatShort(draftFrom) : `${formatShort(draftFrom)} – ${formatShort(draftTo)}`)
+                  : "Elige la fecha inicial"}
             </span>
             <button type="button" className="date-range-picker__apply" onClick={apply} disabled={!draftFrom}>
               Aplicar
