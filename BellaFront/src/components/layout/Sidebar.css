@@ -161,22 +161,33 @@
 }
 .sidebar__link--active .sidebar__link-icon svg { color: var(--color-pink-elegant); }
 
-/* Collapse toggle: a standalone circular icon button, no text/tooltip —
-   the icon itself (panel-open/panel-close) already conveys the action.
-   Sits in its own row above the nav, pinned to the right edge in the
-   expanded rail; centers itself once the rail narrows. Desktop-only,
+/* Pie del sidebar: una franja propia separada del menú por una línea
+   divisoria, para que el botón de colapsar se lea como su propia sección
+   (como el pie de cualquier panel lateral) en vez de un botón suelto
+   flotando después del último link. Alineado a la izquierda para
+   continuar la misma columna que los íconos del menú de arriba. */
+.sidebar__footer {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: flex;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Standalone circular icon button, no text/tooltip — the icon itself
+   (panel-open/panel-close) already conveys the action. Desktop-only,
    matching where the button is shown at all (hidden under 769px). */
 .sidebar__toggle {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  align-self: flex-end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 40px;
   height: 40px;
-  margin: 0 0 var(--space-2);
   border: none;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
@@ -190,7 +201,7 @@
 .sidebar__toggle:active { transform: scale(0.94); }
 
 @media (min-width: 769px) {
-  .sidebar--collapsed .sidebar__toggle { align-self: center; }
+  .sidebar--collapsed .sidebar__footer { justify-content: center; }
 }
 
 /* ---------- Collapsed rail: icons only, centered, tooltip on hover ---------- */
@@ -337,5 +348,5 @@
   .sidebar__link-icon { width: 22px; }
   .sidebar__link-icon svg { width: 19px; height: 19px; }
   .sidebar__link-label { overflow: visible; white-space: normal; }
-  .sidebar__toggle { display: none; }
+  .sidebar__footer { display: none; }
 }

@@ -153,15 +153,17 @@ export function Sidebar() {
 
         {navList}
 
-        <button
-          type="button"
-          className="sidebar__toggle"
-          onClick={() => setCollapsed((c) => !c)}
-          aria-pressed={collapsed}
-          aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
-        >
-          {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
-        </button>
+        <div className="sidebar__footer">
+          <button
+            type="button"
+            className="sidebar__toggle"
+            onClick={() => setCollapsed((c) => !c)}
+            aria-pressed={collapsed}
+            aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+          >
+            {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+          </button>
+        </div>
       </aside>
     </>
   );
