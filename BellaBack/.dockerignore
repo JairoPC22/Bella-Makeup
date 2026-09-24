@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.test
+uploads/*
+!uploads/.gitkeep
+!uploads/products/.gitkeep
+tests
