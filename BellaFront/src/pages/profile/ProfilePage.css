@@ -34,6 +34,7 @@
 .profile-card__span2 { grid-column: 1 / -1; }
 
 .profile-card label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--color-text-secondary); }
+.profile-card__hint { font-size: 0.76rem; font-weight: 400; color: var(--color-text-muted); }
 .profile-card input { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-body); transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium); }
 .profile-card input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
 

@@ -109,7 +109,17 @@ function CompanySettingsTab() {
               </Select>
             </label>
             <label>Dirección<input value={settings.address ?? ""} onChange={(e) => setSettings({ ...settings, address: e.target.value })} /></label>
-            <label>Teléfono<input value={settings.phone ?? ""} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} /></label>
+            <label>
+              Teléfono
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="555 123 4567"
+                value={settings.phone ?? ""}
+                onChange={(e) => setSettings({ ...settings, phone: e.target.value.replace(/[^\d\s+()-]/g, "") })}
+              />
+              <small className="settings-section__hint">Solo números (puedes usar espacios, guiones o +).</small>
+            </label>
             <label>
               <span className="settings-section__label-with-icon"><Receipt size={14} /> RFC / Identificación fiscal</span>
               <input placeholder="XAXX010101000" value={settings.taxId ?? ""} onChange={(e) => setSettings({ ...settings, taxId: e.target.value })} />

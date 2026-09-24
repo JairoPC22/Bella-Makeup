@@ -119,7 +119,17 @@ export function ProfilePage({ embedded = false }: { embedded?: boolean }) {
           <label>Apellido<input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required /></label>
           <label className="profile-card__span2">Nombre mostrado<input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required /></label>
           <label>Correo<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label>
-          <label>Teléfono<input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+          <label>
+            Teléfono
+            <input
+              type="tel"
+              inputMode="numeric"
+              placeholder="555 123 4567"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^\d\s+()-]/g, "") })}
+            />
+            <small className="profile-card__hint">Solo números (puedes usar espacios, guiones o +).</small>
+          </label>
         </div>
         <div className="profile-card__actions">
           <button type="submit" disabled={saveState === "saving"}>{saveState === "saving" ? "Guardando..." : "Guardar cambios"}</button>
