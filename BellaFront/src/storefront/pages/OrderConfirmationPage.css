@@ -1,8 +1,6 @@
-/* ---------- Success banner ---------- */
-/* The confirmation is the highest-emotion screen in the whole flow and
-   used to be the plainest: a small tick, two grey lines, then straight
-   into two bordered boxes. It now opens on its own ink band with the
-   order number treated as a real artifact. */
+/* ---------- Banner de éxito ----------
+   La pantalla de confirmación abre con su propia banda de color y el
+   número de orden tratado como un elemento propio, no solo texto plano. */
 
 .storefront-confirmation__banner {
   position: relative;
@@ -103,7 +101,7 @@
   color: var(--color-primary-on-dark);
 }
 
-/* ---------- Detail blocks ---------- */
+/* ---------- Bloques de detalle ---------- */
 
 .storefront-confirmation__layout {
   display: grid;
@@ -230,7 +228,7 @@
   line-height: 1.55;
 }
 
-/* ---------- Footer CTA ---------- */
+/* ---------- CTA del pie ---------- */
 
 .storefront-confirmation__footer {
   display: flex;
@@ -263,7 +261,7 @@
 }
 .storefront-confirmation__back a:hover { text-decoration: underline; }
 
-/* ---------- Order lookup fallback ---------- */
+/* ---------- Búsqueda de orden alternativa ---------- */
 
 .storefront-confirmation__lookup-wrap {
   display: flex;

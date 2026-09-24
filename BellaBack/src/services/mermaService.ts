@@ -5,6 +5,8 @@ import { applyMovement } from "./inventoryService";
 import { logAudit } from "./auditService";
 import { verifySupervisorPin, PIN_GENERIC_ERROR } from "./pinAuthService";
 import { resolveUnitPrice } from "./saleService";
+import { assertBranchAccess, getAccessibleBranchIds } from "./branchAccessService";
+import { getSettings as getCompanySettings } from "./companySettingsService";
 import * as mermaRepo from "../repositories/mermaRepository";
 
 export type MermaType =
@@ -25,38 +27,18 @@ export interface RegisterMermaInput {
   type: MermaType;
   comments: string;
   items: MermaItemInput[];
-  pinCode: string;
+  // Solo se exige cuando CompanySettings.requirePinForShrinkage está activo.
+  pinCode?: string;
 }
 
-// Identical to saleService/returnService's own round2 — see the note in
-// returnService.ts about why it is duplicated rather than extracted.
+// Idéntico al round2 de saleService/returnService (duplicado a propósito, ver returnService.ts).
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-// "M-" for Merma, alongside "V-" (Venta), "C-" (Compra), "T-"
-// (Transferencia) and "D-" (Devolución), same 6-digit zero padding.
+// "M-" de Merma, junto a "V-", "C-", "T-" y "D-", mismo padding de 6 dígitos.
 export function formatMermaNumber(folio: number): string {
   return `M-${String(folio).padStart(6, "0")}`;
-}
-
-// Mirrors saleService/purchaseService/returnService verbatim — same
-// rationale documented there (requireBranchScope only reads req.params; a
-// merma's branchId arrives in the request body).
-async function assertBranchAccess(client: Prisma.TransactionClient, userId: string, branchId: string): Promise<void> {
-  const user = await client.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return;
-  const assignment = await client.userBranch.findUnique({ where: { userId_branchId: { userId, branchId } } });
-  if (!assignment) throw new AppError(403, "Sin acceso a esta sucursal");
-}
-
-async function getAccessibleBranchIds(userId: string): Promise<string[] | "ALL"> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return "ALL";
-  const rows = await prisma.userBranch.findMany({ where: { userId }, select: { branchId: true } });
-  return rows.map((r) => r.branchId);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,12 +66,9 @@ interface MermaPlan {
   totalRetailImpact: number;
 }
 
-// Read-only validation + money snapshotting for one write-off. Same
-// two-pass discipline as returnService.buildReturnPlan: run once before the
-// PIN check for error quality (it writes nothing, so it cannot violate the
-// wrong-PIN-no-side-effects guarantee), then again inside the write
-// transaction, where it is the authoritative check — a concurrent sale could
-// consume the stock this merma is about to write off.
+// Validación de solo lectura + cálculo de montos para una baja. Igual patrón
+// de dos pasadas que returnService.buildReturnPlan: primero antes del PIN
+// (no escribe nada), luego dentro de la transacción como chequeo final.
 async function buildMermaPlan(
   client: Prisma.TransactionClient,
   input: RegisterMermaInput,
@@ -102,11 +81,8 @@ async function buildMermaPlan(
   if (branch.status === "INACTIVE") throw new AppError(400, `La sucursal "${branch.name}" está inactiva`);
 
   if (input.items.length === 0) throw new AppError(400, "La merma debe tener al menos un artículo");
-  // Defensive: merma.validators.ts already enforces this at the API
-  // boundary, but the mandatory-explanation rule is a business rule, not a
-  // transport concern, and this function is exported territory for future
-  // callers (an import script, a scheduled expiry sweep) that may not go
-  // through the validator.
+  // Defensivo: el validador ya lo exige, pero es una regla de negocio y esta
+  // función puede ser llamada por otros flujos que no pasen por el validador.
   if (!input.comments || input.comments.trim().length === 0) {
     throw new AppError(400, "El comentario es obligatorio para registrar una merma");
   }
@@ -128,21 +104,20 @@ async function buildMermaPlan(
       if (variant.productId !== product.id) throw new AppError(400, "La variante no pertenece al producto indicado");
     }
 
-    // Note there is deliberately no INACTIVE check on the product/variant
-    // here, unlike createSale: discontinued stock is exactly the stock most
-    // likely to expire or be written off as a tester, and refusing to record
-    // that loss would leave phantom units on the books forever.
+    // A propósito no se valida INACTIVE aquí (a diferencia de createSale):
+    // el stock descontinuado es justo el que más probablemente caduque o se
+    // dé de baja como tester, y rechazar el registro dejaría esas unidades
+    // fantasma en el inventario para siempre.
 
-    // Snapshotted now, never re-derived on read: what the business paid for
-    // the unit, and what it would have sold for today.
+    // Se toma la foto ahora (nunca se recalcula al leer): costo pagado y precio de venta actual.
     const unitCost = product.cost.toNumber();
     const unitRetail = resolveUnitPrice(product, variant);
 
     totalCostImpact = round2(totalCostImpact + round2(unitCost * item.quantity));
     totalRetailImpact = round2(totalRetailImpact + round2(unitRetail * item.quantity));
 
-    // Explicit availability pre-check for a clear, named message.
-    // applyMovement stays the authoritative guard inside the transaction.
+    // Verificación previa de disponibilidad, para un mensaje claro; applyMovement
+    // sigue siendo la validación autoritativa dentro de la transacción.
     const inventoryRow = await client.inventory.findFirst({
       where: { productId: item.productId, variantId: item.variantId ?? null, branchId: input.branchId },
     });
@@ -168,27 +143,31 @@ async function buildMermaPlan(
 }
 
 export async function registerMerma(input: RegisterMermaInput, actorId: string) {
-  // Phase 1: read-only validation, for error quality. Writes nothing.
+  // Fase 1: validación de solo lectura, para mensajes de error claros.
   await buildMermaPlan(prisma, input, actorId);
 
-  // Phase 2: supervisor authorization, up front. Same discipline as
-  // returnService.processReturn — the permission checked belongs to the PIN
-  // HOLDER, not the requesting staff member, and a failure throws the exact
-  // generic message the primitive itself uses, before any stock moves or any
-  // row is written.
-  const auth = await verifySupervisorPin(actorId, input.pinCode, "shrinkage.authorize");
-  if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+  // Fase 2: autorización del supervisor, antes de escribir nada. Igual que
+  // returnService.processReturn: el permiso es del titular del PIN, no del
+  // solicitante. Configurable por CompanySettings.requirePinForShrinkage: si
+  // está apagado, la merma se autoatribuye en vez de exigir un supervisor.
+  const settings = await getCompanySettings();
+  let authorizedByUserId = actorId;
+  if (settings.requirePinForShrinkage) {
+    const auth = await verifySupervisorPin(actorId, input.pinCode ?? "", "shrinkage.authorize");
+    if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+    authorizedByUserId = auth.supervisorId;
+  }
 
-  // Phase 3: the atomic write.
+  // Fase 3: la escritura atómica.
   const created = await prisma.$transaction(async (tx) => {
-    // Authoritative re-validation under the transaction's own snapshot.
+    // Revalidación autoritativa bajo el snapshot de la transacción.
     const plan = await buildMermaPlan(tx, input, actorId);
 
     const merma = await mermaRepo.createMerma(
       {
         branchId: input.branchId,
         requestedByUserId: actorId,
-        authorizedByUserId: auth.supervisorId,
+        authorizedByUserId,
         type: input.type,
         comments: input.comments.trim(),
         totalCostImpact: plan.totalCostImpact,
@@ -210,13 +189,8 @@ export async function registerMerma(input: RegisterMermaInput, actorId: string) 
         tx
       );
 
-      // MovementType.ADJUSTMENT, reused as-is rather than given its own
-      // type: a merma IS a manual stock adjustment. What makes it different
-      // from a blind correction is not the movement, it is the audited
-      // document this movement references — which carries the category, the
-      // mandatory explanation, the authorizing supervisor and the money
-      // impact. The kardex row points at merma.id, so any adjustment in the
-      // ledger can be traced back to its reason.
+      // Reutiliza MovementType.ADJUSTMENT: una merma es un ajuste manual de
+      // stock; lo que la distingue es el documento auditado al que apunta (merma.id).
       await applyMovement(
         {
           productId: line.productId,

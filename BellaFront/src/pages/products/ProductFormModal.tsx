@@ -15,9 +15,9 @@ interface ProductFormModalProps {
   onSaved: (product: Product) => void;
   categories: Category[];
   brands: Brand[];
-  /** Bubbles a newly-created category/brand up to ProductsPage so its own
-   *  filter-bar selects (which share this same state) pick it up right
-   *  away, without a manual refetch or page reload. */
+  /** Propaga una categoría/marca recién creada hacia ProductsPage para que
+   *  los selects de su barra de filtros (que comparten este mismo estado)
+   *  la reflejen de inmediato, sin necesidad de recargar o refetch manual. */
   onCategoryCreated: (category: Category) => void;
   onBrandCreated: (brand: Brand) => void;
   editingProduct?: Product;
@@ -54,12 +54,11 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
   });
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
 
-  // `product` starts as whatever was passed in (edit-from-list flow). In the
-  // create flow it starts undefined and only gets set once the POST
-  // succeeds — that transition is what turns this same modal instance into
-  // an "edit this product I just made" view (variants become read-only,
-  // ImageUploader becomes available) without the user closing/reopening
-  // anything, per this task's UX requirement.
+  // `product` inicia con lo que se pasó por props (flujo editar-desde-lista).
+  // En el flujo de creación empieza undefined y se asigna solo cuando el POST
+  // tiene éxito; esa transición convierte esta misma instancia del modal en
+  // una vista de "editar el producto recién creado" (variantes de solo
+  // lectura, se habilita ImageUploader) sin que el usuario cierre y reabra.
   const [product, setProduct] = useState<Product | undefined>(editingProduct);
   const wasCreatedThisSession = !editingProduct && !!product;
 
@@ -67,9 +66,9 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
   const [error, setError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
 
-  // Inline "+ Nueva categoría" / "+ Nueva marca" affordance — swaps the
-  // <select> for a text input + confirm/cancel in place, rather than
-  // opening a modal-within-a-modal.
+  // Recurso inline "+ Nueva categoría" / "+ Nueva marca": reemplaza el
+  // <select> por un input de texto con confirmar/cancelar en el mismo lugar,
+  // en vez de abrir un modal dentro de otro modal.
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categorySaving, setCategorySaving] = useState(false);
@@ -172,11 +171,11 @@ export function ProductFormModal({ open, onClose, onSaved, categories, brands, o
         const updated = await productService.updateProduct(product.id, base);
         setProduct(updated);
         onSaved(updated);
-        // Only the edit-from-list flow auto-closes (matches the rest of the
-        // app's modal convention). The just-created-this-session flow stays
-        // open — closing here would undo the whole point of transitioning
-        // into edit mode in place, before the user has had a chance to
-        // attach images.
+        // Solo el flujo de editar-desde-lista cierra automáticamente (sigue
+        // la convención de modales del resto de la app). El flujo de
+        // recién-creado-en-esta-sesión permanece abierto: cerrarlo aquí
+        // anularía el propósito de pasar a modo edición in situ antes de
+        // que el usuario pueda adjuntar imágenes.
         if (editingProduct) onClose();
       } else {
         const variants = variantRows

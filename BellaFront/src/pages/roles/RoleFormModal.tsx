@@ -13,15 +13,11 @@ interface RoleFormModalProps {
   permissionLabels: Record<string, string>;
 }
 
-// Codes are derived from the name (not hand-typed) so a non-technical admin
-// never has to think about the "solo minúsculas/números/guion bajo" backend
-// rule — they type a normal name and this mirrors it into a valid code,
-// which they can still override for special cases.
+// El código se deriva del nombre para que el admin no tenga que pensar en la
+// regla del backend (solo minúsculas/números/guion bajo); se puede sobrescribir.
 function slugify(name: string): string {
-  // Drop combining diacritical marks (U+0300-U+036F) left behind by NFD
-  // normalization character-by-character, rather than a regex literal
-  // containing the marks themselves — keeps this file's source free of
-  // invisible/hard-to-diff combining characters.
+  // Elimina marcas diacríticas combinantes (U+0300-U+036F) una por una, en
+  // vez de un regex literal con esos caracteres invisibles en el código.
   const withoutAccents = Array.from(name.normalize("NFD"))
     .filter((ch) => {
       const code = ch.codePointAt(0) ?? 0;

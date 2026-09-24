@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma";
 import { AppError } from "../utils/AppError";
 import { applyMovement } from "./inventoryService";
 import { logAudit } from "./auditService";
+import { assertBranchAccess, getAccessibleBranchIds } from "./branchAccessService";
 import * as purchaseRepo from "../repositories/purchaseRepository";
 
 export interface PurchaseItemInput {
@@ -25,39 +26,16 @@ export interface ReceivePurchaseItemInput {
   receivedQuantity: number;
 }
 
-// "C-" for Compra, alongside saleService's "V-" (Venta) and transferService's
-// "T-" (Transferencia), with the same 6-digit zero padding.
+// "C-" de Compra, junto a "V-" (Venta) de saleService y "T-" (Transferencia)
+// de transferService, con el mismo relleno de ceros a 6 dígitos.
 export function formatPurchaseNumber(folio: number): string {
   return `C-${String(folio).padStart(6, "0")}`;
 }
 
-// Mirrors transferService.ts's assertBranchAccess verbatim, which in turn
-// mirrors saleService.ts's — same rationale as documented there: the
-// requireBranchScope middleware only reads req.params, and a purchase's
-// branchId arrives in the request body, so there is no live shared helper to
-// reuse for this case.
-async function assertBranchAccess(client: Prisma.TransactionClient, userId: string, branchId: string): Promise<void> {
-  const user = await client.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return;
-  const assignment = await client.userBranch.findUnique({ where: { userId_branchId: { userId, branchId } } });
-  if (!assignment) throw new AppError(403, "Sin acceso a esta sucursal");
-}
-
-async function getAccessibleBranchIds(userId: string): Promise<string[] | "ALL"> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return "ALL";
-  const rows = await prisma.userBranch.findMany({ where: { userId }, select: { branchId: true } });
-  return rows.map((r) => r.branchId);
-}
-
-// Mirrors mapTransfer, plus `discrepancyCount` — the number of
-// already-received lines whose actual quantity differed from what was
-// ordered. Derived rather than stored (it is a pure function of the items) so
-// it can never fall out of sync, and surfaced because reconciling differences
-// is the entire point of this module: the receiving list needs to show "3 of
-// 12 lines came up short" without the client recomputing it.
+// Igual que mapTransfer, más `discrepancyCount`: el número de líneas ya
+// recibidas cuya cantidad real difirió de lo pedido. Se calcula, no se
+// guarda (es función pura de los items), para que nunca se desincronice; se
+// expone porque conciliar diferencias es el propósito de este módulo.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapPurchase(purchase: any) {
   return {
@@ -71,12 +49,12 @@ function mapPurchase(purchase: any) {
   };
 }
 
-// Step 1 of 2. Records what was ORDERED and moves no stock whatsoever —
-// nothing has physically arrived yet. This is the deliberate difference from
-// createTransfer, which decrements the source branch immediately because
-// goods really have left it at that moment. A purchase order is a statement
-// of intent about a third party we do not control, so inventory stays
-// untouched until someone counts what came off the truck.
+// Paso 1 de 2. Registra lo PEDIDO y no mueve stock alguno: nada ha llegado
+// físicamente aún. Es la diferencia deliberada con createTransfer, que
+// descuenta la sucursal origen de inmediato porque la mercancía sí salió.
+// Una orden de compra es una declaración de intención sobre un tercero que
+// no controlamos, así que el inventario no se toca hasta que alguien cuenta
+// lo que bajó del camión.
 export async function createPurchase(input: CreatePurchaseInput, actorId: string) {
   if (input.items.length === 0) {
     throw new AppError(400, "La compra debe tener al menos un artículo");
@@ -127,8 +105,8 @@ export async function createPurchase(input: CreatePurchaseInput, actorId: string
           productId: item.productId,
           variantId: item.variantId,
           expectedQuantity: item.expectedQuantity,
-          // Explicitly null, not 0: "not yet counted" and "counted, none
-          // arrived" are different facts and must stay distinguishable.
+          // Explícitamente null, no 0: "aún no contado" y "contado, no llegó
+          // nada" son hechos distintos y deben seguir siendo distinguibles.
           receivedQuantity: null,
           unitCost: new Prisma.Decimal(item.unitCost),
         },
@@ -153,25 +131,23 @@ export async function createPurchase(input: CreatePurchaseInput, actorId: string
   return mapPurchase(purchase);
 }
 
-// Step 2 of 2, and the reason this module exists. Only valid from PENDING.
+// Paso 2 de 2, y la razón de ser de este módulo. Solo válido desde PENDING.
 //
-// The governing rule, straight from the spec and matching receiveTransfer's
-// discipline: a mismatch is NEVER an error. A short delivery, an over
-// delivery, or a line that did not arrive at all are all ordinary facts of
-// receiving goods from a third party. The system records the difference and
-// moves stock by what ACTUALLY arrived — it does not refuse the delivery, and
-// it does not quietly credit the branch with quantities nobody ever counted.
+// Regla rectora, igual disciplina que receiveTransfer: un desajuste NUNCA es
+// un error. Una entrega corta, de más, o una línea que no llegó son hechos
+// normales al recibir mercancía de un tercero. El sistema registra la
+// diferencia y mueve stock por lo que REALMENTE llegó, sin rechazar la
+// entrega ni acreditar cantidades que nadie contó.
 //
-// Lines omitted from the payload are treated as receivedQuantity 0 rather
-// than left null. Leaving them null would make a fully received purchase
-// carry "not yet counted" lines forever and make the COMPLETED vs
-// RECEIVED_WITH_DISCREPANCIES decision incoherent; 0 is the honest reading of
-// "the receiver closed out this delivery and this line was not in it".
+// Las líneas omitidas del payload se tratan como receivedQuantity 0, no se
+// dejan en null: dejarlas null haría que una compra totalmente recibida
+// cargara líneas "sin contar" para siempre. Cero es la lectura honesta de
+// "quien recibió cerró esta entrega y esta línea no vino en ella".
 //
-// Over-delivery (receivedQuantity > expectedQuantity) is allowed and counted
-// as a discrepancy rather than rejected, symmetrically with a shortfall: if
-// 13 units physically arrived against an order of 12, refusing to record the
-// 13th would put the system permanently out of step with the shelf.
+// La sobre-entrega (receivedQuantity > expectedQuantity) se permite y se
+// cuenta como discrepancia en vez de rechazarse, simétrico con un faltante:
+// si llegaron 13 unidades de un pedido de 12, negarse a registrar la 13
+// dejaría el sistema permanentemente desalineado con el anaquel.
 export async function receivePurchase(
   id: string,
   input: { items: ReceivePurchaseItemInput[] },
@@ -211,10 +187,10 @@ export async function receivePurchase(
       await purchaseRepo.setPurchaseItemReceived(item.id, receivedQuantity, tx);
 
       if (receivedQuantity > 0) {
-        // Every stock change in this app goes through applyMovement — it is
-        // the only writer of inventory.stock and it writes the kardex row in
-        // the same transaction. MovementType.PURCHASE already exists in the
-        // schema enum and is reused as-is.
+        // Todo cambio de stock en esta app pasa por applyMovement: es el
+        // único que escribe inventory.stock y escribe la fila de kardex en
+        // la misma transacción. MovementType.PURCHASE ya existe en el enum
+        // del esquema y se reutiliza tal cual.
         await applyMovement(
           {
             productId: item.productId,
@@ -228,15 +204,14 @@ export async function receivePurchase(
           tx
         );
 
-        // Judgment call (flagged in the report): Product.cost is refreshed to
-        // the unit cost actually paid on this delivery. Cost tracking that
-        // ignores the most recent real purchase goes stale immediately and
-        // silently corrupts every margin report downstream, so the latest
-        // real invoice is the best available answer. Only lines that actually
-        // arrived update it — a line that never showed up tells us nothing
-        // about current cost. Note this is last-cost, not weighted-average
-        // costing; the per-line unitCost stays on PurchaseItem forever, so
-        // moving to a weighted average later needs no schema change.
+        // Decisión de criterio: Product.cost se actualiza al costo unitario
+        // realmente pagado en esta entrega. Ignorar la compra real más
+        // reciente corrompería silenciosamente los reportes de margen, así
+        // que la última factura real es la mejor referencia disponible.
+        // Solo las líneas que sí llegaron lo actualizan. Es costo último,
+        // no promedio ponderado; el unitCost por línea queda en
+        // PurchaseItem, así que migrar a promedio ponderado no requiere
+        // cambio de esquema.
         await purchaseRepo.updateProductCost(item.productId, item.unitCost, tx);
       }
     }
@@ -273,11 +248,11 @@ export async function receivePurchase(
   return mapPurchase(updated);
 }
 
-// Only valid from PENDING. Unlike cancelTransfer there is nothing to reverse:
-// a PENDING purchase has never touched inventory, so cancelling is a pure
-// status change. Once received, the stock is real and on the shelf — undoing
-// that is a return/adjustment, a different operation with its own audit
-// requirements, not a cancellation.
+// Solo válido desde PENDING. A diferencia de cancelTransfer no hay nada que
+// revertir: una compra PENDING nunca tocó el inventario, así que cancelar es
+// un cambio de estado puro. Una vez recibida, el stock es real y está en el
+// anaquel; deshacerlo es una devolución/ajuste, otra operación con sus
+// propios requisitos de auditoría, no una cancelación.
 export async function cancelPurchase(id: string, reason: string, actorId: string) {
   const updated = await prisma.$transaction(async (tx) => {
     const purchase = await purchaseRepo.findPurchaseById(id, tx);
@@ -317,10 +292,9 @@ export interface ListPurchasesFilters {
   to?: Date;
 }
 
-// Branch-scoped exactly like transferService.listTransfers: `allBranches`
-// sees everything, everyone else is restricted to their assigned branches,
-// and an explicit branchId outside that set is a 403 rather than a silently
-// empty list.
+// Filtrado por sucursal igual que transferService.listTransfers:
+// `allBranches` ve todo, el resto solo sus sucursales asignadas, y un
+// branchId explícito fuera de ese conjunto es 403 en vez de una lista vacía.
 export async function listPurchases(actorId: string, filters: ListPurchasesFilters) {
   const accessible = await getAccessibleBranchIds(actorId);
   if (accessible !== "ALL" && filters.branchId && !accessible.includes(filters.branchId)) {
@@ -351,9 +325,9 @@ export async function getPurchase(id: string, actorId: string) {
   return mapPurchase(purchase);
 }
 
-// ---------- Suppliers ----------
-// No branch scoping: suppliers are company-wide master data, so every branch
-// orders from the same catalog.
+// ---------- Proveedores ----------
+// Sin filtro de sucursal: los proveedores son catálogo maestro de toda la
+// empresa, cada sucursal pide del mismo catálogo.
 
 export async function listSuppliers(filters: { status?: "ACTIVE" | "INACTIVE" } = {}) {
   return purchaseRepo.listSuppliers(filters.status);

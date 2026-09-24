@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
 import "./FaqPage.css";
@@ -69,7 +69,11 @@ export function FaqPage() {
           const buttonId = `faq-trigger-${index}`;
           const panelId = `faq-panel-${index}`;
           return (
-            <div className={`storefront-faq-item${isOpen ? " storefront-faq-item--open" : ""}`} key={item.question}>
+            <div
+              className={`storefront-faq-item animate-in-stagger${isOpen ? " storefront-faq-item--open" : ""}`}
+              key={item.question}
+              style={{ "--stagger-delay": `${Math.min(index, 8) * 60}ms` } as CSSProperties}
+            >
               <h3 className="storefront-faq-item__heading">
                 <button
                   type="button"

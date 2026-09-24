@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pencil, Save, X, ShieldAlert, AlertTriangle, Plus, Trash2, Lock } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Modal } from "../../components/common/Modal";
+import HoldButton from "../../components/common/HoldButton";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { ApiError } from "../../services/apiClient";
 import { listRoles, updateRolePermissions, deleteRole } from "../../services/roleService";
@@ -9,11 +10,9 @@ import { RoleFormModal } from "./RoleFormModal";
 import type { Role } from "../../types/api";
 import "./RolesPage.css";
 
-// There is no GET /api/permissions catalog endpoint yet, so the universe of
-// every known permission code is derived from the "admin" role's own
-// permissions array — by design (see BellaBack/prisma/seed.ts) admin is
-// always seeded with every permission that exists. Falls back to the union
-// across all roles if, for some reason, no admin-coded role is present.
+// Aún no existe un endpoint GET /api/permissions, así que el universo de
+// permisos se deriva del propio rol "admin" (siempre sembrado con todos los
+// permisos existentes). Si no hay rol admin, se usa la unión de todos los roles.
 function derivePermissionUniverse(roles: Role[]): string[] {
   const admin = roles.find((r) => r.code === "admin");
   if (admin) return [...admin.permissions].sort();
@@ -22,11 +21,10 @@ function derivePermissionUniverse(roles: Role[]): string[] {
   return Array.from(union).sort();
 }
 
-// Human-readable labels for every permission code — mirrors the
-// descriptions seeded in BellaBack/prisma/seed.ts's PERMISSIONS list.
-// Raw codes (products.view, roles.manage, ...) read as internal plumbing to
-// a non-technical admin; the label is what's shown, the code stays visible
-// as a small caption/title for anyone who needs the literal value.
+// Etiquetas legibles para cada código de permiso. Los códigos crudos
+// (products.view, roles.manage...) parecen plomería interna para un admin
+// no técnico; la etiqueta es lo que se muestra, el código queda visible
+// solo como un caption pequeño.
 const PERMISSION_LABELS: Record<string, string> = {
   "products.view": "Ver productos",
   "products.create": "Crear productos",
@@ -55,22 +53,43 @@ const PERMISSION_LABELS: Record<string, string> = {
   "purchases.view": "Ver compras",
   "purchases.create": "Crear compras",
   "purchases.receive": "Recibir compras",
+  "purchases.cancel": "Cancelar compras",
+  "purchases.authorize": "Autorizar con PIN operaciones sensibles de compras",
+  "suppliers.manage": "Gestionar proveedores",
   "reports.view": "Ver reportes",
   "audit.view": "Ver actividad reciente",
   "ecommerce.manage": "Gestionar catálogo ecommerce",
   "orders.view": "Ver pedidos online",
   "orders.update": "Actualizar pedidos online",
   "settings.manage": "Gestionar configuración de la empresa",
+  // Estos códigos existen en el backend (BellaBack/prisma/seed.ts) pero
+  // faltaban aquí — sin etiqueta, se mostraban como el código crudo
+  // ("transfers.view", "messages.send"...) mezclado con el resto de chips
+  // ya traducidos, lo que hacía ver la tarjeta de cada rol como un
+  // revoltijo inconsistente.
+  "transfers.view": "Ver transferencias entre sucursales",
+  "transfers.create": "Crear transferencias entre sucursales",
+  "transfers.receive": "Recibir transferencias entre sucursales",
+  "transfers.cancel": "Cancelar transferencias entre sucursales",
+  "returns.view": "Ver devoluciones y cambios",
+  "returns.create": "Registrar devoluciones y cambios",
+  "returns.authorize": "Autorizar con PIN devoluciones y cambios",
+  "shrinkage.view": "Ver mermas",
+  "shrinkage.create": "Registrar mermas",
+  "shrinkage.authorize": "Autorizar con PIN mermas",
+  "cash.manage": "Abrir y cerrar la caja propia",
+  "cash.audit": "Auditar cortes de caja de cualquier cajero",
+  "messages.view": "Ver mensajes entre sucursales",
+  "messages.send": "Enviar mensajes entre sucursales",
 };
 
 function permissionLabel(code: string): string {
   return PERMISSION_LABELS[code] ?? code;
 }
 
-// Generous, not exhaustive: anything that grants broad administrative
-// control, lets a role escalate/manage other accounts, or has a
-// destructive/financial-override effect. Erring toward flagging more
-// rather than fewer permissions, per the task's explicit instruction.
+// Lista generosa, no exhaustiva: cualquier permiso con control
+// administrativo amplio, que permita escalar/gestionar otras cuentas, o
+// con efecto destructivo/financiero. Se prefiere marcar de más que de menos.
 const SENSITIVE_PERMISSIONS: Record<string, string> = {
   "roles.manage": "Permite modificar los permisos de cualquier rol, incluido este mismo — control administrativo total sobre accesos.",
   "settings.manage": "Permite cambiar la configuración general de la empresa.",
@@ -92,8 +111,8 @@ function isSensitive(code: string): boolean {
   return code in SENSITIVE_PERMISSIONS;
 }
 
-// Groups "products.view" -> "products" so the editable checklist reads as
-// sectioned modules instead of one flat wall of chips.
+// Agrupa "products.view" -> "products" para que el checklist editable se
+// vea como módulos seccionados en vez de un muro plano de chips.
 function moduleOf(code: string): string {
   return code.split(".")[0];
 }
@@ -102,10 +121,26 @@ const MODULE_LABELS: Record<string, string> = {
   products: "Productos", inventory: "Inventario", sales: "Ventas", discounts: "Descuentos",
   users: "Usuarios", roles: "Roles", branches: "Sucursales", purchases: "Compras",
   reports: "Reportes", audit: "Actividad reciente", ecommerce: "Tienda en línea", orders: "Pedidos",
-  settings: "Configuración",
+  settings: "Configuración", transfers: "Transferencias", returns: "Devoluciones y cambios",
+  shrinkage: "Mermas", cash: "Caja", messages: "Mensajes", suppliers: "Proveedores",
 };
 
-export function RolesPage() {
+// El orden en que se listan los módulos dentro de cada tarjeta — sin esto,
+// Object.entries de un Map construido a partir del arreglo de permisos de
+// cada rol seguía el orden en que la API los devolviera (que no es fijo),
+// así que los mismos módulos aparecían en distinto orden de una tarjeta a
+// otra. Mismo orden en todas las tarjetas y en el editor.
+const MODULE_ORDER = [
+  "products", "inventory", "transfers", "purchases", "suppliers", "sales", "returns", "shrinkage",
+  "discounts", "cash", "orders", "ecommerce", "users", "roles", "branches", "messages",
+  "reports", "audit", "settings",
+];
+function moduleSortIndex(mod: string): number {
+  const i = MODULE_ORDER.indexOf(mod);
+  return i === -1 ? MODULE_ORDER.length : i;
+}
+
+export function RolesPage({ embedded = false }: { embedded?: boolean }) {
   const [roles, setRoles] = useState<Role[] | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -134,8 +169,29 @@ export function RolesPage() {
       if (!map.has(mod)) map.set(mod, []);
       map.get(mod)!.push(code);
     });
-    return Array.from(map.entries());
+    return Array.from(map.entries()).sort((a, b) => moduleSortIndex(a[0]) - moduleSortIndex(b[0]));
   }, [universe]);
+
+  // Orden fijo y predecible para las tarjetas: los roles del sistema
+  // primero (en el mismo orden en que el backend los siembra — admin,
+  // gerente de sucursal, cajero, almacenista, compras, tienda en línea,
+  // solo lectura), luego los roles personalizados del negocio en orden
+  // alfabético. Antes las tarjetas salían en el orden crudo que devolvía
+  // la API (orden de creación en la base de datos), que no tiene ninguna
+  // lógica visible y es justo lo que se veía "en desorden".
+  const SYSTEM_ROLE_ORDER = ["admin", "branch_manager", "cashier", "warehouse", "purchasing", "online_store_admin", "viewer"];
+  const sortedRoles = useMemo(() => {
+    if (!roles) return [];
+    return [...roles].sort((a, b) => {
+      if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
+      if (a.isSystem && b.isSystem) {
+        const ai = SYSTEM_ROLE_ORDER.indexOf(a.code);
+        const bi = SYSTEM_ROLE_ORDER.indexOf(b.code);
+        return (ai === -1 ? SYSTEM_ROLE_ORDER.length : ai) - (bi === -1 ? SYSTEM_ROLE_ORDER.length : bi);
+      }
+      return a.name.localeCompare(b.name, "es");
+    });
+  }, [roles]);
 
   function startEditing(role: Role) {
     setEditingRoleId(role.id);
@@ -214,7 +270,7 @@ export function RolesPage() {
     <div className="roles-page">
       <div className="roles-page__header">
         <div>
-          <h1>Roles</h1>
+          {!embedded && <h1>Roles</h1>}
           <p className="roles-page__subtitle">Consulta los permisos de cada rol. Los usuarios con permiso "Gestionar roles y permisos" pueden editarlos, crear roles nuevos o eliminar los que ya no se usen.</p>
         </div>
         <PermissionGate code="roles.manage">
@@ -225,7 +281,7 @@ export function RolesPage() {
       </div>
 
       <div className="roles-grid">
-        {roles.map((role, i) => {
+        {sortedRoles.map((role, i) => {
           const editing = editingRoleId === role.id;
           const activePermissions = editing ? pending : new Set(role.permissions);
           return (
@@ -242,13 +298,31 @@ export function RolesPage() {
               <p className="role-card__description">{role.description}</p>
 
               {!editing && (
-                <div className="role-card__permissions">
+                <div className="role-card__view">
                   {role.permissions.length === 0 && <span className="role-card__empty">Sin permisos asignados</span>}
-                  {role.permissions.map((p) => (
-                    <span key={p} className={`role-card__permission${isSensitive(p) ? " role-card__permission--sensitive" : ""}`} title={p}>
-                      {isSensitive(p) && <ShieldAlert size={11} />} {permissionLabel(p)}
-                    </span>
-                  ))}
+                  {role.permissions.length > 0 && (() => {
+                    // Mismo agrupado por módulo que el editor (grouped ya
+                    // viene en MODULE_ORDER), filtrado a solo los permisos
+                    // que este rol realmente tiene — antes esto era un
+                    // muro plano de chips en el orden crudo del arreglo de
+                    // la API, sin ninguna agrupación visual.
+                    const own = new Set(role.permissions);
+                    return grouped
+                      .map(([mod, codes]) => [mod, codes.filter((c) => own.has(c))] as const)
+                      .filter(([, codes]) => codes.length > 0)
+                      .map(([mod, codes]) => (
+                        <div key={mod} className="role-card__module">
+                          <p className="role-card__module-label">{MODULE_LABELS[mod] ?? mod}</p>
+                          <div className="role-card__permissions">
+                            {codes.map((p) => (
+                              <span key={p} className={`role-card__permission${isSensitive(p) ? " role-card__permission--sensitive" : ""}`} title={p}>
+                                {isSensitive(p) && <ShieldAlert size={11} />} {permissionLabel(p)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                  })()}
                 </div>
               )}
 
@@ -341,9 +415,29 @@ export function RolesPage() {
           {deleteError && <p className="roles-page__error">{deleteError}</p>}
           <div className="roles-confirm__actions">
             <button type="button" className="roles-confirm__cancel" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</button>
-            <button type="button" className="roles-confirm__accept" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? "Eliminando..." : "Sí, eliminar"}
-            </button>
+            {/* React Bits' HoldButton (adapted into components/common) —
+                a press-and-hold is a much harder accidental confirm than
+                a single tap, which is exactly the extra friction a
+                permanent, unrecoverable delete should have. */}
+            <HoldButton
+              disabled={deleting}
+              onHold={confirmDelete}
+              holdTime={1400}
+              size="sm"
+              radius={999}
+              backgroundColor="#FBE5E1"
+              fillColor="#B3261E"
+              textColor="#B3261E"
+              fillTextColor="#ffffff"
+              /* No es 0 (quedaría "listo" para siempre): confirmDelete puede
+                 fallar (ej. el rol aún tiene usuarios asignados) y el modal
+                 sigue abierto con un error. Reiniciar tras ~1s regresa el
+                 botón a su estado inicial en vez de quedar atorado en
+                 "listo" con un error visible arriba. */
+              resetAfter={1000}
+            >
+              Mantén para eliminar
+            </HoldButton>
           </div>
         </div>
       </Modal>

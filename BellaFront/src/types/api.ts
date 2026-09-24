@@ -9,6 +9,18 @@ export interface Branch {
   createdAt: string;
 }
 
+export interface BranchRevenueRow {
+  branchId: string;
+  branchName: string;
+  revenue: number;
+  saleCount: number;
+}
+
+export interface BranchRevenueReport {
+  rows: BranchRevenueRow[];
+  grandTotal: number;
+}
+
 export interface Role {
   id: string;
   code: string;
@@ -51,6 +63,11 @@ export interface CompanySettings {
   taxId?: string | null;
   website?: string | null;
   returnPolicy?: string | null;
+  requirePinForDiscounts: boolean;
+  requirePinForReturns: boolean;
+  requirePinForShrinkage: boolean;
+  allowPinForSaleCancel: boolean;
+  allowPinForInventoryAdjust: boolean;
 }
 
 export interface Category {
@@ -111,14 +128,9 @@ export interface Product {
   brand?: Brand | null;
 }
 
-// Real shape returned by GET /api/inventory (see
-// BellaBack/src/repositories/inventoryRepository.ts's listInventory —
-// `include: { product: true, variant: true, branch: true }`) is the FULL
-// Prisma row for each relation, not just `{id, name}`. Only fields actually
-// consumed by a frontend page are added here (sku/minStock, needed by the
-// Inventory page's table + adjustment modal); existing consumers
-// (DashboardPage.tsx) only ever read `id`/`name`/`stock`/`status`, so this
-// is purely additive.
+// GET /api/inventory devuelve la fila completa de Prisma para cada
+// relación, no solo {id, name}. Aquí solo se agregan los campos que
+// realmente consume el frontend (sku/minStock).
 export interface InventoryRow {
   id: string;
   stock: number;
@@ -128,9 +140,8 @@ export interface InventoryRow {
   branch: { id: string; name: string };
 }
 
-// Kardex row — GET /api/inventory/:productId/movements. `user` is scoped
-// server-side to a display-safe subset (id/displayName/avatarStyle/
-// avatarSeed), never the full User row.
+// Fila de kardex — GET /api/inventory/:productId/movements. `user` es un
+// subconjunto seguro para mostrar, nunca la fila completa de User.
 export interface InventoryMovement {
   id: string;
   productId: string;
@@ -147,6 +158,55 @@ export interface InventoryMovement {
   user: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
 }
 
+// ---------- Inventarios físicos parciales (conteos por categoría, marca o
+// selección manual) ----------
+// Refleja el include de inventoryCountRepository + mapCount de
+// inventoryCountService (folio -> countNumber, diferencia por ítem).
+
+export type InventoryCountStatus = "OPEN" | "COMPLETED" | "CANCELLED";
+
+export interface InventoryCountItem {
+  id: string;
+  countId: string;
+  productId: string;
+  variantId?: string | null;
+  // Se omite (no existe como clave) mientras el conteo está OPEN, para no
+  // revelar el stock esperado antes de contar (conteo ciego). Solo aparece
+  // al quedar COMPLETED o CANCELLED.
+  systemStock?: number;
+  // Null hasta que esta línea realmente se cuenta.
+  countedStock?: number | null;
+  countedAt?: string | null;
+  // Calculado en el servidor (mapCount): null mientras está OPEN o sin contar.
+  difference: number | null;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export interface InventoryCount {
+  id: string;
+  folio: number;
+  branchId: string;
+  categoryId?: string | null;
+  brandId?: string | null;
+  status: InventoryCountStatus;
+  notes?: string | null;
+  startedByUserId: string;
+  completedByUserId?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+  branch: { id: string; name: string };
+  category?: { id: string; name: string } | null;
+  brand?: { id: string; name: string } | null;
+  startedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  completedBy?: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
+  items: InventoryCountItem[];
+  // Calculado en el servidor, no se guarda.
+  countNumber: string;
+  itemCount: number;
+  countedItemCount: number;
+}
+
 export interface MessageAttachment {
   id: string;
   fileName: string;
@@ -155,10 +215,9 @@ export interface MessageAttachment {
   size: number;
 }
 
-// A person on the other end of a message/conversation — the sender is
-// always "whoever is logged in", so branch is display-only context here
-// (computed live from the user's own branches/allBranches), never stored
-// per-message.
+// La persona del otro lado de una conversación. La sucursal es solo
+// contexto visual (calculado de sus branches/allBranches), nunca se
+// guarda por mensaje.
 export interface MessagingParty {
   id: string;
   displayName: string;
@@ -179,12 +238,8 @@ export interface Message {
   attachments: MessageAttachment[];
 }
 
-// One row of a conversation's participant list — the person plus THEIR OWN
-// lastReadAt on this conversation. For a 1:1 conversation, the entry whose
-// user.id !== me is what the "Visto" indicator (Task 3) is built from: any
-// of my own messages with createdAt <= that entry's lastReadAt has been
-// seen. Present on both the conversation-list response and the
-// conversation-detail (message-list) response.
+// Una fila de la lista de participantes de una conversación: la persona más
+// su propio lastReadAt. En un 1:1, sirve para calcular el indicador "Visto".
 export interface ConversationParticipant {
   user: MessagingParty;
   lastReadAt: string | null;
@@ -201,10 +256,9 @@ export interface Conversation {
   messages: Message[]; // last-message preview, same as before
 }
 
-// GET /messages/conversations/:id/messages now returns this envelope
-// instead of a bare Message[] — `conversation.participants` is what powers
-// the "Visto" indicator and the group participant list inside an open
-// thread, without a second round trip.
+// GET /messages/conversations/:id/messages devuelve este sobre en vez de
+// un Message[] plano; `conversation.participants` alimenta el indicador
+// "Visto" y la lista de participantes sin una segunda petición.
 export interface ConversationMessagesResponse {
   conversation: {
     id: string;
@@ -215,10 +269,9 @@ export interface ConversationMessagesResponse {
   messages: Message[];
 }
 
-// GET /api/customers, POST /api/customers response shape — every field but
-// id/createdAt is nullable since a customer can be quick-created from the
-// POS with just a firstName or just a phone (see customer.validators.ts's
-// createCustomerSchema .refine).
+// Forma de respuesta de GET/POST /api/customers: todos los campos salvo
+// id/createdAt son nulables porque un cliente puede crearse rápido desde el
+// POS con solo un nombre o un teléfono.
 export interface Customer {
   id: string;
   firstName?: string | null;
@@ -228,11 +281,9 @@ export interface Customer {
   createdAt: string;
 }
 
-// Sale/SaleItem/SalePayment money fields are Prisma Decimal columns, which
-// serialize over JSON as strings (e.g. "258", "129.50") — verified live
-// against a real POST /api/sales response, not assumed. Every consumer
-// (PosPage totals preview, SaleReceipt) must Number(...) these before doing
-// arithmetic or formatting as currency.
+// Los campos de dinero de Sale/SaleItem/SalePayment son Decimal de Prisma
+// y llegan como strings por JSON. Cada consumidor debe hacer Number(...)
+// antes de operar o formatear como moneda.
 export interface SaleItem {
   id: string;
   saleId: string;
@@ -254,10 +305,9 @@ export interface SalePayment {
   reference?: string | null;
 }
 
-// Shared shape for create/list/detail/cancel (saleRepository.ts's
-// saleInclude + saleService.ts's mapSale) — ticketNumber/customerName/
-// itemCount are always present; changeDue is only ever present on the
-// response from POST /api/sales (createSale), omitted from list/detail/cancel.
+// Forma compartida entre create/list/detail/cancel. ticketNumber/
+// customerName/itemCount siempre están presentes; changeDue solo aparece
+// en la respuesta de POST /api/sales (createSale).
 export interface Sale {
   id: string;
   folio: number;
@@ -296,17 +346,11 @@ export interface AuditLogEntry {
   details?: Record<string, unknown> | null;
 }
 
-// Shared shape for create/list/detail/receive/cancel responses — mirrors
-// transferRepository.ts's `transferInclude` + transferService.ts's
-// mapTransfer exactly (verified against prisma/schema.prisma's Transfer/
-// TransferItem models, not guessed). sourceBranch/destinationBranch are
-// deliberately the lighter `{id,name}` subset here (not the full Branch
-// type), since that's genuinely all the include selects — the page
-// cross-references the already-loaded full Branch list when it needs an
-// address. requestedBy/receivedBy are display-safe user subsets, never the
-// full User row (no passwordHash). transferNumber/itemCount are
-// server-computed additions (formatTransferNumber(folio) and
-// items.length), same convention as Sale's ticketNumber/itemCount.
+// Forma compartida de las respuestas create/list/detail/receive/cancel.
+// sourceBranch/destinationBranch son el subconjunto ligero {id,name} (la
+// página cruza con la lista completa de sucursales para direcciones).
+// requestedBy/receivedBy son subconjuntos seguros de usuario (sin
+// passwordHash). transferNumber/itemCount se calculan en el servidor.
 export interface TransferItem {
   id: string;
   transferId: string;
@@ -340,12 +384,10 @@ export interface Transfer {
   itemCount: number;
 }
 
-// ---------- Public storefront ("la tienda en línea") types ----------
-// Contract for the not-yet-built /api/public/* backend surface — see
-// storefrontService.ts. Deliberately separate/lighter shapes than the
-// admin Product/Category/Brand/Branch types above (e.g. no `status`, no
-// `cost`/`taxRate`) since a public shopper never needs internal-only
-// fields, and this is a distinct read model, not a reuse of the admin one.
+// ---------- Tipos públicos del storefront ("la tienda en línea") ----------
+// Contrato de /api/public/* (ver storefrontService.ts). Formas separadas y
+// más ligeras que los tipos admin de arriba (sin `status`, `cost`,
+// `taxRate`...), ya que un comprador público no necesita campos internos.
 
 export interface PublicCategory { id: string; name: string; }
 export interface PublicBrand { id: string; name: string; }
@@ -376,11 +418,9 @@ export interface PublicBranch {
   id: string; name: string; address: string | null; phone: string | null;
   schedule: string | null; lat: number | null; lng: number | null;
 }
-// GET /api/public/company — company-wide contact info for the storefront
-// (floating WhatsApp button, footer map, etc). Distinct from the
-// authenticated CompanySettings type used by the admin panel's
-// companySettingsService — this is the deliberately lighter, public-safe
-// read model, same "Public*"-prefixed convention as the types above.
+// GET /api/public/company: info de contacto para el storefront (botón de
+// WhatsApp, mapa del footer, etc). Distinto del CompanySettings
+// autenticado del panel admin; este es el modelo público más ligero.
 export interface PublicCompanyInfo {
   companyName: string;
   address: string | null;
@@ -413,15 +453,25 @@ export interface OnlineOrder {
   subtotal: string; taxTotal: string; total: string;
   items: OnlineOrderItem[];
   notes: string | null;
+  cancelReason: string | null;
+  // Promesa de listo definida por el personal; null hasta que se define.
+  estimatedReadyAt: string | null;
+  // Código de verificación de 6 dígitos para recoger, se define al llegar
+  // a READY. Siempre null en pedidos DELIVERY.
+  pickupCode: string | null;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  completedAt: string | null;
   createdAt: string;
+  // Presente solo cuando el pedido queda COMPLETED: el folio de venta real
+  // ("V-000123") en que se convirtió.
+  saleNumber: string | null;
 }
 
-// ---------- Purchases ("compras") ----------
-// Shapes mirror BellaBack's purchaseRepository.purchaseInclude + the
-// `mapPurchase` wrapper in purchaseService.ts exactly (read from the Prisma
-// models and the include's explicit select allow-lists, not guessed).
-// `unitCost` is a Prisma Decimal and therefore arrives as a string over JSON,
-// the same convention as Sale's money fields.
+// ---------- Compras ("purchases") ----------
+// Refleja purchaseRepository.purchaseInclude + el wrapper mapPurchase de
+// purchaseService.ts. `unitCost` es Decimal de Prisma y llega como string,
+// misma convención que los campos de dinero de Sale.
 
 export type SupplierStatus = "ACTIVE" | "INACTIVE";
 
@@ -441,8 +491,8 @@ export interface PurchaseItem {
   productId: string;
   variantId?: string | null;
   expectedQuantity: number;
-  // Null until the purchase is received. 0 is distinct and meaningful:
-  // "this line was counted and nothing arrived".
+  // Null hasta que se recibe la compra. 0 es distinto y significativo:
+  // "esta línea se contó y no llegó nada".
   receivedQuantity: number | null;
   unitCost: string;
   product: { id: string; name: string; sku: string };
@@ -466,14 +516,161 @@ export interface Purchase {
   receivedAt?: string | null;
   cancelledAt?: string | null;
   updatedAt: string;
-  // purchaseInclude selects these supplier columns only — no createdAt.
+  // purchaseInclude solo selecciona estas columnas de supplier, sin createdAt.
   supplier: { id: string; name: string; contactName: string | null; phone: string | null; email: string | null; status: SupplierStatus };
   branch: { id: string; name: string };
   createdBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
   receivedBy?: { id: string; displayName: string; avatarStyle: string; avatarSeed: string } | null;
   items: PurchaseItem[];
-  // Derived server-side in mapPurchase, not stored.
+  // Calculado en el servidor en mapPurchase, no se guarda.
   purchaseNumber: string;
   itemCount: number;
   discrepancyCount: number;
+}
+
+// ---------- Caja (sesiones de cajón de efectivo) ----------
+// Refleja cashSessionRepository.cashSessionInclude + la lista estricta de
+// campos de mapSession en cashSessionService.ts. Los campos de dinero son
+// Decimal de Prisma y llegan como strings, igual que los totales de Sale.
+
+export type CashSessionStatus = "OPEN" | "CLOSED" | "CLOSED_WITH_DISCREPANCY";
+
+// Una línea del conteo físico ciego, capturada a mano. Se guarda como
+// columna JSON en el servidor, así que llega como números crudos (no
+// strings de Decimal), los únicos campos numéricos de este tipo que no son string.
+export interface CashBreakdownLine {
+  denomination: number;
+  count: number;
+}
+
+export interface CashSession {
+  id: string;
+  branchId: string;
+  userId: string;
+  openingFloat: string;
+  status: CashSessionStatus;
+  // La declaración ciega del propio cajero. Null mientras la sesión está
+  // OPEN (claves realmente en null, a diferencia de los 4 campos de abajo).
+  declaredCashBreakdown?: CashBreakdownLine[] | null;
+  declaredCashTotal?: string | null;
+  declaredCardTotal?: string | null;
+
+  // ---- Solo se revelan al cerrar ----
+  // OPCIONAL (no `| null`) a propósito: mapSession OMITE estas cuatro
+  // claves por completo en una sesión abierta, en vez de enviarlas como
+  // null, para que el cajero no pueda ver el total esperado y ajustar su
+  // conteo para que coincida (el fraude que el cierre ciego busca detectar).
+  // El código consumidor debe tratar `undefined` como "aún no revelado" y
+  // nunca convertirlo a 0 (`Number(undefined)` es NaN y `?? 0` inventaría
+  // un total que el servidor decidió no revelar).
+  systemCashTotal?: string;
+  systemCardTotal?: string;
+  cashDifference?: string;
+  cardDifference?: string;
+
+  openedAt: string;
+  closedAt?: string | null;
+  branch: { id: string; name: string };
+  user: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+}
+
+// ---------- Devoluciones y cambios ----------
+// Refleja returnRepository.returnInclude + mapReturn de returnService.ts.
+// `originalSale` es el select acotado que realmente especifica el include
+// (id/folio/total/createdAt/status/branchId), NO un Sale completo.
+
+export type ReturnResolution = "EXACT_EXCHANGE" | "CUSTOMER_OWES" | "REFUND_OWED";
+export type ReturnItemDirection = "RETURNED" | "NEW";
+
+export interface ReturnItem {
+  id: string;
+  returnId: string;
+  direction: ReturnItemDirection;
+  // Null en líneas NEW, que no vienen de un ítem de venta original.
+  saleItemId?: string | null;
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  unitPrice: string;
+  // Solo aplica a líneas RETURNED; siempre false en las NEW.
+  restocked: boolean;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export interface Return {
+  id: string;
+  folio: number;
+  originalSaleId: string;
+  branchId: string;
+  processedByUserId: string;
+  authorizedByUserId: string;
+  returnedTotal: string;
+  newItemsTotal: string;
+  // newItemsTotal - returnedTotal, con signo: positivo = el cliente debe,
+  // negativo = se le debe reembolso, exactamente 0 = cambio parejo.
+  balance: string;
+  resolution: ReturnResolution;
+  // Solo se guarda cuando resolution es CUSTOMER_OWES.
+  paymentMethod?: "CASH" | "CARD" | "TRANSFER" | "OTHER" | null;
+  notes?: string | null;
+  createdAt: string;
+  originalSale: { id: string; folio: number; total: string; createdAt: string; status: Sale["status"]; branchId: string };
+  branch: { id: string; name: string };
+  processedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  // El supervisor cuyo PIN coincidió. Nunca la fila completa de User (esa
+  // relación lleva el pinHash bcrypt del que depende este control).
+  authorizedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  items: ReturnItem[];
+  // Calculado en el servidor en mapReturn, no se guarda.
+  returnNumber: string;
+  originalTicketNumber?: string;
+  returnedItemCount: number;
+  newItemCount: number;
+}
+
+// ---------- Mermas (bajas por pérdida) ----------
+// Refleja mermaRepository.mermaInclude + mapMerma de mermaService.ts.
+
+export type MermaType =
+  | "TESTER_EXHIBICION"
+  | "DANO_EN_TIENDA"
+  | "CADUCIDAD_VENCIDO"
+  | "MUESTRA_REGALO_CLIENTE"
+  | "DEFECTO_PROVEEDOR";
+
+export interface MermaItem {
+  id: string;
+  mermaId: string;
+  productId: string;
+  variantId?: string | null;
+  quantity: number;
+  // Se captura al momento de la baja, así un cambio de precio posterior
+  // nunca reescribe una pérdida histórica. cost es el golpe real a P&L,
+  // retail es el ingreso que se perdió.
+  unitCost: string;
+  unitRetail: string;
+  product: { id: string; name: string; sku: string };
+  variant?: { id: string; name: string; sku: string } | null;
+}
+
+export interface Merma {
+  id: string;
+  folio: number;
+  branchId: string;
+  requestedByUserId: string;
+  authorizedByUserId: string;
+  type: MermaType;
+  comments: string;
+  totalCostImpact: string;
+  totalRetailImpact: string;
+  createdAt: string;
+  branch: { id: string; name: string };
+  requestedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  authorizedBy: { id: string; displayName: string; avatarStyle: string; avatarSeed: string };
+  items: MermaItem[];
+  // Calculado en el servidor en mapMerma, no se guarda.
+  mermaNumber: string;
+  itemCount: number;
+  totalUnits: number;
 }

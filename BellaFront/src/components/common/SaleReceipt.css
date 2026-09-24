@@ -1,10 +1,9 @@
-/* ---------- SaleReceipt — narrow, printable ticket ----------
-   Used both right after POS checkout (PosPage) and from the sales-history
-   detail view (SalesPage), always inside a Modal or a dedicated panel —
-   never full-width, per the "looks like an actual receipt" brief. Dashed
-   dividers between sections mirror a real till receipt's perforation/rule
-   lines; the totals block's final row is visually emphasized (bold/larger)
-   so the number a cashier actually cares about is unmistakable. */
+/* ---------- SaleReceipt — ticket angosto e imprimible ----------
+   Se usa tanto después del checkout en POS como desde el historial de ventas,
+   siempre dentro de un Modal o panel dedicado, nunca a ancho completo, para
+   que se vea como un recibo real. Los divisores punteados imitan las líneas
+   de un ticket físico; el total final se destaca (negrita/más grande) para
+   que sea inconfundible para el cajero. */
 
 .sale-receipt {
   display: flex;
@@ -36,9 +35,8 @@
 .sale-receipt__print-btn:hover { background: var(--color-primary-focus); }
 .sale-receipt__print-btn:active { transform: scale(0.98); }
 
-/* The "paper" itself — narrow, white, card-styled with a soft shadow so it
-   reads as a physical slip sitting on the page rather than just another
-   panel. */
+/* El "papel" en sí — angosto, blanco, con sombra suave para que parezca un
+   comprobante físico y no solo otro panel. */
 .sale-receipt__paper {
   width: 100%;
   max-width: 360px;
@@ -158,18 +156,13 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- Print ----------
-   The standard "hide everything, show only the receipt" technique: rather
-   than enumerating every possible chrome element around this component
-   (Sidebar's aside, Topbar's header, FloatingMessagesButton, and — when
-   this is rendered inside a Modal — the modal overlay backdrop/header/close
-   button), hide the whole document by default and re-reveal only the
-   .sale-receipt subtree. This works identically whether SaleReceipt is
-   rendered inline on PosPage or nested inside Modal.tsx's portal, without
-   this file needing to know which one it's in. The explicit
-   .sidebar/.topbar/.floating-messages-button rules below are a defensive
-   backstop in case some browser's print engine handles visibility:hidden
-   on an ancestor differently than expected. */
+/* ---------- Impresión ----------
+   Técnica estándar "ocultar todo, mostrar solo el recibo": se oculta todo el
+   documento por defecto y se revela únicamente el subárbol .sale-receipt,
+   sin importar si se renderiza en PosPage o dentro del portal de Modal.tsx.
+   Las reglas de .sidebar/.topbar/.floating-messages-button son un respaldo
+   defensivo por si algún motor de impresión maneja distinto la visibilidad
+   heredada. */
 @media print {
   body * { visibility: hidden; }
   .sale-receipt, .sale-receipt * { visibility: visible; }
@@ -186,13 +179,8 @@
     max-width: 340px;
     margin: 0 auto;
   }
-  /* NOT .modal-overlay — when SaleReceipt is opened from SalesPage inside a
-     Modal, the receipt is a DOM descendant of .modal-overlay; hiding that
-     ancestor with display:none would take the (visibility:visible)
-     .sale-receipt down with it. visibility:hidden from the `body *` rule
-     above already suppresses the overlay's dark backdrop paint without
-     removing it from the tree, so .sale-receipt's own
-     `visibility: visible` override still renders. */
+  /* No incluye .modal-overlay: el recibo es descendiente suyo, y ocultarlo
+     con display:none se llevaría también al .sale-receipt visible. */
   .sidebar,
   .topbar,
   .floating-messages-button { display: none !important; }

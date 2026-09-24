@@ -1,6 +1,6 @@
-/* Widens the shared .modal card (normally capped at 480px for form-style
-   modals) enough to comfortably fit an image, an embedded PDF, or an Excel
-   table, while still respecting the base .modal max-height/scroll rules. */
+/* Ensancha la tarjeta .modal compartida (normalmente limitada a 480px para
+   modales tipo formulario) para que quepan cómodamente una imagen, un PDF
+   embebido o una tabla de Excel, respetando las reglas base de altura/scroll. */
 .attachment-preview-modal {
   max-width: 800px;
   width: 100%;
@@ -37,7 +37,7 @@
 }
 .attachment-preview__download:hover { background: var(--color-primary-focus); }
 
-/* ---------- Image preview ---------- */
+/* ---------- Vista previa de imagen ---------- */
 .attachment-preview__image-wrap {
   display: flex;
   align-items: center;
@@ -53,7 +53,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* ---------- PDF preview ---------- */
+/* ---------- Vista previa de PDF ---------- */
 .attachment-preview__pdf-wrap {
   display: flex;
   flex-direction: column;
@@ -76,7 +76,7 @@
   border-radius: var(--radius-md);
 }
 
-/* ---------- Excel preview ---------- */
+/* ---------- Vista previa de Excel ---------- */
 .attachment-preview__excel {
   display: flex;
   flex-direction: column;

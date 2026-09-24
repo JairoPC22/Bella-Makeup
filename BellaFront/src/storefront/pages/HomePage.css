@@ -4,32 +4,26 @@
 }
 
 /* ---------- Hero ---------- */
-/* Echoes LoginPage.css's .login-brand treatment (near-black ink surface,
-   radial blue glow, faint grid) so the storefront's first impression reads
-   as an obvious extension of the same brand as the login/admin panel,
-   composited with the transparent-cutout hero photo instead of the login
-   page's monogram. */
+/* Brillo rosa/magenta: un tono cálido que combina con la foto sin competir,
+   coherente con los tonos de labial/rubor de la marca. */
 
 .storefront-hero {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 86% -12%, rgba(41, 151, 255, 0.42) 0%, rgba(0, 102, 204, 0.2) 38%, transparent 64%),
+    radial-gradient(circle at 86% -12%, rgba(224, 98, 138, 0.38) 0%, rgba(147, 45, 86, 0.2) 38%, transparent 64%),
     linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 82%, black) 100%);
   color: var(--color-white);
 }
 
-/* Two concentric arcs of light behind the model — the reference banner's
-   "spotlight ring" motif. Pure border-circles, not images, so they scale
-   losslessly and cost nothing. Positioned to peek from the top-right,
-   mostly hidden behind the model/copy so they read as ambient light rather
-   than a literal drawn circle. */
+/* Dos arcos de luz concéntricos detrás de la modelo, hechos con
+   border-circles (no imágenes) para que escalen sin costo. */
 .storefront-hero__arc {
   position: absolute;
   top: 50%;
   right: 6%;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 222, 235, 0.16);
   pointer-events: none;
 }
 .storefront-hero__arc--a { width: 720px; height: 720px; transform: translateY(-50%); }
@@ -37,7 +31,7 @@
   width: 520px;
   height: 520px;
   transform: translateY(-50%);
-  border-color: rgba(120, 185, 255, 0.22);
+  border-color: rgba(224, 140, 172, 0.26);
 }
 
 .storefront-hero__grid {
@@ -56,12 +50,15 @@
   position: relative;
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) 0;
+  /* Padding superior mínimo para acercar la fila (texto y foto) al header;
+     el inferior da aire a la fila de confianza sin bajar el texto. */
+  padding: 6px var(--space-6) 60px;
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
   align-items: flex-end;
   gap: var(--space-4);
-  min-height: 520px;
+  /* Es un piso, no una altura fija; la foto sigue midiendo 410px. */
+  min-height: 410px;
 }
 
 .storefront-hero__copy {
@@ -69,13 +66,15 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-3);
-  padding-bottom: var(--space-6);
-  /* No animation on this wrapper itself — each child (eyebrow/h1/p/CTA/
-     trust row) carries its own .animate-in-stagger + inline --stagger-delay
-     instead (see HomePage.tsx's staggerStyle() calls), so the opening copy
-     visibly reveals line by line on load rather than fading in as one flat
-     block ("que aparezca con animación al inicio"). Mirrors the
-     .animate-in-stagger convention already used on DashboardPage. */
+  padding-bottom: 0;
+  /* Margen negativo (no padding en el contenedor) para subir solo el texto
+     sin mover la foto, que comparte la misma fila de la grilla. El valor
+     se limita para que el h1 no quede recortado por el overflow:hidden
+     del hero. */
+  margin-top: -20px;
+  /* Sin animación en este wrapper: cada hijo (eyebrow/h1/p/CTA/trust row)
+     usa su propio .animate-in-stagger con --stagger-delay (ver
+     staggerStyle() en HomePage.tsx) para revelarse línea por línea. */
 }
 
 .storefront-hero__eyebrow {
@@ -132,9 +131,8 @@
   border-radius: var(--radius-pill);
   font-weight: 600;
   text-decoration: none;
-  /* Soft glow under the button, echoing the reference banner's CTA —
-     a blurred duplicate of the button's own fill color, not a generic
-     drop-shadow, so it reads as light being cast rather than a shadow. */
+  /* Brillo suave bajo el botón (color del propio fill, difuminado) para
+     que se lea como luz proyectada y no como una sombra genérica. */
   box-shadow: 0 10px 28px -6px color-mix(in srgb, var(--color-pink-deep) 70%, transparent);
   transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
 }
@@ -175,53 +173,32 @@
   height: 100%;
 }
 
-/* THIRD ATTEMPT — this time the fix is upstream of CSS, not another CSS
-   tweak, so read this before changing anything again. The first two passes
-   fought the source JPEG's flat black background with CSS tricks
-   (mix-blend-mode: screen, then a mask-image feather on top of that) — both
-   left visible artifacts: screen blending inherently washes out/lightens
-   every non-black pixel (this IS "esa neblina" — a client-visible haze that
-   was never actually mist/fog, it was the unavoidable side effect of
-   blending a photo through screen mode), and the feather mask was smearing
-   translucency over real photo content (part of the model's arm, to hide a
-   too-tight crop) which made it worse. No amount of crop/mask tuning fixes
-   a wash-out that's inherent to the blend mode itself.
-   The real fix: model-cutout.png (built once via a small Jimp script, not
-   a build step) is a REAL alpha-transparent PNG. Every background pixel in
-   the source was sampled and confirmed pure (0,0,0); a luminance threshold
-   (max channel < 14 → alpha 0, 14-40 → linear feather, >40 → fully opaque)
-   keyed the background to true transparency while verified hair/skin
-   samples (e.g. (76,51,45), (193,134,104) — nowhere near black) stayed
-   fully opaque and untouched. A plain <img> with real alpha needs no blend
-   mode, no filter, no mask: colors are exactly the source photo's (no
-   wash-out), nothing photographed is cropped (object-fit: contain shows
-   the full kept frame), and the edge is a clean per-pixel alpha matte, not
-   a CSS approximation of one. */
+/* Recorte transparente flotando directo sobre el degradado de la sección:
+   sin tarjeta, borde ni box-shadow (dibujaría un rectángulo visible sobre
+   los bordes transparentes de la imagen); se usa drop-shadow en su lugar
+   porque sigue la silueta real del alfa. */
 .storefront-hero__media img {
-  /* Bleeds to the section's own right/bottom edges — no padding, no
-     max-width cap on the container — matching the reference banner where
-     the model's arm/table sits flush with the banner's bottom edge instead
-     of floating centered with margin all around. Anchored bottom-right, so
-     a smaller max-height pulls the visible content in from the left AND
-     right at once — smaller and shifted right together, from one number. */
   height: 100%;
-  max-height: 450px;
+  /* Se reduce la escala completa (no un recorte de píxeles) porque los
+     frascos del producto están justo al borde inferior del cuadro. */
+  max-height: 410px;
   width: auto;
-  max-width: none;
+  /* El tope de ancho hace que la figura se lea apoyada en el borde del
+     banner, en vez de llenar toda la columna. */
+  max-width: 420px;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.4));
   animation: fade-in-up 0.9s var(--ease-premium) 120ms both;
   object-fit: contain;
   object-position: bottom right;
+  /* Se usa `top` (no `transform`) para bajar la foto porque la animación
+     de entrada ya anima `transform` y sobreescribiría un valor estático ahí. */
+  position: relative;
+  top: 60px;
 }
 
 @media (max-width: 900px) {
-  /* The spotlight arcs read as ambient background light on the wide
-     desktop banner (mostly hidden behind the copy/image). On a narrow
-     phone screen the same rings shrink into the image's own footprint and
-     end up visibly slicing across the model's photo instead — reported
-     directly by the client from a real phone screenshot ("se ve rara")
-     with a ring line crossing right over her shoulder/hip. Hidden below
-     this breakpoint rather than resized, since there's no radius that
-     both stays ambient-sized AND avoids the now-much-smaller image. */
+  /* En móvil los arcos quedan del tamaño de la imagen y terminan
+     cruzándola visualmente, así que se ocultan en vez de reescalarse. */
   .storefront-hero__arc { display: none; }
 
   .storefront-hero__inner {
@@ -230,51 +207,33 @@
     min-height: 0;
     gap: var(--space-2);
   }
-  .storefront-hero__copy { padding-bottom: var(--space-4); }
+  /* Se resetea el margin-top negativo de desktop: en el layout apilado de
+     una columna metía el texto bajo el borde inferior de la foto. */
+  .storefront-hero__copy { padding-bottom: var(--space-5); margin-top: 0; }
   .storefront-hero__copy h1 { max-width: none; }
   .storefront-hero__copy p { max-width: none; }
 
-  /* FOURTH ATTEMPT on the mobile treatment — read before changing again.
-     The previous pass floated the image in a tall empty dark area and
-     added a radial-gradient "glow" directly on .storefront-hero__media to
-     ground it. That glow was the actual bug the client flagged next: a
-     radial-gradient painted on a tightly auto-height, auto-width flex box
-     has a real rectangular bounding box, and "transparent" at its edge
-     still means "the gradient layer ends here" — against this section's
-     OWN differently-centered background gradient behind it, the two edges
-     don't line up and read as a visible lighter box around the photo
-     ("que parezca que es parte de la página" was exactly the opposite of
-     this). No background on this element at all now — it's fully
-     transparent, so .storefront-hero's own gradient (one continuous layer,
-     not two competing ones) shows through everywhere, exactly as it does
-     on desktop. The "floating in a void" problem is solved by tightening
-     spacing instead (less top padding, a shorter image) rather than by
-     painting a second background under it. */
+  /* Sin fondo propio en este elemento: debe quedar totalmente transparente
+     para que el degradado de .storefront-hero se vea continuo, sin un
+     "recuadro" visible alrededor de la foto. */
   .storefront-hero__media {
     order: -1;
     justify-content: center;
     height: auto;
     padding: var(--space-3) 0 0;
   }
-  /* The source canvas is a 1671x941 landscape frame with the subject living
-     only in its right ~55% — the rest is transparent dead space (the
-     model_cutout.png keeps the full frame so desktop's edge-to-edge bleed
-     has room to breathe). Sizing this the same way as desktop (width-
-     constrained, height:auto, full canvas aspect ratio) meant most of a
-     small 280px-wide mobile box was invisible padding, with the actual
-     subject shrunk down small and pushed into its right-hand corner — the
-     "posición" the client flagged. A fixed, subject-shaped aspect-ratio
-     box with object-fit:cover crops straight to the part of the canvas
-     that actually has content, so the photo fills its box on mobile the
-     same way the storefront's OWN product photography already does. */
+  /* model-cutout.png ya viene recortada al límite del sujeto (938x941), así
+     que object-fit: contain muestra la imagen completa sin recortarla. */
   .storefront-hero__media img {
     height: auto;
     max-height: none;
     width: 100%;
-    max-width: 300px;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    object-position: 78% 15%;
+    max-width: 320px;
+    object-fit: contain;
+    object-position: center;
+    /* Se resetea el ajuste `top` de desktop: en el apilado móvil empujaba
+       la foto sobre el eyebrow "Tienda en línea". */
+    top: 0;
   }
 
   .storefront-hero__trust { flex-direction: column; align-items: flex-start; gap: 8px; }

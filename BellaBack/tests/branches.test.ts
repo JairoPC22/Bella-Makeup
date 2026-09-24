@@ -52,4 +52,39 @@ describe("Branches CRUD", () => {
     const res = await request(app).post("/api/branches").set("Cookie", [viewerCookie]).send({ name: "Should Fail" });
     expect(res.status).toBe(403);
   });
+
+  describe("GET /branches/revenue", () => {
+    it("returns per-branch revenue totals for an admin", async () => {
+      const res = await request(app).get("/api/branches/revenue").set("Cookie", [cookie]);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.rows)).toBe(true);
+      expect(typeof res.body.grandTotal).toBe("number");
+      if (res.body.rows.length > 0) {
+        expect(res.body.rows[0]).toHaveProperty("branchId");
+        expect(res.body.rows[0]).toHaveProperty("branchName");
+        expect(res.body.rows[0]).toHaveProperty("revenue");
+        expect(res.body.rows[0]).toHaveProperty("saleCount");
+      }
+    });
+
+    it("is denied to a role with branches.view but no branches.manage (e.g. branch manager)", async () => {
+      // The client explicitly asked that branch earnings be admin-only —
+      // branch_manager is the seeded role that has branches.view (can see
+      // the branches list) but NOT branches.manage, which is exactly the
+      // boundary this endpoint must enforce.
+      const managerRole = await prisma.role.findUniqueOrThrow({ where: { code: "branch_manager" } });
+      const manager = await prisma.user.upsert({
+        where: { username: "branches_test_manager" },
+        update: {},
+        create: {
+          firstName: "M", lastName: "T", displayName: "M T", username: "branches_test_manager",
+          email: "branches_test_manager@bellamakeup.demo", passwordHash: await hashPassword("Password#123"),
+          avatarSeed: "seed", roleId: managerRole.id, allBranches: true,
+        },
+      });
+      const managerCookie = `access_token=${signAccessToken({ sub: manager.id, roleId: managerRole.id })}`;
+      const res = await request(app).get("/api/branches/revenue").set("Cookie", [managerCookie]);
+      expect(res.status).toBe(403);
+    });
+  });
 });

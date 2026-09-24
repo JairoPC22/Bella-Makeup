@@ -1,5 +1,13 @@
 .transfers-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
 
+.transfers-page__back-link {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  font-size: 0.83rem; font-weight: 600; color: var(--color-text-secondary);
+  text-decoration: none; margin-bottom: calc(var(--space-3) * -1);
+  transition: color var(--transition-base) var(--ease-premium);
+}
+.transfers-page__back-link:hover { color: var(--color-pink-deep); }
+
 .transfers-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
 .transfers-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
 .transfers-page__title svg { color: var(--color-pink-deep); }
@@ -283,3 +291,14 @@
    found and fixed the same way in PurchasesPage.css — restated here at
    matching specificity rather than with !important. */
 .modal__body .transfer-create__search { flex-direction: row; align-items: center; }
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .transfers-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

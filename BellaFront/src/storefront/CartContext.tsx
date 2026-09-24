@@ -25,6 +25,11 @@ interface CartContextValue {
 
 const STORAGE_KEY = "bellafront:storefront-cart";
 
+// El storefront solo conoce un booleano `inStock` (types/api.ts), no el
+// stock real, así que se limita la cantidad a un tope razonable; la
+// disponibilidad real siempre se valida en el servidor al crear el pedido.
+const MAX_LINE_QUANTITY = 99;
+
 const CartContext = createContext<CartContextValue | null>(null);
 
 function lineKey(productId: string, variantId?: string) {
@@ -51,9 +56,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
     } catch {
-      // localStorage can throw in private-browsing/quota-exceeded edge
-      // cases — the cart still works in-memory for the rest of the
-      // session, it just won't survive a refresh. Not worth surfacing.
+      // localStorage puede fallar (privado, cuota excedida); el carrito
+      // sigue funcionando en memoria, solo no persiste al recargar.
     }
   }, [lines]);
 
@@ -63,10 +67,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = prev.find((l) => lineKey(l.productId, l.variantId) === key);
       if (existing) {
         return prev.map((l) =>
-          lineKey(l.productId, l.variantId) === key ? { ...l, quantity: l.quantity + quantity } : l
+          lineKey(l.productId, l.variantId) === key
+            ? { ...l, quantity: Math.min(l.quantity + quantity, MAX_LINE_QUANTITY) }
+            : l
         );
       }
-      return [...prev, { ...line, quantity }];
+      return [...prev, { ...line, quantity: Math.min(quantity, MAX_LINE_QUANTITY) }];
     });
     setIsOpen(true);
   }, []);
@@ -80,7 +86,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const key = lineKey(productId, variantId);
     setLines((prev) => {
       if (quantity <= 0) return prev.filter((l) => lineKey(l.productId, l.variantId) !== key);
-      return prev.map((l) => (lineKey(l.productId, l.variantId) === key ? { ...l, quantity } : l));
+      const clamped = Math.min(quantity, MAX_LINE_QUANTITY);
+      return prev.map((l) => (lineKey(l.productId, l.variantId) === key ? { ...l, quantity: clamped } : l));
     });
   }, []);
 

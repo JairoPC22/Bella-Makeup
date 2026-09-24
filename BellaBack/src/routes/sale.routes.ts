@@ -8,6 +8,10 @@ const router = Router();
 router.get("/", requireAuth, requirePermission("sales.view"), saleController.list);
 router.get("/:id", requireAuth, requirePermission("sales.view"), saleController.getById);
 router.post("/", requireAuth, requirePermission("sales.create"), saleController.create);
-router.patch("/:id/cancel", requireAuth, requirePermission("sales.cancel"), saleController.cancel);
+// El permiso real (sales.cancel, o un PIN de supervisor si
+// CompanySettings.allowPinForSaleCancel lo permite) se valida dentro de
+// saleService.cancelSale — sales.view es solo el piso para intentarlo,
+// igual que sales.create es el piso de discounts.authorize en /sales.
+router.patch("/:id/cancel", requireAuth, requirePermission("sales.view"), saleController.cancel);
 
 export default router;

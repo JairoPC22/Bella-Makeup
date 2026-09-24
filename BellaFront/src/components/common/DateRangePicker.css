@@ -1,0 +1,132 @@
+.date-range-picker { position: relative; display: inline-block; }
+
+.date-range-picker__trigger {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
+}
+.date-range-picker__trigger:hover { border-color: var(--color-pink-elegant); }
+.date-range-picker__trigger svg { color: var(--color-pink-deep); flex-shrink: 0; }
+
+.date-range-picker__popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3);
+  animation: date-range-pop-in 0.16s var(--ease-premium) both;
+}
+@keyframes date-range-pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Atajos rápidos (Hoy/Ayer/Últimos N días/Este mes) — aplican y cierran el
+   popover de inmediato, con la misma convención de un solo clic que el
+   propio trigger, para que un usuario que solo quiere "hoy" nunca tenga
+   que tocar la cuadrícula del calendario. */
+.date-range-picker__presets {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: var(--space-3); padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+.date-range-picker__presets button {
+  border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); padding: 4px 10px; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.date-range-picker__presets button:hover { background: var(--color-pink-50); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+.date-range-picker__nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); }
+.date-range-picker__nav button {
+  border: none; background: var(--color-bg); border-radius: var(--radius-sm); width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.date-range-picker__nav button:hover { background: var(--color-pink-100); color: var(--color-pink-deep); }
+.date-range-picker__month-label { font-weight: 700; font-size: 0.86rem; color: var(--color-ink); text-transform: capitalize; }
+
+.date-range-picker__weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
+.date-range-picker__weekdays span { text-align: center; font-size: 0.68rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; padding: 4px 0; }
+
+/* Cuadrícula sin espacios (a diferencia de una grilla de botones típica)
+   para que los segmentos .date-range-picker__range-bg de una selección de
+   varios días se unan sin cortes entre celdas y se vean como una barra
+   continua en vez de cuadrados redondeados sueltos — el mismo lenguaje
+   visual de cualquier selector de rango de fechas. El respiro de 2px entre
+   filas viene únicamente del row-gap. */
+.date-range-picker__grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+.date-range-picker__cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.date-range-picker__cell--blank { cursor: default; }
+
+.date-range-picker__day-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.date-range-picker__cell:not(.date-range-picker__cell--blank):not(.is-in-range):hover .date-range-picker__day-label {
+  background: var(--color-pink-100);
+}
+.date-range-picker__cell.is-today .date-range-picker__day-label { font-weight: 700; box-shadow: inset 0 0 0 1px var(--color-pink-elegant); }
+
+/* El relleno continuo — con inset solo arriba/abajo para que las barras de
+   celdas adyacentes dentro del rango queden a ras a los lados, y se
+   redondea SOLO en el inicio/fin real de la selección (nunca en un salto
+   de fila de semana, que no es un límite real). */
+.date-range-picker__range-bg {
+  position: absolute;
+  z-index: 0;
+  inset: 2px 0;
+  background: var(--color-pink-100);
+}
+.date-range-picker__cell.is-start .date-range-picker__range-bg { left: 2px; border-radius: 999px 0 0 999px; }
+.date-range-picker__cell.is-end .date-range-picker__range-bg { right: 2px; border-radius: 0 999px 999px 0; }
+.date-range-picker__cell.is-start.is-end .date-range-picker__range-bg { left: 2px; right: 2px; border-radius: 999px; }
+
+.date-range-picker__cell.is-start .date-range-picker__day-label,
+.date-range-picker__cell.is-end .date-range-picker__day-label {
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.date-range-picker__footer {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--color-divider-soft);
+}
+.date-range-picker__footer-hint { font-size: 0.72rem; color: var(--color-text-muted); }
+.date-range-picker__apply {
+  border: none; background: var(--color-pink-deep); color: var(--color-white); border-radius: var(--radius-pill);
+  padding: 6px 14px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.date-range-picker__apply:hover:not(:disabled) { background: var(--color-primary-focus); }
+.date-range-picker__apply:disabled { opacity: 0.5; cursor: not-allowed; }

@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Banknote,
@@ -22,7 +22,7 @@ import { useCart } from "../CartContext";
 import { findNearestBranch } from "../utils/geo";
 import "./CheckoutPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 type FulfillmentType = "PICKUP" | "DELIVERY";
 type PaymentMethod = "CASH" | "CARD" | "TRANSFER";
@@ -38,9 +38,9 @@ const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; icon: typeof Bankn
   },
 ];
 
-// The three real stages of the order flow (cart → this page →
-// confirmation). Deliberately NOT a fake multi-step wizard over a form
-// that is in fact one page — it reports where the shopper actually is.
+// Las tres etapas reales del flujo de pedido (carrito → esta página →
+// confirmación). No es un wizard falso de varios pasos sobre un formulario
+// que en realidad es una sola página; refleja dónde está el comprador.
 const STAGES = ["Carrito", "Tus datos", "Confirmación"];
 
 export function CheckoutPage() {
@@ -78,10 +78,9 @@ export function CheckoutPage() {
       .catch(() => setBranchesStatus("error"));
   }, []);
 
-  // Only meaningful once both the shopper granted geolocation AND the
-  // backend has started returning branch coordinates — until then this
-  // silently stays null and the informational note below just doesn't
-  // render, per the "skip gracefully" instruction.
+  // Solo tiene sentido cuando el comprador dio permiso de geolocalización
+  // Y el backend ya devuelve coordenadas de sucursal; mientras tanto queda
+  // en null y la nota informativa de abajo simplemente no se muestra.
   const nearestBranch = coords ? findNearestBranch(coords, branches) : null;
 
   function handleUseMyLocation() {
@@ -97,9 +96,9 @@ export function CheckoutPage() {
         setLocationDenied(false);
       },
       () => {
-        // Permission denied or unavailable — delivery by typed address
-        // alone must still work fine, so this never blocks submission,
-        // it just skips the silent lat/lng capture.
+        // Permiso denegado o no disponible: la entrega por dirección
+        // escrita debe funcionar igual, así que esto nunca bloquea el
+        // envío, solo se omite la captura silenciosa de lat/lng.
         setLocating(false);
         setLocationDenied(true);
       },
@@ -140,12 +139,21 @@ export function CheckoutPage() {
       return;
     }
 
+    // Se valida explícitamente que la cadena de fallbacks haya resuelto una
+    // sucursal real, para no enviar el pedido con branchId vacío si la
+    // lista de sucursales falló al cargar.
+    const deliveryBranchId = nearestBranch?.id ?? selectedBranchId ?? branches[0]?.id ?? "";
+    if (fulfillmentType === "DELIVERY" && !deliveryBranchId) {
+      setError("No se pudo determinar la sucursal para tu entrega. Intenta de nuevo en un momento.");
+      return;
+    }
+
     const fulfillment: OnlineOrderFulfillment =
       fulfillmentType === "PICKUP"
         ? { type: "PICKUP", branchId: selectedBranchId }
         : {
             type: "DELIVERY",
-            branchId: nearestBranch?.id ?? selectedBranchId ?? branches[0]?.id ?? "",
+            branchId: deliveryBranchId,
             address: address.trim(),
             ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
           };
@@ -212,7 +220,7 @@ export function CheckoutPage() {
       <div className="storefront-section">
         <form className="storefront-checkout__layout" onSubmit={handleSubmit}>
           <div className="storefront-checkout__form">
-            <section className="storefront-checkout__block">
+            <section className="storefront-checkout__block animate-in-stagger" style={{ "--stagger-delay": "0ms" } as CSSProperties}>
               <div className="storefront-checkout__block-head">
                 <span className="storefront-checkout__block-num">01</span>
                 <div>
@@ -240,7 +248,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="storefront-checkout__block">
+            <section className="storefront-checkout__block animate-in-stagger" style={{ "--stagger-delay": "90ms" } as CSSProperties}>
               <div className="storefront-checkout__block-head">
                 <span className="storefront-checkout__block-num">02</span>
                 <div>
@@ -344,7 +352,7 @@ export function CheckoutPage() {
               )}
             </section>
 
-            <section className="storefront-checkout__block">
+            <section className="storefront-checkout__block animate-in-stagger" style={{ "--stagger-delay": "180ms" } as CSSProperties}>
               <div className="storefront-checkout__block-head">
                 <span className="storefront-checkout__block-num">03</span>
                 <div>
@@ -372,7 +380,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="storefront-checkout__block">
+            <section className="storefront-checkout__block animate-in-stagger" style={{ "--stagger-delay": "270ms" } as CSSProperties}>
               <div className="storefront-checkout__block-head">
                 <span className="storefront-checkout__block-num">04</span>
                 <div>
@@ -394,7 +402,7 @@ export function CheckoutPage() {
             {error && <p className="storefront-error-banner" role="alert">{error}</p>}
           </div>
 
-          <aside className="storefront-checkout__summary">
+          <aside className="storefront-checkout__summary animate-in-stagger" style={{ "--stagger-delay": "120ms" } as CSSProperties}>
             <div className="storefront-checkout__summary-head">
               <h2>Resumen del pedido</h2>
               <span>{itemCount} {itemCount === 1 ? "artículo" : "artículos"}</span>
@@ -405,7 +413,7 @@ export function CheckoutPage() {
                 <li key={`${line.productId}::${line.variantId ?? ""}`}>
                   <span className="storefront-checkout__summary-thumb">
                     {line.imageUrl
-                      ? <img src={line.imageUrl} alt="" />
+                      ? <img src={line.imageUrl} alt="" loading="lazy" />
                       : <ShoppingBag size={16} aria-hidden="true" />}
                     <span className="storefront-checkout__summary-qty">{line.quantity}</span>
                   </span>

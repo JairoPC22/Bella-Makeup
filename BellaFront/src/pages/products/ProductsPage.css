@@ -1,6 +1,6 @@
 .products-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
 
-.products-page__header { display: flex; align-items: center; justify-content: space-between; }
+.products-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
 .products-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
 .products-page__title svg { color: var(--color-pink-deep); }
 .products-page__title h1 { margin: 0; }
@@ -14,6 +14,23 @@
 .products-page__header button:hover { background: var(--color-primary-focus); }
 .products-page__header button:active { transform: scale(0.98); }
 .products-page__error { color: #B3261E; font-size: 0.85rem; margin: 0; }
+
+.products-page__header-actions { display: flex; align-items: center; gap: var(--space-2); }
+/* Secondary/outline treatment so "Transferencias" reads as a shortcut to
+   another module, not the primary action of this page — that stays
+   "Nuevo producto" (.products-page__header button, solid pink). */
+.products-page__transfers-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--color-white); color: var(--color-pink-deep);
+  border: 1px solid var(--color-pink-elegant); border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600; font-size: 0.9rem; text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.products-page__transfers-btn:hover { background: var(--color-pink-100); }
+.products-page__transfers-btn:active { transform: scale(0.98); }
+.products-page__transfers-btn svg:last-child { transition: transform var(--transition-base) var(--ease-premium); }
+.products-page__transfers-btn:hover svg:last-child { transform: translateX(2px); }
 
 /* Same visual treatment as CompanySettingsPage.css's .settings-page__subtitle
    — a one-line clarifying caption under the title, not a new pattern. */

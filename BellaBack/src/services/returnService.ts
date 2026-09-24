@@ -5,15 +5,17 @@ import { applyMovement } from "./inventoryService";
 import { logAudit } from "./auditService";
 import { verifySupervisorPin, PIN_GENERIC_ERROR } from "./pinAuthService";
 import { formatTicketNumber, resolveUnitPrice } from "./saleService";
+import { assertBranchAccess, getAccessibleBranchIds } from "./branchAccessService";
+import { getSettings as getCompanySettings } from "./companySettingsService";
 import * as returnRepo from "../repositories/returnRepository";
 
 export interface ReturnedItemInput {
   saleItemId: string;
   quantity: number;
-  // False means the merchandise came back unsellable (broken seal, damaged
-  // packaging, used product). The customer is still credited for it — that
-  // is a commercial decision the supervisor just authorized — but it does
-  // NOT go back on the shelf, so no stock movement is applied for that line.
+  // False significa que la mercancía volvió invendible (sello roto, empaque
+  // dañado, producto usado). Al cliente se le sigue acreditando (es una
+  // decisión comercial que el supervisor acaba de autorizar), pero NO
+  // vuelve al anaquel, así que no se aplica movimiento de stock en esa línea.
   restock: boolean;
 }
 
@@ -27,46 +29,26 @@ export interface ProcessReturnInput {
   originalSaleId: string;
   returnedItems: ReturnedItemInput[];
   newItems?: NewItemInput[];
-  pinCode: string;
+  // Solo se exige cuando CompanySettings.requirePinForReturns está activo.
+  pinCode?: string;
   paymentMethod?: "CASH" | "CARD" | "TRANSFER" | "OTHER";
   notes?: string;
 }
 
-// Same money handling as saleService: plain JS numbers, rounded to 2 dp
-// after every operation that could introduce float drift. Identical to
-// saleService's own private round2 — kept local for the same reason
-// assertBranchAccess is duplicated across these services (documented in
-// purchaseService.ts): there is no live shared money/scope util module, and
-// inventing one as a side effect of this task would touch every existing
-// service.
+// Mismo manejo de dinero que saleService: number plano de JS, redondeado a
+// 2 decimales tras cada operación que pudiera introducir drift. Idéntico al
+// round2 privado de saleService, duplicado aquí por la misma razón que
+// assertBranchAccess (documentada en purchaseService.ts): no existe un
+// módulo compartido de utilidades de dinero/scope.
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-// "D-" for Devolución, alongside saleService's "V-" (Venta),
-// purchaseService's "C-" (Compra) and transferService's "T-"
-// (Transferencia), with the same 6-digit zero padding.
+// "D-" de Devolución, junto a "V-" (Venta) de saleService, "C-" (Compra) de
+// purchaseService y "T-" (Transferencia) de transferService, con el mismo
+// relleno de ceros a 6 dígitos.
 export function formatReturnNumber(folio: number): string {
   return `D-${String(folio).padStart(6, "0")}`;
-}
-
-// Mirrors saleService/purchaseService's verbatim — see the rationale
-// documented there: requireBranchScope only reads req.params, and a
-// return's branch is derived from the original sale in the request body.
-async function assertBranchAccess(client: Prisma.TransactionClient, userId: string, branchId: string): Promise<void> {
-  const user = await client.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return;
-  const assignment = await client.userBranch.findUnique({ where: { userId_branchId: { userId, branchId } } });
-  if (!assignment) throw new AppError(403, "Sin acceso a esta sucursal");
-}
-
-async function getAccessibleBranchIds(userId: string): Promise<string[] | "ALL"> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return "ALL";
-  const rows = await prisma.userBranch.findMany({ where: { userId }, select: { branchId: true } });
-  return rows.map((r) => r.branchId);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,9 +56,9 @@ function mapReturn(ret: any) {
   return {
     ...ret,
     returnNumber: formatReturnNumber(ret.folio),
-    // The ticket the customer physically presented at the counter, formatted
-    // the same way the POS printed it, so the returns list is searchable by
-    // the number on the paper without the client recomputing it.
+    // El ticket que el cliente presentó físicamente en el mostrador,
+    // formateado igual que lo imprimió el POS, para buscar por el número en
+    // el papel sin que el cliente lo recalcule.
     originalTicketNumber: ret.originalSale ? formatTicketNumber(ret.originalSale.folio) : undefined,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     returnedItemCount: ret.items?.filter((i: any) => i.direction === "RETURNED").length ?? 0,
@@ -111,18 +93,17 @@ interface ReturnPlan {
   resolution: "EXACT_EXCHANGE" | "CUSTOMER_OWES" | "REFUND_OWED";
 }
 
-// Every validation and every peso of arithmetic for one return, as a pure
-// read: it writes nothing, so it is safe to run BEFORE the supervisor PIN is
-// checked (to reject an obviously malformed request with a useful message
-// rather than a generic 401) and it is run AGAIN inside the write
-// transaction, where its answer is the authoritative one.
+// Toda validación y aritmética de una devolución, como lectura pura: no
+// escribe nada, así que es seguro correrla ANTES de validar el PIN de
+// supervisor (para rechazar una solicitud mal formada con un mensaje útil
+// en vez de un 401 genérico) y se corre DE NUEVO dentro de la transacción
+// de escritura, donde su respuesta es la autoritativa.
 //
-// Running it twice is deliberate, not redundancy. The pre-PIN pass exists
-// for error quality; the in-transaction pass is what actually guarantees
-// correctness, because between the two a concurrent return could consume the
-// remaining returnable quantity of a line or the last unit of stock for an
-// exchange item. Only the in-transaction pass reads under the same snapshot
-// that the writes commit in.
+// Correrla dos veces es deliberado, no redundancia. El primer paso existe
+// por calidad del mensaje de error; el paso dentro de la transacción es el
+// que realmente garantiza corrección, porque entre ambos una devolución
+// concurrente podría consumir lo que quedaba por devolver de una línea, o
+// una venta concurrente la última unidad de un artículo de cambio.
 async function buildReturnPlan(
   client: Prisma.TransactionClient,
   input: ProcessReturnInput,
@@ -134,9 +115,9 @@ async function buildReturnPlan(
   });
   if (!sale) throw new AppError(404, "Venta original no encontrada");
   if (sale.status !== "COMPLETED") {
-    // A cancelled sale already restored 100% of its stock via cancelSale and
-    // was refunded in full. Returning against it would credit the customer
-    // twice and double-restock the shelf.
+    // Una venta cancelada ya restauró el 100% de su stock vía cancelSale y
+    // ya fue reembolsada por completo. Devolver contra ella acreditaría al
+    // cliente dos veces y duplicaría el reingreso al anaquel.
     throw new AppError(400, "La venta original está cancelada; no admite devoluciones");
   }
 
@@ -146,11 +127,10 @@ async function buildReturnPlan(
     throw new AppError(400, "La devolución debe incluir al menos un artículo devuelto");
   }
 
-  // Repeated lines are rejected rather than summed, mirroring
-  // receivePurchase's "Hay líneas repetidas" rule. Summing them would be a
-  // guess about intent, and — worse — a request that listed the same
-  // saleItemId twice with restock:true and restock:false would have no
-  // coherent meaning at all.
+  // Las líneas repetidas se rechazan en vez de sumarse, igual que la regla
+  // "Hay líneas repetidas" de receivePurchase. Sumarlas sería adivinar la
+  // intención, y peor: una solicitud con el mismo saleItemId dos veces, una
+  // con restock:true y otra con restock:false, no tendría sentido coherente.
   const seen = new Set<string>();
   for (const line of input.returnedItems) {
     if (seen.has(line.saleItemId)) throw new AppError(400, "Hay líneas repetidas en la devolución");
@@ -158,9 +138,10 @@ async function buildReturnPlan(
   }
 
   const saleItemIds = input.returnedItems.map((l) => l.saleItemId);
-  // THE cumulative guard. Sums every quantity previously returned against
-  // each of these lines, across all prior Return documents. Read through the
-  // same client as the writes, so inside the transaction it cannot go stale.
+  // LA validación acumulada. Suma toda cantidad previamente devuelta de
+  // cada una de estas líneas, en todos los Return anteriores. Se lee con el
+  // mismo client que las escrituras, así que dentro de la transacción no
+  // puede quedar desactualizada.
   const alreadyReturned = await returnRepo.sumReturnedQuantitiesBySaleItem(saleItemIds, client);
 
   let returnedTotal = 0;
@@ -168,17 +149,17 @@ async function buildReturnPlan(
 
   for (const line of input.returnedItems) {
     const saleItem = sale.items.find((i) => i.id === line.saleItemId);
-    // Checked against THIS sale's own items, so a caller cannot return a
-    // line belonging to somebody else's ticket by guessing its id.
+    // Validado contra los items de ESTA venta, así que no se puede devolver
+    // una línea de otro ticket adivinando su id.
     if (!saleItem) throw new AppError(400, `La línea ${line.saleItemId} no pertenece a esta venta`);
     if (line.quantity <= 0) throw new AppError(400, "La cantidad devuelta debe ser mayor a cero");
 
     const priorlyReturned = alreadyReturned.get(line.saleItemId) ?? 0;
     const remaining = saleItem.quantity - priorlyReturned;
     if (line.quantity > remaining) {
-      // One message covers both the single-shot over-return and the
-      // cumulative case, and names the real remaining figure so the cashier
-      // can see WHY (e.g. "bought 3, already returned 2, 1 left").
+      // Un solo mensaje cubre tanto la sobre-devolución de una vez como el
+      // caso acumulado, y nombra la cifra real restante para que el cajero
+      // vea POR QUÉ (ej. "compró 3, ya devolvió 2, quedan 1").
       throw new AppError(
         400,
         `No se puede devolver ${line.quantity} de esta línea: se compraron ${saleItem.quantity}` +
@@ -186,9 +167,9 @@ async function buildReturnPlan(
       );
     }
 
-    // Credited at what the customer ACTUALLY paid per unit on the original
-    // ticket (SaleItem.unitPrice), never today's list price. If that line
-    // carried a discount, the credit reflects it.
+    // Se acredita lo que el cliente REALMENTE pagó por unidad en el ticket
+    // original (SaleItem.unitPrice), nunca el precio de lista de hoy. Si esa
+    // línea tenía descuento, el crédito lo refleja.
     const unitPrice = saleItem.unitPrice.toNumber();
     returnedTotal = round2(returnedTotal + round2(unitPrice * line.quantity));
 
@@ -220,18 +201,17 @@ async function buildReturnPlan(
       if (variant.status === "INACTIVE") throw new AppError(400, `La variante "${variant.name}" está inactiva`);
     }
 
-    // CURRENT pricing, via the POS's own resolveUnitPrice. A new item is a
-    // new sale: it does not inherit the original ticket's discount or a
-    // promo that has since ended.
+    // Precio ACTUAL, vía el resolveUnitPrice del propio POS. Un artículo
+    // nuevo es una venta nueva: no hereda el descuento del ticket original
+    // ni una promo que ya terminó.
     const unitPrice = resolveUnitPrice(product, variant);
     newItemsTotal = round2(newItemsTotal + round2(unitPrice * item.quantity));
 
-    // Explicit availability pre-check so an exchange for something the
-    // branch does not have fails with a message that names the product and
-    // the real figures, instead of applyMovement's generic
-    // "dejaría el inventario en negativo". applyMovement remains the
-    // authoritative guard inside the transaction — this is a better error,
-    // not a replacement for it.
+    // Chequeo explícito de disponibilidad para que un cambio por algo que la
+    // sucursal no tiene falle con un mensaje que nombra el producto y las
+    // cifras reales, en vez del genérico "dejaría el inventario en negativo"
+    // de applyMovement. applyMovement sigue siendo la validación autoritativa
+    // dentro de la transacción; esto es un mejor error, no un reemplazo.
     const inventoryRow = await client.inventory.findFirst({
       where: { productId: item.productId, variantId: item.variantId ?? null, branchId: sale.branchId },
     });
@@ -250,13 +230,13 @@ async function buildReturnPlan(
   const balance = round2(newItemsTotal - returnedTotal);
   const resolution = balance > 0 ? "CUSTOMER_OWES" : balance < 0 ? "REFUND_OWED" : "EXACT_EXCHANGE";
 
-  // Only enforced for CUSTOMER_OWES, the one case where money actually moves
-  // toward the business at this counter. Judgment call (flagged in the
-  // report): the alternative — accepting a positive balance with no recorded
-  // payment method — would leave a receivable nobody can reconcile against
-  // the drawer. For the other two resolutions any submitted paymentMethod is
-  // discarded below rather than stored, so a stale field left on a POS form
-  // can never make a refund look like it was collected as cash.
+  // Solo se exige para CUSTOMER_OWES, el único caso donde dinero se mueve
+  // hacia el negocio en este mostrador. Decisión de criterio: aceptar un
+  // saldo positivo sin método de pago registrado dejaría una cuenta por
+  // cobrar que nadie puede conciliar contra la caja. En las otras dos
+  // resoluciones, cualquier paymentMethod enviado se descarta en vez de
+  // guardarse, para que un campo obsoleto en el formulario del POS nunca
+  // haga parecer que un reembolso se cobró en efectivo.
   if (resolution === "CUSTOMER_OWES" && !input.paymentMethod) {
     throw new AppError(400, "Se requiere un método de pago para cobrar la diferencia");
   }
@@ -264,40 +244,48 @@ async function buildReturnPlan(
   return { branchId: sale.branchId, returnedLines, newLines, returnedTotal, newItemsTotal, balance, resolution };
 }
 
-// One counter transaction: merchandise comes back, optionally other
-// merchandise goes out, and the difference is settled. Structurally this is
-// cancelSale's restock loop plus a fresh sale's worth of outbound movements,
-// reconciled into a single balance — all inside ONE prisma.$transaction, so
-// a failure on the last line rolls back every stock movement and every row
-// written before it.
+// Una sola transacción de mostrador: entra mercancía, opcionalmente sale
+// otra, y se salda la diferencia. Estructuralmente es el ciclo de reingreso
+// de cancelSale más los movimientos de salida de una venta nueva,
+// conciliados en un solo saldo, todo dentro de UNA prisma.$transaction para
+// que un fallo en la última línea revierta todo lo anterior.
 export async function processReturn(input: ProcessReturnInput, actorId: string) {
-  // --- Phase 1: read-only validation. Writes nothing. -------------------
-  // Runs before the PIN check purely so an honest mistake (wrong ticket,
-  // returning more than was bought) reports the real reason instead of a
-  // generic 401. Because it is read-only, doing it first cannot create the
-  // side effect the wrong-PIN path is required to avoid.
+  // --- Fase 1: validación de solo lectura. No escribe nada. --------------
+  // Corre antes de validar el PIN justamente para que un error honesto
+  // (ticket equivocado, devolver más de lo comprado) reporte la razón real
+  // en vez de un 401 genérico. Al ser de solo lectura, hacerlo primero no
+  // puede generar el efecto secundario que el camino de PIN incorrecto debe
+  // evitar.
   await buildReturnPlan(prisma, input, actorId);
 
-  // --- Phase 2: supervisor authorization. --------------------------------
-  // Up front, before the write transaction opens. The permission checked is
-  // the SUPERVISOR's ("returns.authorize"), not the acting cashier's — the
-  // cashier's own gate is `returns.create` on the route. On failure this
-  // throws before a single stock movement or Return row exists.
+  // --- Fase 2: autorización del supervisor. ------------------------------
+  // Antes de abrir la transacción de escritura. El permiso validado es el
+  // del SUPERVISOR ("returns.authorize"), no el del cajero (su propio gate
+  // es `returns.create` en la ruta). Si falla, lanza antes de que exista un
+  // solo movimiento de stock o fila Return.
   //
-  // The generic message is reused verbatim from the primitive so these
-  // endpoints cannot leak more than POST /api/auth/verify-pin itself does:
-  // wrong digits, a PIN that belongs to somebody without returns.authorize,
-  // a supervisor at another branch, and a malformed PIN are all one
-  // indistinguishable 401.
-  const auth = await verifySupervisorPin(actorId, input.pinCode, "returns.authorize");
-  if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+  // El mensaje genérico se reutiliza tal cual de la primitiva para que estos
+  // endpoints no filtren más de lo que ya filtra POST /api/auth/verify-pin:
+  // dígitos incorrectos, un PIN sin returns.authorize, un supervisor de otra
+  // sucursal y un PIN mal formado dan todos el mismo 401 indistinguible.
+  //
+  // Configurable por CompanySettings.requirePinForReturns: si el negocio
+  // decide que no exige un segundo PIN aquí, la devolución se autoatribuye
+  // (authorizedByUserId = actorId) en vez de exigir un supervisor presente.
+  const settings = await getCompanySettings();
+  let authorizedByUserId = actorId;
+  if (settings.requirePinForReturns) {
+    const auth = await verifySupervisorPin(actorId, input.pinCode ?? "", "returns.authorize");
+    if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+    authorizedByUserId = auth.supervisorId;
+  }
 
-  // --- Phase 3: the atomic write. ----------------------------------------
+  // --- Fase 3: la escritura atómica. --------------------------------------
   const created = await prisma.$transaction(async (tx) => {
-    // Re-validated inside the transaction: this pass is the authoritative
-    // one. Between phase 1 and here, a concurrent return could have consumed
-    // the rest of a line's returnable quantity, or a concurrent sale the
-    // last unit of an exchange item.
+    // Revalidado dentro de la transacción: este paso es el autoritativo.
+    // Entre la fase 1 y aquí, una devolución concurrente pudo consumir lo
+    // que quedaba de una línea, o una venta concurrente la última unidad de
+    // un artículo de cambio.
     const plan = await buildReturnPlan(tx, input, actorId);
 
     const ret = await returnRepo.createReturn(
@@ -305,12 +293,12 @@ export async function processReturn(input: ProcessReturnInput, actorId: string) 
         originalSaleId: input.originalSaleId,
         branchId: plan.branchId,
         processedByUserId: actorId,
-        authorizedByUserId: auth.supervisorId,
+        authorizedByUserId,
         returnedTotal: plan.returnedTotal,
         newItemsTotal: plan.newItemsTotal,
         balance: plan.balance,
         resolution: plan.resolution,
-        // Stored only where it means something. See buildReturnPlan.
+        // Se guarda solo donde tiene sentido. Ver buildReturnPlan.
         paymentMethod: plan.resolution === "CUSTOMER_OWES" ? input.paymentMethod : null,
         notes: input.notes,
       },
@@ -332,10 +320,11 @@ export async function processReturn(input: ProcessReturnInput, actorId: string) 
         tx
       );
 
-      // A non-restocked line writes its ReturnItem row above and then
-      // deliberately moves NO stock: the goods exist physically, but not as
-      // sellable inventory. The row is what keeps that loss auditable
-      // (and is exactly what a later "damaged returns" report reads).
+      // Una línea sin reingreso escribe su fila ReturnItem arriba y luego a
+      // propósito NO mueve stock: la mercancía existe físicamente pero no
+      // como inventario vendible. Esa fila es lo que mantiene la pérdida
+      // auditable (y es justo lo que leería un reporte de "devoluciones
+      // dañadas" a futuro).
       if (line.restock) {
         await applyMovement(
           {
@@ -357,23 +346,24 @@ export async function processReturn(input: ProcessReturnInput, actorId: string) 
         {
           returnId: ret.id,
           direction: "NEW",
-          // No originating sale line — this merchandise is leaving now.
+          // Sin línea de venta de origen: esta mercancía está saliendo ahora.
           saleItemId: null,
           productId: line.productId,
           variantId: line.variantId,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
-          // Never meaningful for an outbound line.
+          // Nunca aplica a una línea de salida.
           restocked: false,
         },
         tx
       );
 
-      // MovementType.SALE, because that is exactly what this is: goods
-      // leaving the branch with a customer. Reusing SALE (rather than adding
-      // an EXCHANGE_OUT type) keeps every "units sold" report correct
-      // without teaching it a new type, and follows the precedent cancelSale
-      // already set by reusing SALE for its own reversal.
+      // MovementType.SALE, porque eso es exactamente lo que es: mercancía
+      // saliendo de la sucursal con un cliente. Reutilizar SALE (en vez de
+      // un tipo EXCHANGE_OUT) mantiene correcto cualquier reporte de
+      // "unidades vendidas" sin enseñarle un tipo nuevo, siguiendo el
+      // precedente que cancelSale ya estableció al reutilizar SALE para su
+      // propia reversión.
       await applyMovement(
         {
           productId: line.productId,
@@ -398,8 +388,8 @@ export async function processReturn(input: ProcessReturnInput, actorId: string) 
     entityType: "return",
     entityId: created.id,
     branchId: created.branchId,
-    // Records BOTH parties, so this trail reconciles against the
-    // `auth.verify_pin` entry pinAuthService wrote for the same moment.
+    // Registra AMBAS partes, para que esta bitácora se pueda cruzar con la
+    // entrada `auth.verify_pin` que pinAuthService escribió en ese momento.
     details: {
       folio: created.folio,
       originalSaleId: created.originalSaleId,
@@ -420,9 +410,9 @@ export interface ListReturnsFilters {
   to?: Date;
 }
 
-// Branch-scoped exactly like listSales/listPurchases: `allBranches` sees
-// everything, everyone else only their assigned branches, and an explicit
-// branchId outside that set is a 403 rather than a silently empty list.
+// Filtrado por sucursal igual que listSales/listPurchases: `allBranches` ve
+// todo, el resto solo sus sucursales asignadas, y un branchId explícito
+// fuera de ese conjunto es 403 en vez de una lista vacía.
 export async function listReturns(actorId: string, filters: ListReturnsFilters) {
   const accessible = await getAccessibleBranchIds(actorId);
   if (accessible !== "ALL" && filters.branchId && !accessible.includes(filters.branchId)) {

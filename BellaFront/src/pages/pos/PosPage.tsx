@@ -11,22 +11,29 @@ import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
+  Wallet,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Select } from "../../components/common/Select";
 import { Modal } from "../../components/common/Modal";
 import { StatusState } from "../../components/common/StatusState";
 import { SaleReceipt } from "../../components/common/SaleReceipt";
+import { PinAuthPrompt } from "../../components/common/PinAuthPrompt";
+import { useCompanySettings } from "../../hooks/useCompanySettings";
 import { useAuth } from "../../hooks/useAuth";
+import { usePermission } from "../../hooks/usePermission";
 import { ApiError } from "../../services/apiClient";
 import * as branchService from "../../services/branchService";
 import * as productService from "../../services/productService";
 import * as customerService from "../../services/customerService";
 import * as saleService from "../../services/saleService";
+import * as inventoryService from "../../services/inventoryService";
+import * as cashSessionService from "../../services/cashSessionService";
 import type { SalePaymentInput } from "../../services/saleService";
-import type { Branch, Customer, Product, ProductVariant, Sale } from "../../types/api";
+import type { Branch, CashSession, Customer, Product, ProductVariant, Sale } from "../../types/api";
 import "./PosPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 const PAYMENT_METHODS: { value: SalePaymentInput["method"]; label: string }[] = [
   { value: "CASH", label: "Efectivo" },
@@ -53,20 +60,17 @@ interface PaymentRow {
   amount: string;
 }
 
-// Same rounding convention as BellaBack's saleService.ts's round2 — kept in
-// sync deliberately (not imported, this is a separate runtime) so the
-// client-side preview totals agree with the server's own arithmetic instead
-// of drifting apart from float imprecision on different rounding rules.
+// Misma convención de redondeo que round2 en saleService.ts del backend
+// (duplicada a propósito, es otro runtime) para que la vista previa coincida
+// con la aritmética del servidor.
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-// Mirrors BellaBack's saleService.ts's resolveUnitPrice: a variant's own
-// price (when set) wins outright; otherwise the product's promoPrice is
-// used only when it's actually lower than the regular price (a stale promo
-// higher than list price must never upcharge). Client-side only for the
-// picker/cart preview — the server resolves prices itself at checkout and
-// is the real source of truth if this ever disagrees.
+// Igual que resolveUnitPrice en saleService.ts del backend: el precio de la
+// variante gana si existe; si no, promoPrice solo se usa si es menor al
+// precio regular. Es solo para la vista previa del carrito, el servidor
+// resuelve el precio real al momento de cobrar.
 function resolveUnitPrice(product: Product, variant?: ProductVariant): number {
   if (variant?.price != null) return Number(variant.price);
   const price = Number(product.price);
@@ -87,7 +91,7 @@ function customerDisplayName(c: Customer): string {
 export function PosPage() {
   const { user } = useAuth();
 
-  // ---------- Branch context ----------
+  // ---------- Contexto de sucursal ----------
   const [branchOptions, setBranchOptions] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
 
@@ -108,20 +112,78 @@ export function PosPage() {
     }
   }, [user]);
 
-  // A picker only makes sense when there's actually a choice to make —
-  // allBranches always shows it (their accessible set isn't a fixed list),
-  // a scoped user only shows it once they have more than one assignment.
+  // Un selector solo tiene sentido si en verdad hay opción de elegir: se
+  // muestra siempre para allBranches, y para un usuario limitado solo si
+  // tiene más de una sucursal asignada.
   const showBranchPicker = !!user?.allBranches || (user?.branches.length ?? 0) > 1;
   const selectedBranch = branchOptions.find((b) => b.id === branchId) ?? null;
 
-  // ---------- Product search ----------
+  // ---------- Requisito de caja abierta ----------
+  // Un cajero no puede cobrar sin un turno de caja abierto en la sucursal.
+  // Se verifica igual que CajaPage (cashSessionService.getCurrentSession),
+  // para que ambas páginas coincidan siempre.
+  const canManageCash = usePermission("cash.manage");
+  const [cashSession, setCashSession] = useState<CashSession | null>(null);
+  const [cashSessionChecked, setCashSessionChecked] = useState(false);
+
+  useEffect(() => {
+    if (!canManageCash || !branchId) { setCashSessionChecked(false); return; }
+    let cancelled = false;
+    setCashSessionChecked(false);
+    cashSessionService
+      .getCurrentSession(branchId)
+      .then((session) => { if (!cancelled) { setCashSession(session); setCashSessionChecked(true); } })
+      .catch(() => { if (!cancelled) setCashSessionChecked(true); });
+    return () => { cancelled = true; };
+  }, [canManageCash, branchId]);
+
+  // Solo bloquea cuando ya se SABE que no hay sesión (checked=true y sigue
+  // null); nunca bloquea durante una carga breve.
+  const cashDrawerRequired = canManageCash && cashSessionChecked && !cashSession;
+
+  // ---------- Disponibilidad de stock en la sucursal seleccionada ----------
+  // Se indexa igual que las líneas del carrito (product.id o
+  // "product.id:variant.id") para reutilizar la misma clave. Sirve para
+  // bloquear agregar un producto sin stock en ESTA sucursal.
+  const [stockByKey, setStockByKey] = useState<Map<string, number>>(new Map());
+  const [stockLoaded, setStockLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!branchId) { setStockByKey(new Map()); setStockLoaded(false); return; }
+    let cancelled = false;
+    setStockLoaded(false);
+    inventoryService
+      .listInventory({ branchId })
+      .then((rows) => {
+        if (cancelled) return;
+        const map = new Map<string, number>();
+        rows.forEach((row) => {
+          const key = row.variant ? `${row.product.id}:${row.variant.id}` : row.product.id;
+          map.set(key, row.stock);
+        });
+        setStockByKey(map);
+        setStockLoaded(true);
+      })
+      .catch(() => { if (!cancelled) setStockLoaded(false); });
+    return () => { cancelled = true; };
+  }, [branchId]);
+
+  // Mientras el stock no ha cargado, se trata todo como disponible en vez
+  // de mostrar todo en rojo un instante. Ya cargado, una clave faltante
+  // significa cero (nunca se ha recibido ese producto aquí).
+  function stockFor(product: Product, variant?: ProductVariant): number | null {
+    if (!stockLoaded) return null;
+    const key = variant ? `${product.id}:${variant.id}` : product.id;
+    return stockByKey.get(key) ?? 0;
+  }
+
+  // ---------- Búsqueda de productos ----------
   const [productSearchInput, setProductSearchInput] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [productResults, setProductResults] = useState<Product[]>([]);
   const [productSearching, setProductSearching] = useState(false);
 
-  // Same 350ms debounce convention as ProductsPage.tsx's own server-side
-  // search field.
+  // Mismo debounce de 350ms que la búsqueda de servidor en ProductsPage.tsx.
   useEffect(() => {
     const t = setTimeout(() => setProductQuery(productSearchInput.trim()), 350);
     return () => clearTimeout(t);
@@ -142,11 +204,26 @@ export function PosPage() {
     return () => { cancelled = true; };
   }, [productQuery]);
 
-  // ---------- Cart ----------
+  // ---------- Carrito ----------
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartError, setCartError] = useState<string | null>(null);
+  // Igual que discounts.authorize en saleService.ts del backend: si el rol
+  // del cajero ya tiene el permiso, nunca se pide PIN de supervisor.
+  const canAuthorizeDiscount = usePermission("discounts.authorize");
+  // Antes de que cargue la configuración, se asume "sí exige PIN" (el valor
+  // por defecto del backend) para no dejar pasar un descuento grande por una
+  // carrera con el fetch.
+  const companySettings = useCompanySettings();
+  const requirePinForDiscounts = companySettings?.requirePinForDiscounts ?? true;
+  const [discountPin, setDiscountPin] = useState("");
+  const [discountPinError, setDiscountPinError] = useState<string | null>(null);
 
   function addToCart(product: Product, variant?: ProductVariant) {
+    const stock = stockFor(product, variant);
+    if (stock !== null && stock <= 0) {
+      setCartError(`"${variant ? `${product.name} — ${variant.name}` : product.name}" no tiene existencias en esta sucursal.`);
+      return;
+    }
     setCartError(null);
     const key = variant ? `${product.id}:${variant.id}` : product.id;
     setCart((prev) => {
@@ -180,10 +257,8 @@ export function PosPage() {
     setCart((prev) => prev.filter((l) => l.key !== key));
   }
 
-  // Per-line preview math (subtotal/discount/lineTotal/over-15%-threshold
-  // flag), recomputed from raw cart state rather than stored redundantly —
-  // display-only, the server recomputes and enforces all of this for real
-  // at checkout.
+  // Cálculos de vista previa por línea, recalculados del estado crudo del
+  // carrito en vez de almacenarse; solo visual, el servidor los recalcula y valida al cobrar.
   const cartLinesComputed = useMemo(
     () =>
       cart.map((l) => {
@@ -191,10 +266,16 @@ export function PosPage() {
         const discount = Number(l.discount) || 0;
         const lineTotal = round2(lineSubtotal - discount);
         const threshold = round2(lineSubtotal * 0.15);
-        return { ...l, lineSubtotal, discount, lineTotal, overThreshold: discount > 0 && discount > threshold };
+        const overThreshold = requirePinForDiscounts && discount > 0 && discount > threshold;
+        return { ...l, lineSubtotal, discount, lineTotal, overThreshold };
       }),
-    [cart]
+    [cart, requirePinForDiscounts]
   );
+
+  // Si algún cajero sin discounts.authorize excede el umbral en alguna
+  // línea, la venta necesita el PIN de un supervisor (igual regla que
+  // saleService.createSale en el backend).
+  const needsDiscountPin = !canAuthorizeDiscount && cartLinesComputed.some((l) => l.overThreshold);
 
   const totals = useMemo(() => {
     const subtotal = round2(cartLinesComputed.reduce((sum, l) => sum + l.lineSubtotal, 0));
@@ -206,7 +287,7 @@ export function PosPage() {
     return { subtotal, discountTotal, taxTotal, total };
   }, [cartLinesComputed]);
 
-  // ---------- Customer ----------
+  // ---------- Cliente ----------
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<Customer[]>([]);
@@ -252,7 +333,7 @@ export function PosPage() {
     }
   }
 
-  // ---------- Payments ----------
+  // ---------- Pagos ----------
   const [payments, setPayments] = useState<PaymentRow[]>([emptyPaymentRow()]);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
@@ -267,10 +348,10 @@ export function PosPage() {
   }
 
   const paymentsTotal = round2(payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
-  // Positive = change owed to the customer, negative = still short.
+  // Positivo = cambio a favor del cliente, negativo = falta por pagar.
   const paymentDifference = round2(paymentsTotal - totals.total);
 
-  // ---------- Checkout ----------
+  // ---------- Cobro ----------
   const [submitting, setSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
@@ -285,6 +366,8 @@ export function PosPage() {
     setProductSearchInput("");
     setProductQuery("");
     setProductResults([]);
+    setDiscountPin("");
+    setDiscountPinError(null);
   }
 
   async function handleCheckout() {
@@ -293,6 +376,7 @@ export function PosPage() {
     setCartError(null);
     setPaymentError(null);
     setGeneralError(null);
+    setDiscountPinError(null);
     try {
       const sale = await saleService.createSale({
         branchId,
@@ -306,18 +390,17 @@ export function PosPage() {
         payments: payments
           .filter((p) => Number(p.amount) > 0)
           .map((p) => ({ method: p.method, amount: Number(p.amount) })),
+        pinCode: needsDiscountPin ? discountPin : undefined,
       });
       setCompletedSale(sale);
       setReceiptOpen(true);
       resetForm();
     } catch (err) {
-      // Route the server's own message to whichever section it's actually
-      // about, per this task's "surface the exact server message, don't
-      // paper over it" requirement — a generic top-of-page banner would
-      // bury exactly the context (which line's discount, which payment
-      // shortfall) a cashier needs to fix it.
+      // El mensaje del servidor se muestra en la sección a la que
+      // corresponde, en vez de un banner genérico que oculte el contexto.
       const message = err instanceof ApiError ? err.message : "No se pudo completar la venta.";
-      if (message.includes("descuento")) setCartError(message);
+      if (message.includes("PIN")) setDiscountPinError(message);
+      else if (message.includes("descuento")) setCartError(message);
       else if (message.includes("pago")) setPaymentError(message);
       else setGeneralError(message);
     } finally {
@@ -329,6 +412,21 @@ export function PosPage() {
     return (
       <div className="pos-page">
         <StatusState kind="empty" message="No tienes ninguna sucursal asignada para vender. Contacta a un administrador." />
+      </div>
+    );
+  }
+
+  if (cashDrawerRequired) {
+    return (
+      <div className="pos-page">
+        <div className="pos-cash-required">
+          <Wallet size={32} />
+          <h2>Primero debes abrir la caja</h2>
+          <p>Antes de registrar una venta necesitas abrir el turno de caja en {selectedBranch?.name ?? "esta sucursal"}.</p>
+          <Link to="/admin/caja" className="pos-cash-required__button">
+            <Wallet size={16} /> Abrir caja ahora
+          </Link>
+        </div>
       </div>
     );
   }
@@ -382,26 +480,50 @@ export function PosPage() {
               return (
                 <li key={p.id} className="pos-search__product">
                   {activeVariants.length === 0 ? (
-                    <button type="button" className="pos-search__row" onClick={() => addToCart(p)}>
-                      <span className="pos-search__row-name">{p.name}</span>
-                      <span className="pos-search__row-sku">{p.sku}</span>
-                      <span className="pos-search__row-price">{currencyFormatter.format(resolveUnitPrice(p))}</span>
-                    </button>
+                    (() => {
+                      const stock = stockFor(p);
+                      const outOfStock = stock !== null && stock <= 0;
+                      return (
+                        <button
+                          type="button"
+                          className={`pos-search__row${outOfStock ? " pos-search__row--out" : ""}`}
+                          onClick={() => addToCart(p)}
+                          disabled={outOfStock}
+                        >
+                          <span className="pos-search__row-name">{p.name}</span>
+                          <span className="pos-search__row-sku">{p.sku}</span>
+                          {outOfStock ? (
+                            <span className="pos-search__row-outbadge"><AlertTriangle size={12} /> No hay en existencias</span>
+                          ) : (
+                            <span className="pos-search__row-price">{currencyFormatter.format(resolveUnitPrice(p))}</span>
+                          )}
+                        </button>
+                      );
+                    })()
                   ) : (
                     <>
                       <p className="pos-search__product-label">{p.name}</p>
-                      {activeVariants.map((v) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className="pos-search__row pos-search__row--variant"
-                          onClick={() => addToCart(p, v)}
-                        >
-                          <span className="pos-search__row-name">{v.name}</span>
-                          <span className="pos-search__row-sku">{v.sku}</span>
-                          <span className="pos-search__row-price">{currencyFormatter.format(resolveUnitPrice(p, v))}</span>
-                        </button>
-                      ))}
+                      {activeVariants.map((v) => {
+                        const stock = stockFor(p, v);
+                        const outOfStock = stock !== null && stock <= 0;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            className={`pos-search__row pos-search__row--variant${outOfStock ? " pos-search__row--out" : ""}`}
+                            onClick={() => addToCart(p, v)}
+                            disabled={outOfStock}
+                          >
+                            <span className="pos-search__row-name">{v.name}</span>
+                            <span className="pos-search__row-sku">{v.sku}</span>
+                            {outOfStock ? (
+                              <span className="pos-search__row-outbadge"><AlertTriangle size={12} /> No hay en existencias</span>
+                            ) : (
+                              <span className="pos-search__row-price">{currencyFormatter.format(resolveUnitPrice(p, v))}</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </>
                   )}
                 </li>
@@ -626,15 +748,29 @@ export function PosPage() {
           {paymentError && <p className="pos-payments__error"><AlertTriangle size={14} /> {paymentError}</p>}
           {generalError && <p className="pos-cart__error"><AlertTriangle size={14} /> {generalError}</p>}
 
-          <button
-            type="button"
-            className="pos-checkout-btn"
-            onClick={handleCheckout}
-            disabled={cart.length === 0 || submitting}
-          >
-            {submitting ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
-            {submitting ? "Procesando..." : "Cobrar"}
-          </button>
+          {needsDiscountPin ? (
+            <PinAuthPrompt
+              value={discountPin}
+              onChange={setDiscountPin}
+              onSubmit={handleCheckout}
+              submitLabel="Cobrar"
+              submittingLabel="Procesando..."
+              error={discountPinError}
+              busy={submitting}
+              disabled={cart.length === 0}
+              description="Un descuento supera lo que puedes autorizar tú mismo/a. Pide a un supervisor su PIN para cobrar."
+            />
+          ) : (
+            <button
+              type="button"
+              className="pos-checkout-btn"
+              onClick={handleCheckout}
+              disabled={cart.length === 0 || submitting}
+            >
+              {submitting ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
+              {submitting ? "Procesando..." : "Cobrar"}
+            </button>
+          )}
         </section>
       </div>
 

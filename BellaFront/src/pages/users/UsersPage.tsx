@@ -1,25 +1,18 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Pencil, Ban, CheckCircle2 } from "lucide-react";
 import { Avatar } from "../../components/common/Avatar";
 import { Badge } from "../../components/common/Badge";
 import { StatusState } from "../../components/common/StatusState";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { UserFormModal } from "./UserFormModal";
-import { ApiError } from "../../services/apiClient";
 import * as userService from "../../services/userService";
 import * as roleService from "../../services/roleService";
 import * as branchService from "../../services/branchService";
 import type { User, Role, Branch } from "../../types/api";
 import "./UsersPage.css";
+import { staggerStyle } from "../../utils/staggerStyle";
 
-// Same --stagger-delay custom-property pattern used across
-// ProductsPage/InventoryPage/DashboardPage — this table previously only
-// had the CSS-level animation on the whole <table>, no per-row stagger.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
-
-export function UsersPage() {
+export function UsersPage({ embedded = false }: { embedded?: boolean }) {
   const [users, setUsers] = useState<User[] | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -52,23 +45,13 @@ export function UsersPage() {
     }
   }
 
-  async function updateUserBranches(user: User, branchIds: string[]) {
-    setActionError(null);
-    try {
-      const updated = await userService.assignBranches(user.id, branchIds, user.allBranches);
-      upsertUser(updated);
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "No se pudo actualizar la asignación de sucursales.");
-    }
-  }
-
   if (status === "loading") return <StatusState kind="loading" />;
   if (status === "error") return <StatusState kind="error" message="No se pudieron cargar los usuarios." />;
 
   return (
     <div className="users-page">
       <div className="users-page__header">
-        <h1>Usuarios</h1>
+        {embedded ? <div /> : <h1>Usuarios</h1>}
         <PermissionGate code="users.create">
           <button onClick={() => { setEditingUser(undefined); setModalOpen(true); }}><Plus size={16} /> Nuevo usuario</button>
         </PermissionGate>
@@ -90,26 +73,16 @@ export function UsersPage() {
                 <td>{u.displayName}</td>
                 <td>{u.username}</td>
                 <td>{u.role.name}</td>
-                <td>
-                  {u.allBranches ? "Todas" : (
-                    <PermissionGate
-                      code="users.edit"
-                      fallback={u.branches.length > 0 ? u.branches.map((b) => b.name).join(", ") : "Sin sucursales"}
-                    >
-                      <select
-                        multiple
-                        className="users-table__branch-select"
-                        size={Math.min(branches.length, 3)}
-                        value={u.branches.map((b) => b.id)}
-                        onChange={(e) => {
-                          const selectedIds = Array.from(e.target.selectedOptions).map((o) => o.value);
-                          updateUserBranches(u, selectedIds);
-                        }}
-                      >
-                        {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
-                    </PermissionGate>
-                  )}
+                {/* Read-only, always — branch assignment used to be a live
+                    multi-select right in this cell, which made it far too
+                    easy to change someone's access with a stray click. The
+                    only way to change it now is the "Editar" button below,
+                    which opens UserFormModal's proper checkbox list; that
+                    button is already users.edit-gated (admin-only in every
+                    seeded role today), so this cell never needs its own
+                    permission check anymore. */}
+                <td className="users-table__branches">
+                  {u.allBranches ? "Todas" : (u.branches.length > 0 ? u.branches.map((b) => b.name).join(", ") : "Sin sucursales")}
                 </td>
                 <td><Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status === "ACTIVE" ? "Activo" : "Inactivo"}</Badge></td>
                 <td>

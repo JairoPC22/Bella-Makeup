@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Check,
   ChevronLeft,
@@ -19,7 +20,7 @@ import type { PublicProduct, PublicProductVariant } from "../../types/api";
 import { useCart } from "../CartContext";
 import "./ProductDetailPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 type FetchStatus = "loading" | "ready" | "error";
 
@@ -37,6 +38,10 @@ export function ProductDetailPage() {
   const [related, setRelated] = useState<PublicProduct[]>([]);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // +1/-1: define de qué lado entra la nueva imagen; se actualiza justo
+  // antes de activeImageIndex para que AnimatePresence lea la dirección
+  // correcta en el mismo render.
+  const [imageDirection, setImageDirection] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<PublicProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
@@ -56,8 +61,8 @@ export function ProductDetailPage() {
       .catch(() => setStatus("error"));
   }, [id]);
 
-  // "Más de esta categoría" — a second, dependent read that must not be
-  // able to break the page: any failure just leaves the rail unrendered.
+  // "Más de esta categoría": una lectura secundaria que no debe romper la
+  // página; si falla, simplemente no se muestra el carrusel.
   useEffect(() => {
     if (!product?.category) return;
     let cancelled = false;
@@ -94,12 +99,9 @@ export function ProductDetailPage() {
   const hasVariants = product.variants.length > 0;
   const effectiveInStock = hasVariants ? (selectedVariant?.inStock ?? false) : product.inStock;
   const canAdd = hasVariants ? selectedVariant != null && effectiveInStock : effectiveInStock;
-  // Whether the PRODUCT as a whole can still be bought, independent of
-  // whether a variant happens to be selected yet. Without this, a product
-  // with in-stock variants showed a hard "Agotado" label (and an
-  // availability pill reading "Agotado") purely because nothing had been
-  // clicked yet — actively telling a shopper a purchasable product was
-  // sold out.
+  // Si el PRODUCTO en general se puede comprar, sin importar si ya se
+  // seleccionó una variante. Sin esto, un producto con variantes en stock
+  // mostraba "Agotado" solo por no haber hecho clic aún.
   const anyVariantInStock = hasVariants ? product.variants.some((v) => v.inStock) : product.inStock;
 
   const basePrice = Number(product.price);
@@ -118,8 +120,17 @@ export function ProductDetailPage() {
       ? buildPublicImageUrl(activeImage.url)
       : null;
 
-  // The add-to-cart label, resolved in the order a shopper actually
-  // experiences it: pick an option first, then stock, then the happy path.
+  function goToImage(i: number) {
+    setImageDirection(i > activeImageIndex ? 1 : -1);
+    setActiveImageIndex(i);
+  }
+  function goToAdjacentImage(step: 1 | -1) {
+    if (galleryImages.length < 2) return;
+    goToImage((activeImageIndex + step + galleryImages.length) % galleryImages.length);
+  }
+
+  // Etiqueta de "agregar al carrito", resuelta en el orden en que el
+  // comprador la experimenta: elegir opción, luego stock, luego el caso normal.
   const ctaLabel = !anyVariantInStock
     ? "Agotado"
     : hasVariants && !selectedVariant
@@ -170,21 +181,62 @@ export function ProductDetailPage() {
                   -{discount}%
                 </span>
               )}
-              {/* `key` forces React to remount this node whenever the shown
-                  image changes (thumbnail click OR variant swap), which
-                  restarts the CSS entrance animation below each time — a
-                  cheap, dependency-free crossfade without a transition
-                  library ("que se vean bien en galería con animación"). */}
-              <div className="storefront-detail__main-image-inner" key={displayImageUrl ?? "placeholder"}>
-                {displayImageUrl ? (
-                  <img src={displayImageUrl} alt={product.name} />
-                ) : (
-                  <span className="storefront-detail__placeholder">
-                    <Sparkles size={34} aria-hidden="true" />
-                    <span>Imagen próximamente</span>
+              {/* Real carousel transition (motion's AnimatePresence),
+                  replacing the old CSS-only crossfade: the outgoing image
+                  now actually slides out toward the side it came from
+                  while the incoming one slides in from the direction you
+                  navigated (thumbnail index or the new prev/next arrows
+                  below) — mode="popLayout" keeps the exiting image
+                  absolutely positioned so it doesn't push layout while
+                  both are briefly on screen together. */}
+              <AnimatePresence initial={false} custom={imageDirection} mode="popLayout">
+                <motion.div
+                  key={displayImageUrl ?? "placeholder"}
+                  className="storefront-detail__main-image-inner"
+                  custom={imageDirection}
+                  variants={{
+                    enter: (dir: number) => ({ opacity: 0, x: dir * 36, scale: 1.02 }),
+                    center: { opacity: 1, x: 0, scale: 1 },
+                    exit: (dir: number) => ({ opacity: 0, x: dir * -36, scale: 0.98 }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.32, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  {displayImageUrl ? (
+                    <img src={displayImageUrl} alt={product.name} loading="eager" fetchPriority="high" />
+                  ) : (
+                    <span className="storefront-detail__placeholder">
+                      <Sparkles size={34} aria-hidden="true" />
+                      <span>Imagen próximamente</span>
+                    </span>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="storefront-detail__main-nav storefront-detail__main-nav--prev"
+                    onClick={() => goToAdjacentImage(-1)}
+                    aria-label="Imagen anterior"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className="storefront-detail__main-nav storefront-detail__main-nav--next"
+                    onClick={() => goToAdjacentImage(1)}
+                    aria-label="Imagen siguiente"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  <span className="storefront-detail__main-counter">
+                    {activeImageIndex + 1} / {galleryImages.length}
                   </span>
-                )}
-              </div>
+                </>
+              )}
             </div>
             {galleryImages.length > 1 && (
               <div className="storefront-detail__thumbs">
@@ -193,10 +245,10 @@ export function ProductDetailPage() {
                     key={img.id}
                     type="button"
                     className={`storefront-detail__thumb${i === activeImageIndex ? " is-active" : ""}`}
-                    onClick={() => setActiveImageIndex(i)}
+                    onClick={() => goToImage(i)}
                     aria-label={`Ver imagen ${i + 1}`}
                   >
-                    <img src={buildPublicImageUrl(img.url)} alt="" />
+                    <img src={buildPublicImageUrl(img.url)} alt="" loading="lazy" />
                   </button>
                 ))}
               </div>
@@ -334,9 +386,14 @@ export function ProductDetailPage() {
                 return (
                   <Link key={item.id} to={`/producto/${item.id}`} className="storefront-product-card">
                     <span className="storefront-product-card__image">
-                      {itemImage
-                        ? <img src={buildPublicImageUrl(itemImage.url)} alt={item.name} />
-                        : <Sparkles size={30} aria-hidden="true" />}
+                      {itemImage ? (
+                        <img src={buildPublicImageUrl(itemImage.url)} alt={item.name} loading="lazy" />
+                      ) : (
+                        <span className="storefront-product-card__placeholder">
+                          <Sparkles size={26} aria-hidden="true" />
+                          <span>Imagen próximamente</span>
+                        </span>
+                      )}
                     </span>
                     <span className="storefront-product-card__body">
                       <span className="storefront-product-card__brand">{item.brand?.name ?? " "}</span>

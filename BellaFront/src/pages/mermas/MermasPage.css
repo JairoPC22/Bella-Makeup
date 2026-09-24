@@ -1,0 +1,255 @@
+/* Structure and tokens follow PurchasesPage.css closely — same page header,
+   filter bar, table and modal conventions, adapted for shrinkage write-offs
+   (no per-line cost to edit — the backend snapshots pricing itself — and a
+   quantity stepper instead of a free-typed number, since a merma line is
+   almost always a handful of units). */
+
+.mermas-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
+
+.mermas-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
+.mermas-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.mermas-page__title svg { color: var(--color-pink-deep); }
+.mermas-page__title h1 { margin: 0; }
+
+.mermas-page__subtitle { margin: -8px 0 0; font-size: 0.86rem; color: var(--color-text-secondary); max-width: 640px; line-height: 1.4; }
+
+.mermas-page__new-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--color-pink-deep); color: var(--color-white);
+  border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.88rem; font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.mermas-page__new-btn:hover { background: var(--color-primary-focus); }
+.mermas-page__new-btn:active { transform: scale(0.98); }
+
+/* ---------- Filter bar ---------- */
+.mermas-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-1) 0; }
+.mermas-filters__date {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 500;
+}
+.mermas-filters__date input {
+  padding: 7px var(--space-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.85rem; color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.mermas-filters__date input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+/* ---------- Table ---------- */
+.mermas-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: fade-in-up 0.6s var(--ease-premium) both;
+}
+.mermas-table th, .mermas-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; vertical-align: middle; }
+.mermas-table tbody tr {
+  position: relative;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-fast) var(--ease-premium);
+}
+.mermas-table tbody tr:hover { background: var(--color-bg); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.mermas-table tbody tr:last-child td { border-bottom: none; }
+
+.mermas-table__folio { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.mermas-table__impact { font-weight: 600; color: #B3261E; font-variant-numeric: tabular-nums; }
+
+.mermas-table__view {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--color-border); cursor: pointer;
+  padding: 5px 10px; color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); font-size: 0.8rem;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.mermas-table__view:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+.merma-type-badge {
+  display: inline-flex; flex-shrink: 0;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 9px; border-radius: var(--radius-pill); white-space: nowrap;
+  background: #FDF0D5; color: #A66A00;
+}
+
+/* ---------- Create modal ---------- */
+.merma-create-modal.modal { max-width: 620px; }
+.merma-create { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.merma-create__head { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); align-items: start; }
+.merma-create__field { display: flex; flex-direction: column; gap: 4px; }
+.merma-create__field-label { font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.03em; }
+.merma-create__field-static { margin: 0; padding: 7px var(--space-2); font-size: 0.9rem; color: var(--color-ink); font-weight: 600; }
+.merma-create__field-static--empty { color: var(--color-text-muted); font-weight: 500; }
+
+.merma-create__picker { display: flex; flex-direction: column; gap: 6px; }
+.merma-create__search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-2_5); color: var(--color-text-muted);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.merma-create__search:focus-within { border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.merma-create__search input {
+  flex: 1 1 auto; border: none; outline: none; background: none;
+  font-family: var(--font-body); font-size: 0.9rem; color: var(--color-primary);
+}
+
+.merma-create__results {
+  list-style: none; margin: 0; padding: 6px;
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 200px; overflow-y: auto;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-pink-soft) transparent;
+}
+.merma-create__result-label {
+  margin: var(--space-1) 0 0; padding: 0 6px;
+  font-size: 0.72rem; font-weight: 600; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.merma-create__result-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  width: 100%; text-align: left;
+  background: none; border: 1px solid transparent; border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-2_5);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.merma-create__result-row:hover { background: var(--color-pink-50); border-color: var(--color-pink-100); }
+.merma-create__result-row--variant { padding-left: var(--space-4); }
+.merma-create__result-name { flex: 1 1 auto; min-width: 0; font-size: 0.88rem; color: var(--color-ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.merma-create__result-sku { flex: 0 0 auto; font-size: 0.72rem; color: var(--color-text-muted); }
+
+/* Line grid: name | quantity stepper | remove. */
+.merma-create__lines { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+.merma-create__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 26px;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  animation: fade-in-up 0.4s var(--ease-premium) both;
+}
+.merma-create__line-info { min-width: 0; }
+.merma-create__line-name { margin: 0; font-size: 0.88rem; font-weight: 500; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.merma-create__line-sku { margin: 1px 0 0; font-size: 0.74rem; color: var(--color-text-muted); }
+
+.merma-create__line-stepper {
+  display: flex; align-items: center; gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.merma-create__line-stepper button {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-white); color: var(--color-ink); font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.merma-create__line-stepper button:hover { background: var(--color-pink-soft); border-color: var(--color-pink-elegant); color: var(--color-pink-deep); }
+.merma-create__line-stepper span { min-width: 20px; text-align: center; font-size: 0.9rem; font-weight: 600; color: var(--color-ink); }
+
+.merma-create__line-remove {
+  justify-self: end;
+  background: none; border: none; color: var(--color-text-muted); cursor: pointer;
+  border-radius: var(--radius-sm); padding: 3px;
+  transition: color var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
+}
+.merma-create__line-remove:hover { color: #B3261E; background: #FBE5E1; }
+
+.merma-create__total {
+  margin: 4px 0 0; text-align: right;
+  font-size: 0.84rem; color: var(--color-text-secondary);
+}
+.merma-create__total strong { margin-left: 8px; font-size: 1rem; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.merma-create__text-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: var(--color-text-secondary); }
+.merma-create__text-field textarea {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.86rem; color: var(--color-primary);
+  resize: vertical; font-weight: 400;
+}
+.merma-create__text-field textarea:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.merma-create__field-hint { font-size: 0.74rem; font-weight: 500; color: var(--color-text-muted); }
+
+/* ---------- Detail modal ---------- */
+.merma-detail-modal.modal { max-width: 560px; }
+.merma-detail { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.merma-detail__status-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.merma-detail__date { font-size: 0.82rem; color: var(--color-text-secondary); }
+
+.merma-detail__meta {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);
+  padding: var(--space-2_5) var(--space-3);
+  background: var(--color-bg); border-radius: var(--radius-md);
+}
+.merma-detail__meta-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.merma-detail__meta-value { margin: 2px 0 0; font-size: 0.92rem; font-weight: 600; color: var(--color-ink); }
+.merma-detail__meta-value--comments { font-weight: 400; font-size: 0.86rem; line-height: 1.4; }
+
+.merma-detail__section-label {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 6px; font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+
+.merma-detail__items { display: flex; flex-direction: column; gap: 6px; }
+.merma-detail__item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+}
+.merma-detail__item-info { flex: 1 1 auto; min-width: 0; }
+.merma-detail__item-name { margin: 0; font-size: 0.88rem; font-weight: 500; color: var(--color-ink); }
+.merma-detail__item-sku { margin: 1px 0 0; font-size: 0.74rem; color: var(--color-text-muted); }
+
+.merma-detail__item-numbers { display: flex; gap: var(--space-2_5); flex-shrink: 0; }
+.merma-detail__item-num {
+  display: flex; flex-direction: column; align-items: flex-end;
+  font-size: 0.86rem; font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums;
+}
+.merma-detail__item-num em {
+  font-style: normal; font-size: 0.66rem; font-weight: 600; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+
+.merma-detail__totals { margin: 4px 0 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.merma-detail__totals p { margin: 0; text-align: right; font-size: 0.84rem; color: var(--color-text-secondary); }
+.merma-detail__totals strong { margin-left: 8px; font-size: 1rem; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.merma-detail__people { display: flex; flex-direction: column; gap: 2px; font-size: 0.86rem; color: var(--color-ink); }
+.merma-detail__people span { color: var(--color-text-secondary); margin-right: 6px; }
+
+@media (max-width: 768px) {
+  .mermas-table thead { display: none; }
+  .mermas-table, .mermas-table tbody, .mermas-table tr, .mermas-table td { display: block; width: 100%; }
+  .mermas-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+  .merma-create__head, .merma-detail__meta { grid-template-columns: 1fr; }
+  .merma-detail__item { flex-wrap: wrap; }
+}
+
+/* ---------- Modal-scoped re-assertions ----------
+   Same rationale as PurchasesPage.css's own equivalent block: Modal.css's
+   generic `.modal__body label`/`input` rules would otherwise stack the
+   search row's icon above its input and re-box the borderless search field. */
+.modal__body .merma-create__search { flex-direction: row; align-items: center; }
+.modal__body .merma-create__search input {
+  border: none; padding: 0; font-size: 0.9rem; border-radius: 0;
+}
+.modal__body .merma-create__search input:focus { box-shadow: none; }
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .mermas-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

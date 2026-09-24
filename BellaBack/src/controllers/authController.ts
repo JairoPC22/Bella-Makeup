@@ -55,12 +55,8 @@ export async function me(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// POST /api/auth/verify-pin — runs on the CASHIER's session (requireAuth),
-// because the supervisor is physically present at the cashier's terminal
-// rather than logging in themselves. Responds with the literal
-// { ok, ... } / { ok: false, error } envelope the calling module expects,
-// which is why the failure path returns a value instead of throwing into
-// errorHandler's generic { message } shape.
+// Corre en la sesión del cajero (el supervisor está físicamente presente).
+// Devuelve { ok, ... } en vez de lanzar, porque el módulo llamador espera ese formato.
 export async function verifyPin(req: Request, res: Response, next: NextFunction) {
   try {
     const { pin, requiredPermission } = verifyPinSchema.parse(req.body);

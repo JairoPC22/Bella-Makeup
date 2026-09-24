@@ -1,6 +1,6 @@
 .inventory-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
 
-.inventory-page__header { display: flex; align-items: center; justify-content: space-between; }
+.inventory-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
 .inventory-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
 .inventory-page__title svg { color: var(--color-pink-deep); }
 .inventory-page__title h1 { margin: 0; }
@@ -18,6 +18,68 @@
 .inventory-table__th-info { display: inline-flex; align-items: center; gap: 4px; }
 .inventory-table__info-icon { display: inline-flex; color: var(--color-text-muted); cursor: help; border-radius: var(--radius-sm); }
 .inventory-table__info-icon:hover, .inventory-table__info-icon:focus-visible { color: var(--color-pink-deep); outline: none; }
+
+/* ---------- Stock alerts — same "colored left accent + icon badge +
+   pill button" language as DashboardPage.css's .dashboard-cash-reminder,
+   just in two color families instead of one: red for OUT (nothing to
+   sell — urgent), amber for LOW/CRITICAL (worth restocking soon — a
+   warning, not an emergency). Reuses the exact hex values the existing
+   stock-badge--out/--critical variants already use elsewhere in the app
+   (DashboardPage.css) rather than inventing new ones. ---------- */
+.inventory-alerts { display: flex; flex-direction: column; gap: var(--space-2); }
+.inventory-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2_5) var(--space-4);
+  border-radius: var(--radius-lg);
+}
+.inventory-alert__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.inventory-alert p { flex: 1; min-width: 0; margin: 0; font-size: 0.88rem; font-weight: 500; }
+.inventory-alert button {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: filter var(--transition-fast) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.inventory-alert button:hover { filter: brightness(0.92); }
+.inventory-alert button:active { transform: scale(0.97); }
+.inventory-alert__buttons { display: flex; gap: 8px; flex-shrink: 0; }
+
+.inventory-alert--out {
+  background: linear-gradient(135deg, #FDEDEC 0%, #FBDEDC 100%);
+  border: 1px solid #F3B9B4;
+  border-left: 3px solid #B3261E;
+  color: #7A1912;
+}
+.inventory-alert--out .inventory-alert__icon { background: color-mix(in srgb, #B3261E 14%, white); color: #B3261E; }
+.inventory-alert--out button { background: #B3261E; color: var(--color-white); }
+
+.inventory-alert--low {
+  background: linear-gradient(135deg, #FFF7EB 0%, #FFEFD6 100%);
+  border: 1px solid #F0D19B;
+  border-left: 3px solid #D98C0F;
+  color: #7A4E06;
+}
+.inventory-alert--low .inventory-alert__icon { background: color-mix(in srgb, #D98C0F 16%, white); color: #B4700F; }
+.inventory-alert--low button { background: #B4700F; color: var(--color-white); }
+
+@media (max-width: 640px) {
+  .inventory-alert { flex-wrap: wrap; }
+  .inventory-alert button { margin-left: 44px; }
+}
 
 /* ---------- Filter bar — same layout convention as AuditPage's
    .audit-filters, plus a search input styled like MessagesPage's
@@ -149,4 +211,15 @@
   .inventory-table thead { display: none; }
   .inventory-table, .inventory-table tbody, .inventory-table tr, .inventory-table td { display: block; width: 100%; }
   .inventory-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+}
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .inventory-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }

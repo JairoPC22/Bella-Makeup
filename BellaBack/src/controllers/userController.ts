@@ -36,9 +36,7 @@ export async function assignBranches(req: Request, res: Response, next: NextFunc
   } catch (err) { next(err); }
 }
 
-// PUT /api/users/me/pin — self-service only (requireAuth, no permission
-// gate): the acting user's own id comes from the token, never from the URL,
-// so there is no path by which one user sets another's PIN.
+// Autoservicio: el id sale del token, no de la URL, así nadie puede cambiar el PIN de otro.
 export async function setOwnPin(req: Request, res: Response, next: NextFunction) {
   try {
     const { pin, currentPassword } = setPinSchema.parse(req.body);

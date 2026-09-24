@@ -2,10 +2,8 @@ import { apiFetch, ApiError } from "./apiClient";
 import type { Conversation, ConversationMessagesResponse, Message, MessagingParty } from "../types/api";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
-// /uploads is served as a static root by the backend (see BellaBack's
-// app.ts app.use("/uploads", ...)), not under /api — strip the /api suffix
-// from VITE_API_URL to get the origin attachment URLs need to be resolved
-// against.
+// /uploads se sirve como raíz estática en el backend, no bajo /api — se
+// quita el sufijo /api de VITE_API_URL para obtener el origen correcto.
 const UPLOADS_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 
 export function buildAttachmentUrl(relativeUrl: string): string {
@@ -16,9 +14,8 @@ export const listConversations = () => apiFetch<Conversation[]>("/messages/conve
 
 export const listMessagingUsers = () => apiFetch<MessagingParty[]>("/messages/users");
 
-// participantIds is every OTHER person to add — the caller is implicit
-// server-side. 1 id => 1:1 (dedup against an existing conversation); 2+ ids
-// => always creates a new group. `name` is only meaningful for groups.
+// participantIds son las demás personas a agregar (el llamador es implícito
+// en el servidor). 1 id => 1 a 1 (dedup); 2+ ids => siempre crea un grupo.
 export const startConversation = (participantIds: string[], name?: string | null) =>
   apiFetch<Conversation>("/messages/conversations", {
     method: "POST",
@@ -28,8 +25,7 @@ export const startConversation = (participantIds: string[], name?: string | null
 export const listMessages = (conversationId: string) =>
   apiFetch<ConversationMessagesResponse>(`/messages/conversations/${conversationId}/messages`);
 
-// Per-viewer "delete for me" — hides the conversation from the caller's own
-// list without affecting the other participant(s) or the underlying data.
+// "Eliminar para mí": oculta la conversación solo para quien la pide.
 export const hideConversation = (conversationId: string) =>
   apiFetch<void>(`/messages/conversations/${conversationId}`, { method: "DELETE" });
 
@@ -40,13 +36,9 @@ export interface SendMessageInput {
   files: File[];
 }
 
-// apiFetch always sets Content-Type: application/json, which is wrong for a
-// multipart upload (it would clobber the browser-generated boundary). This
-// is deliberately its own fetch() call rather than a special case bolted
-// onto apiFetch — apiFetch is used everywhere else and JSON is correct
-// there. No 401-refresh-retry here (unlike apiFetch): sending a message is a
-// rare, manual user action rather than a background poll, so a simple
-// version without that retry logic is an acceptable tradeoff.
+// fetch() propio en vez de apiFetch: apiFetch fuerza Content-Type
+// application/json, lo cual rompería el boundary multipart. Sin reintento
+// de refresh 401 (aceptable: enviar un mensaje es una acción manual, no polling).
 export async function sendMessage(conversationId: string, input: SendMessageInput): Promise<Message> {
   const formData = new FormData();
   formData.append("body", input.body);

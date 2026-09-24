@@ -8,9 +8,7 @@ const router = Router();
 
 router.get("/", requireAuth, requirePermission("shrinkage.view"), mermaController.list);
 router.get("/:id", requireAuth, requirePermission("shrinkage.view"), mermaController.getById);
-// Same split as return.routes.ts: `shrinkage.create` lets staff REQUEST a
-// write-off; `shrinkage.authorize` (checked by verifySupervisorPin against
-// the PIN holder, never against the requester) is what approves it.
+// Igual que return.routes.ts: `shrinkage.create` solicita, `shrinkage.authorize` (vía PIN) aprueba.
 router.post(
   "/",
   requireAuth,

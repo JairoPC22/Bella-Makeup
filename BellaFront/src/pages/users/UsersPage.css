@@ -29,29 +29,10 @@
   transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
 }
 .users-table button:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); }
-.users-table__branch-select {
-  min-width: 160px;
-  max-width: 220px;
-  padding: var(--space-1);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-white);
-  color: var(--color-primary);
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  outline: none;
-}
-.users-table__branch-select:focus {
-  border-color: var(--color-pink-elegant);
-}
-.users-table__branch-select option {
-  padding: 2px var(--space-1);
-  border-radius: var(--radius-sm);
-}
-.users-table__branch-select option:checked {
-  background: var(--color-pink-soft);
-  color: var(--color-pink-deep);
-}
+/* Read-only summary of a user's branch access — editing now only happens
+   through the "Editar" modal (UserFormModal's proper checkbox list), so
+   this cell is deliberately plain text, not another control. */
+.users-table__branches { color: var(--color-text-secondary); max-width: 220px; }
 @media (max-width: 768px) {
   .users-table thead { display: none; }
   .users-table, .users-table tbody, .users-table tr, .users-table td { display: block; width: 100%; }
@@ -67,4 +48,15 @@
   color: var(--color-text-secondary);
   margin-top: 4px;
   line-height: 1.35;
+}
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .users-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }

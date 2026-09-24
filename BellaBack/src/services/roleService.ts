@@ -11,9 +11,7 @@ import { mapRole } from "../utils/roleMapper";
 import { AppError } from "../utils/AppError";
 import { logAudit } from "./auditService";
 
-// Every code in `codes` must already exist in the Permission table — shared
-// by both create and permission-replace so an unknown code (typo, stale
-// frontend build) fails the whole request the same way in either path.
+// Cada código debe existir en la tabla Permission; un código desconocido falla toda la solicitud.
 async function resolvePermissionIds(codes: string[]): Promise<string[]> {
   const permissions = await prisma.permission.findMany({ where: { code: { in: codes } } });
   if (permissions.length !== codes.length) {
@@ -27,21 +25,11 @@ export async function listRoles() {
   return roles.map(mapRole);
 }
 
-// Permissions the seeded "admin" role must always keep — without
-// roles.manage no one (including admin) could ever call this endpoint
-// again, and without roles.view no one could even see roles to diagnose
-// the problem. Unlike a regular user disabling their own account (which
-// any OTHER admin can still fix), there's no recovery path once the one
-// role that can grant roles.manage loses it: no in-app way to grant it
-// back. Guarded here, not just in the UI, since the UI check is trivially
-// bypassable by calling the endpoint directly.
+// El rol "admin" nunca debe perder roles.manage/roles.view: sin ellos nadie
+// podría volver a otorgarlos. Se valida en el backend, no solo en la UI.
 const ADMIN_ROLE_REQUIRED_PERMISSIONS = ["roles.manage", "roles.view"] as const;
 
-// Full replace of a role's permission set (not a diff), gated by
-// roles.manage at the route layer. Every code in the request must already
-// exist in the Permission table — an unknown code (typo, stale frontend
-// build, etc.) fails the whole request with a 400 rather than silently
-// dropping it.
+// Reemplazo completo del conjunto de permisos del rol (no un diff).
 export async function updateRolePermissions(id: string, codes: string[], actorId: string) {
   const role = await findRoleById(id);
   if (!role) throw new AppError(404, "Rol no encontrado");

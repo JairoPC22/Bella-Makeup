@@ -1,23 +1,8 @@
 import { z } from "zod";
+import { uuidShape } from "./common.validators";
 
-// Same recurring bug class documented in sale.validators.ts/transfer.validators.ts:
-// Zod's strict `.uuid()` rejects the deterministic seed ids
-// ("00000000-...-000000000001") used by seeded branches, which are valid
-// UUID-shaped strings but fail the RFC version/variant check. branchId can
-// reference those seeded fixtures, so it uses this shape-only regex.
-// productId/variantId/orderId stay on the strict `.uuid()` below since
-// products/variants/orders always get Prisma's real v4 `uuid()` default,
-// never one of these fixture ids.
-const uuidShape = z
-  .string()
-  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
-
-// POST /api/public/orders has zero auth — every field here is validated
-// defensively (never trust an unauthenticated public endpoint's input),
-// even though the frontend already validates its own form: absurd
-// quantities, unknown branch ids, empty item arrays, and out-of-range
-// coordinates are all rejected server-side regardless of what the client
-// sent.
+// POST /api/public/orders no tiene autenticación: toda entrada se valida
+// de forma defensiva en el servidor, sin confiar en la validación del frontend.
 const onlineOrderItemSchema = z.object({
   productId: z.string().uuid(),
   variantId: z.string().uuid().optional(),
@@ -69,14 +54,20 @@ export const listOrdersQuerySchema = z.object({
   to: z.coerce.date().optional(),
 });
 
-// `reason` is only actually required when transitioning to CANCELLED
-// (enforced by the .refine below) — every other transition ignores it.
+// `reason` solo es obligatorio al cancelar (ver el .refine). `pickupCode` se
+// valida en forma aquí (6 dígitos); orderService.updateOrderStatus lo compara.
 export const updateOrderStatusSchema = z
   .object({
     status: z.enum(["CONFIRMED", "PREPARING", "READY", "COMPLETED", "CANCELLED"]),
     reason: z.string().trim().min(3, "El motivo debe tener al menos 3 caracteres").optional(),
+    pickupCode: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos").optional(),
   })
   .refine((data) => data.status !== "CANCELLED" || Boolean(data.reason), {
     message: "Se requiere un motivo para cancelar el pedido",
     path: ["reason"],
   });
+
+// `null` borra el ETA previo; omitir el campo es un error de validación.
+export const setOrderEtaSchema = z.object({
+  estimatedReadyAt: z.coerce.date().nullable(),
+});

@@ -31,8 +31,8 @@ model Role {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  code        String   @unique
+  id          String @id @default(uuid())
+  code        String @unique
   description String
 
   rolePermissions RolePermission[]
@@ -52,34 +52,35 @@ model RolePermission {
 }
 
 model Branch {
-  id           String       @id @default(uuid())
-  name         String
-  address      String?
-  phone        String?
-  schedule     String?
-  managerName  String?      @map("manager_name")
+  id          String       @id @default(uuid())
+  name        String
+  address     String?
+  phone       String?
+  schedule    String?
+  managerName String?      @map("manager_name")
   // Nullable on purpose: no seeded branch currently has real coordinates.
   // The public storefront's nearest-branch computation already handles a
   // null lat/lng pair by skipping that logic (see PublicBranch in
   // BellaFront/src/types/api.ts), so leaving these unset for existing rows
   // is the honest choice rather than fabricating coordinates.
-  lat          Float?
-  lng          Float?
-  status       BranchStatus @default(ACTIVE)
-  createdAt    DateTime     @default(now()) @map("created_at")
+  lat         Float?
+  lng         Float?
+  status      BranchStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  userBranches UserBranch[]
-  auditLogs    AuditLog[]
-  inventory    Inventory[]
+  userBranches       UserBranch[]
+  auditLogs          AuditLog[]
+  inventory          Inventory[]
   inventoryMovements InventoryMovement[]
-  sales        Sale[]
-  transfersOut Transfer[]   @relation("TransferSourceBranch")
-  transfersIn  Transfer[]   @relation("TransferDestinationBranch")
-  orders       Order[]
-  purchases    Purchase[]
-  cashSessions CashSession[]
-  returns      Return[]
-  mermas       Merma[]
+  sales              Sale[]
+  transfersOut       Transfer[]          @relation("TransferSourceBranch")
+  transfersIn        Transfer[]          @relation("TransferDestinationBranch")
+  orders             Order[]
+  purchases          Purchase[]
+  cashSessions       CashSession[]
+  returns            Return[]
+  mermas             Merma[]
+  inventoryCounts    InventoryCount[]
 
   @@map("branches")
 }
@@ -111,23 +112,25 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   lastLoginAt  DateTime?  @map("last_login_at")
 
-  role          Role           @relation(fields: [roleId], references: [id])
-  userBranches  UserBranch[]
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
-  inventoryMovements InventoryMovement[]
+  role                       Role                      @relation(fields: [roleId], references: [id])
+  userBranches               UserBranch[]
+  refreshTokens              RefreshToken[]
+  auditLogs                  AuditLog[]
+  inventoryMovements         InventoryMovement[]
   conversationParticipations ConversationParticipant[]
-  messagesAuthored Message[]      @relation("MessagesAuthored")
-  salesMade     Sale[]         @relation("SalesMade")
-  transfersRequested Transfer[]  @relation("TransfersRequested")
-  transfersReceived  Transfer[]  @relation("TransfersReceived")
-  purchasesCreated   Purchase[]  @relation("PurchasesCreated")
-  purchasesReceived  Purchase[]  @relation("PurchasesReceived")
-  cashSessions       CashSession[] @relation("CashSessionsOpened")
-  returnsProcessed   Return[]      @relation("ReturnsProcessed")
-  returnsAuthorized  Return[]      @relation("ReturnsAuthorized")
-  mermasRequested    Merma[]       @relation("MermasRequested")
-  mermasAuthorized   Merma[]       @relation("MermasAuthorized")
+  messagesAuthored           Message[]                 @relation("MessagesAuthored")
+  salesMade                  Sale[]                    @relation("SalesMade")
+  transfersRequested         Transfer[]                @relation("TransfersRequested")
+  transfersReceived          Transfer[]                @relation("TransfersReceived")
+  purchasesCreated           Purchase[]                @relation("PurchasesCreated")
+  purchasesReceived          Purchase[]                @relation("PurchasesReceived")
+  cashSessions               CashSession[]             @relation("CashSessionsOpened")
+  returnsProcessed           Return[]                  @relation("ReturnsProcessed")
+  returnsAuthorized          Return[]                  @relation("ReturnsAuthorized")
+  mermasRequested            Merma[]                   @relation("MermasRequested")
+  mermasAuthorized           Merma[]                   @relation("MermasAuthorized")
+  inventoryCountsStarted     InventoryCount[]          @relation("InventoryCountsStarted")
+  inventoryCountsCompleted   InventoryCount[]          @relation("InventoryCountsCompleted")
 
   @@map("users")
 }
@@ -144,12 +147,12 @@ model UserBranch {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  tokenHash String   @map("token_hash")
-  expiresAt DateTime @map("expires_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
   revokedAt DateTime? @map("revoked_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -169,6 +172,21 @@ model CompanySettings {
   taxId         String?  @map("tax_id")
   website       String?
   returnPolicy  String?  @map("return_policy")
+  // Interruptores de autorización por PIN de supervisor, uno por acción
+  // (descuentos grandes en POS, devoluciones, mermas). true = comportamiento
+  // histórico (obligatorio); false = la acción no exige un segundo PIN y se
+  // atribuye a quien la ejecuta. Ver saleService/returnService/mermaService.
+  requirePinForDiscounts Boolean  @default(true) @map("require_pin_for_discounts")
+  requirePinForReturns   Boolean  @default(true) @map("require_pin_for_returns")
+  requirePinForShrinkage Boolean  @default(true) @map("require_pin_for_shrinkage")
+  // Segundo grupo: acciones que por defecto exigen un permiso que la
+  // mayoría de roles de mostrador NO tiene (sales.cancel, inventory.adjust),
+  // sin ninguna vía alterna hasta ahora. `false` (default) mantiene ese
+  // muro exactamente como estaba: solo quien tiene el permiso puede hacerlo.
+  // `true` agrega un PIN de supervisor como atajo para quien no lo tiene, en
+  // vez de obligar a esa persona a iniciar sesión ella misma en el mostrador.
+  allowPinForSaleCancel      Boolean @default(false) @map("allow_pin_for_sale_cancel")
+  allowPinForInventoryAdjust Boolean @default(false) @map("allow_pin_for_inventory_adjust")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("company_settings")
@@ -188,10 +206,10 @@ model AuditLog {
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
-  @@map("audit_logs")
   @@index([module])
   @@index([userId])
   @@index([createdAt])
+  @@map("audit_logs")
 }
 
 enum ProductStatus {
@@ -217,139 +235,143 @@ enum MovementType {
 }
 
 model Category {
-  id        String    @id @default(uuid())
+  id        String        @id @default(uuid())
   name      String
   status    ProductStatus @default(ACTIVE)
-  createdAt DateTime  @default(now()) @map("created_at")
+  createdAt DateTime      @default(now()) @map("created_at")
 
-  products  Product[]
+  products        Product[]
+  inventoryCounts InventoryCount[]
 
   @@map("categories")
 }
 
 model Brand {
-  id        String    @id @default(uuid())
+  id        String        @id @default(uuid())
   name      String
   status    ProductStatus @default(ACTIVE)
-  createdAt DateTime  @default(now()) @map("created_at")
+  createdAt DateTime      @default(now()) @map("created_at")
 
-  products  Product[]
+  products        Product[]
+  inventoryCounts InventoryCount[]
 
   @@map("brands")
 }
 
 model Product {
-  id            String        @id @default(uuid())
-  sku           String        @unique
-  barcode       String?
-  name          String
-  description   String?
-  categoryId    String?       @map("category_id")
-  brandId       String?       @map("brand_id")
-  cost          Decimal       @default(0) @db.Decimal(10, 2)
-  price         Decimal       @db.Decimal(10, 2)
-  promoPrice    Decimal?      @map("promo_price") @db.Decimal(10, 2)
-  taxRate       Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  minStock      Int           @default(0) @map("min_stock")
-  maxStock      Int?          @map("max_stock")
-  status        ProductStatus @default(ACTIVE)
-  createdAt     DateTime      @default(now()) @map("created_at")
+  id          String        @id @default(uuid())
+  sku         String        @unique
+  barcode     String?
+  name        String
+  description String?
+  categoryId  String?       @map("category_id")
+  brandId     String?       @map("brand_id")
+  cost        Decimal       @default(0) @db.Decimal(10, 2)
+  price       Decimal       @db.Decimal(10, 2)
+  promoPrice  Decimal?      @map("promo_price") @db.Decimal(10, 2)
+  taxRate     Decimal       @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  minStock    Int           @default(0) @map("min_stock")
+  maxStock    Int?          @map("max_stock")
+  status      ProductStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
 
-  category      Category?     @relation(fields: [categoryId], references: [id])
-  brand         Brand?        @relation(fields: [brandId], references: [id])
-  images        ProductImage[]
-  variants      ProductVariant[]
-  inventory     Inventory[]
-  movements     InventoryMovement[]
-  saleItems     SaleItem[]
-  transferItems TransferItem[]
-  orderItems    OrderItem[]
-  purchaseItems PurchaseItem[]
-  returnItems   ReturnItem[]
-  mermaItems    MermaItem[]
+  category            Category?            @relation(fields: [categoryId], references: [id])
+  brand               Brand?               @relation(fields: [brandId], references: [id])
+  images              ProductImage[]
+  variants            ProductVariant[]
+  inventory           Inventory[]
+  movements           InventoryMovement[]
+  saleItems           SaleItem[]
+  transferItems       TransferItem[]
+  orderItems          OrderItem[]
+  purchaseItems       PurchaseItem[]
+  returnItems         ReturnItem[]
+  mermaItems          MermaItem[]
+  inventoryCountItems InventoryCountItem[]
 
-  @@map("products")
   @@index([categoryId])
   @@index([brandId])
+  @@map("products")
 }
 
 model ProductImage {
-  id         String   @id @default(uuid())
-  productId  String   @map("product_id")
-  url        String
-  isPrimary  Boolean  @default(false) @map("is_primary")
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  url       String
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
 }
 
 model ProductVariant {
-  id          String    @id @default(uuid())
-  productId   String    @map("product_id")
-  name        String
-  sku         String    @unique
-  barcode     String?
-  imageUrl    String?   @map("image_url")
-  price       Decimal?  @db.Decimal(10, 2)
-  minStock    Int       @default(0) @map("min_stock")
-  maxStock    Int?      @map("max_stock")
-  status      ProductStatus @default(ACTIVE)
+  id        String        @id @default(uuid())
+  productId String        @map("product_id")
+  name      String
+  sku       String        @unique
+  barcode   String?
+  imageUrl  String?       @map("image_url")
+  price     Decimal?      @db.Decimal(10, 2)
+  minStock  Int           @default(0) @map("min_stock")
+  maxStock  Int?          @map("max_stock")
+  status    ProductStatus @default(ACTIVE)
 
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  inventory   Inventory[]
-  movements   InventoryMovement[]
-  saleItems   SaleItem[]
-  transferItems TransferItem[]
-  orderItems  OrderItem[]
-  purchaseItems PurchaseItem[]
-  returnItems ReturnItem[]
-  mermaItems  MermaItem[]
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventory           Inventory[]
+  movements           InventoryMovement[]
+  saleItems           SaleItem[]
+  transferItems       TransferItem[]
+  orderItems          OrderItem[]
+  purchaseItems       PurchaseItem[]
+  returnItems         ReturnItem[]
+  mermaItems          MermaItem[]
+  inventoryCountItems InventoryCountItem[]
 
   @@map("product_variants")
 }
 
 model Inventory {
-  id         String   @id @default(uuid())
-  productId  String   @map("product_id")
-  variantId  String?  @map("variant_id")
-  branchId   String   @map("branch_id")
-  stock      Int      @default(0)
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  variantId String?  @map("variant_id")
+  branchId  String   @map("branch_id")
+  stock     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  branch     Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  branch  Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([productId, variantId, branchId])
-  @@map("inventory")
   @@index([branchId])
+  @@map("inventory")
 }
 
 model InventoryMovement {
-  id            String       @id @default(uuid())
-  productId     String       @map("product_id")
-  variantId     String?      @map("variant_id")
-  branchId      String       @map("branch_id")
-  type          MovementType
-  quantity      Int
-  stockBefore   Int          @map("stock_before")
-  stockAfter    Int          @map("stock_after")
-  reference     String?
-  userId        String?      @map("user_id")
-  createdAt     DateTime     @default(now()) @map("created_at")
+  id          String       @id @default(uuid())
+  productId   String       @map("product_id")
+  variantId   String?      @map("variant_id")
+  branchId    String       @map("branch_id")
+  type        MovementType
+  quantity    Int
+  stockBefore Int          @map("stock_before")
+  stockAfter  Int          @map("stock_after")
+  reference   String?
+  userId      String?      @map("user_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  product       Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant       ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  branch        Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  branch  Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user    User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@map("inventory_movements")
   @@index([productId])
   @@index([branchId])
   @@index([createdAt])
+  @@map("inventory_movements")
 }
 
 model InventoryAdjustment {
@@ -387,8 +409,8 @@ model ConversationParticipant {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
-  @@map("conversation_participants")
   @@index([userId])
+  @@map("conversation_participants")
 }
 
 model Message {
@@ -402,9 +424,9 @@ model Message {
   author       User                @relation("MessagesAuthored", fields: [authorId], references: [id], onDelete: Cascade)
   attachments  MessageAttachment[]
 
-  @@map("messages")
   @@index([conversationId, createdAt])
   @@index([createdAt])
+  @@map("messages")
 }
 
 model MessageAttachment {
@@ -444,8 +466,8 @@ model Customer {
   sales  Sale[]
   orders Order[]
 
-  @@map("customers")
   @@index([phone])
+  @@map("customers")
 }
 
 model Sale {
@@ -480,22 +502,25 @@ model Sale {
   items       SaleItem[]
   payments    SalePayment[]
   returns     Return[]
+  // Inverse of Order.saleId — present only for a Sale that was created by
+  // completing an online order rather than rung up at the POS.
+  order       Order?
 
-  @@map("sales")
   @@index([branchId, createdAt])
   @@index([userId])
   @@index([cashSessionId])
+  @@map("sales")
 }
 
 model SaleItem {
-  id        String   @id @default(uuid())
-  saleId    String   @map("sale_id")
-  productId String   @map("product_id")
-  variantId String?  @map("variant_id")
+  id        String  @id @default(uuid())
+  saleId    String  @map("sale_id")
+  productId String  @map("product_id")
+  variantId String? @map("variant_id")
   quantity  Int
-  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
-  discount  Decimal  @default(0) @db.Decimal(10, 2)
-  lineTotal Decimal  @map("line_total") @db.Decimal(10, 2)
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  discount  Decimal @default(0) @db.Decimal(10, 2)
+  lineTotal Decimal @map("line_total") @db.Decimal(10, 2)
 
   sale        Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product     Product         @relation(fields: [productId], references: [id])
@@ -540,22 +565,22 @@ model Transfer {
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
 
-  sourceBranch      Branch @relation("TransferSourceBranch", fields: [sourceBranchId], references: [id])
-  destinationBranch Branch @relation("TransferDestinationBranch", fields: [destinationBranchId], references: [id])
-  requestedBy       User   @relation("TransfersRequested", fields: [requestedByUserId], references: [id])
-  receivedBy        User?  @relation("TransfersReceived", fields: [receivedByUserId], references: [id])
+  sourceBranch      Branch         @relation("TransferSourceBranch", fields: [sourceBranchId], references: [id])
+  destinationBranch Branch         @relation("TransferDestinationBranch", fields: [destinationBranchId], references: [id])
+  requestedBy       User           @relation("TransfersRequested", fields: [requestedByUserId], references: [id])
+  receivedBy        User?          @relation("TransfersReceived", fields: [receivedByUserId], references: [id])
   items             TransferItem[]
 
-  @@map("transfers")
   @@index([sourceBranchId])
   @@index([destinationBranchId])
   @@index([createdAt])
+  @@map("transfers")
 }
 
 model TransferItem {
-  id         String @id @default(uuid())
-  transferId String @map("transfer_id")
-  productId  String @map("product_id")
+  id         String  @id @default(uuid())
+  transferId String  @map("transfer_id")
+  productId  String  @map("product_id")
   variantId  String? @map("variant_id")
   quantity   Int
 
@@ -608,20 +633,44 @@ model Order {
   total           Decimal         @db.Decimal(10, 2)
   notes           String?
   cancelReason    String?         @map("cancel_reason")
+  // Staff-set promise of when the order will be ready (pickup) or out for
+  // delivery — what the client's ask calls "en cuánto tiempo". Nullable:
+  // not every order gets one, and it can be set/changed any time before
+  // COMPLETED. Purely informational — nothing in the status pipeline
+  // depends on it.
+  estimatedReadyAt DateTime?      @map("estimated_ready_at")
+  // 6-digit pickup verification code — generated the moment a PICKUP order
+  // becomes READY (see orderService.updateOrderStatus) and sent to the
+  // customer via the same WhatsApp status-change message OrdersPage.tsx
+  // already builds. Required back from staff (entered with CodeSlots) to
+  // move that same order READY -> COMPLETED, so a pickup can't be marked
+  // done by anyone except whoever the customer actually handed the code
+  // to. Always null for DELIVERY orders — there's no walk-in handoff to
+  // verify there, so nothing generates or checks a code on that path.
+  pickupCode      String?         @map("pickup_code")
   confirmedAt     DateTime?       @map("confirmed_at")
   cancelledAt     DateTime?       @map("cancelled_at")
   completedAt     DateTime?       @map("completed_at")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
+  // Set exactly once, the moment status becomes COMPLETED — see
+  // orderService.updateOrderStatus. The Order itself IS the pre-sale
+  // document (its own "P-" folio is already the pre-sale ticket number);
+  // this points at the real Sale ("V-" folio) created at fulfillment time,
+  // so staff can jump from "the pedido that came in" to "the actual sale
+  // it became" and it shows up in Ventas like any other completed sale.
+  saleId String? @unique @map("sale_id")
+
   customer Customer    @relation(fields: [customerId], references: [id])
   branch   Branch      @relation(fields: [branchId], references: [id])
+  sale     Sale?       @relation(fields: [saleId], references: [id])
   items    OrderItem[]
 
-  @@map("orders")
   @@index([branchId])
   @@index([customerId])
   @@index([createdAt])
+  @@map("orders")
 }
 
 model OrderItem {
@@ -703,10 +752,10 @@ model Purchase {
   receivedBy User?          @relation("PurchasesReceived", fields: [receivedByUserId], references: [id])
   items      PurchaseItem[]
 
-  @@map("purchases")
   @@index([branchId])
   @@index([supplierId])
   @@index([createdAt])
+  @@map("purchases")
 }
 
 model PurchaseItem {
@@ -728,8 +777,8 @@ model PurchaseItem {
   product  Product         @relation(fields: [productId], references: [id])
   variant  ProductVariant? @relation(fields: [variantId], references: [id])
 
-  @@map("purchase_items")
   @@index([purchaseId])
+  @@map("purchase_items")
 }
 
 // ---------- Caja / cash-drawer sessions (blind close) ----------
@@ -793,10 +842,10 @@ model CashSession {
   user   User   @relation("CashSessionsOpened", fields: [userId], references: [id])
   sales  Sale[]
 
-  @@map("cash_sessions")
   @@index([branchId, status])
   @@index([userId, status])
   @@index([openedAt])
+  @@map("cash_sessions")
 }
 
 // ---------- Devoluciones y cambios (returns / exchanges) ----------
@@ -837,10 +886,10 @@ enum ReturnItemDirection {
 }
 
 model Return {
-  id             String @id @default(uuid())
-  folio          Int    @default(autoincrement())
-  originalSaleId String @map("original_sale_id")
-  branchId       String @map("branch_id")
+  id                 String @id @default(uuid())
+  folio              Int    @default(autoincrement())
+  originalSaleId     String @map("original_sale_id")
+  branchId           String @map("branch_id")
   // The cashier who ran the flow. Distinct from authorizedByUserId on
   // purpose: the entire control is that two different people are recorded,
   // one operating and one approving.
@@ -850,20 +899,20 @@ model Return {
   // written after that check has already passed.
   authorizedByUserId String @map("authorized_by_user_id")
 
-  returnedTotal Decimal @map("returned_total") @db.Decimal(10, 2)
-  newItemsTotal Decimal @default(0) @map("new_items_total") @db.Decimal(10, 2)
+  returnedTotal Decimal          @map("returned_total") @db.Decimal(10, 2)
+  newItemsTotal Decimal          @default(0) @map("new_items_total") @db.Decimal(10, 2)
   // newItemsTotal - returnedTotal, signed: positive = customer owes,
   // negative = refund owed, 0 = even exchange. Stored rather than derived on
   // read so a later change to pricing logic can never retroactively restate
   // what was actually settled at the counter.
-  balance    Decimal          @db.Decimal(10, 2)
-  resolution ReturnResolution
+  balance       Decimal          @db.Decimal(10, 2)
+  resolution    ReturnResolution
   // Only meaningful when resolution = CUSTOMER_OWES (how the difference was
   // paid). Reuses the existing PaymentMethod enum shared with
   // Sale/SalePayment — deliberately not a second parallel enum.
-  paymentMethod PaymentMethod? @map("payment_method")
+  paymentMethod PaymentMethod?   @map("payment_method")
   notes         String?
-  createdAt     DateTime       @default(now()) @map("created_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   originalSale Sale         @relation(fields: [originalSaleId], references: [id])
   branch       Branch       @relation(fields: [branchId], references: [id])
@@ -871,16 +920,16 @@ model Return {
   authorizedBy User         @relation("ReturnsAuthorized", fields: [authorizedByUserId], references: [id])
   items        ReturnItem[]
 
-  @@map("returns")
   @@index([branchId, createdAt])
   @@index([originalSaleId])
   @@index([createdAt])
+  @@map("returns")
 }
 
 model ReturnItem {
-  id        String              @id @default(uuid())
-  returnId  String              @map("return_id")
-  direction ReturnItemDirection
+  id         String              @id @default(uuid())
+  returnId   String              @map("return_id")
+  direction  ReturnItemDirection
   // Which line of the ORIGINAL ticket this came back against. Null for NEW
   // lines, which have no originating sale item. Not in the task brief's
   // literal field list, but the cumulative over-return rule ("never return
@@ -888,32 +937,32 @@ model ReturnItem {
   // return") is only enforceable if each returned line remembers the exact
   // SaleItem it consumes — matching on productId/variantId alone would
   // conflate two separate lines of the same product on one ticket.
-  saleItemId String? @map("sale_item_id")
-  productId  String  @map("product_id")
-  variantId  String? @map("variant_id")
+  saleItemId String?             @map("sale_item_id")
+  productId  String              @map("product_id")
+  variantId  String?             @map("variant_id")
   quantity   Int
   // Snapshotted at the moment of the return. RETURNED lines carry the
   // original SaleItem unitPrice (the customer is credited what they actually
   // paid, that line's discount included); NEW lines carry today's freshly
   // resolved price (a new item is a new sale and does not inherit the old
   // ticket's promo).
-  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  unitPrice  Decimal             @map("unit_price") @db.Decimal(10, 2)
   // Did this specific line go back onto the sellable shelf? False means it
   // came back damaged/unsellable: no stock movement was applied, but the row
   // is still written so the loss stays auditable. Only meaningful for
   // RETURNED lines; always false for NEW ones.
-  restocked Boolean @default(false)
+  restocked  Boolean             @default(false)
 
   return   Return          @relation(fields: [returnId], references: [id], onDelete: Cascade)
   saleItem SaleItem?       @relation(fields: [saleItemId], references: [id])
   product  Product         @relation(fields: [productId], references: [id])
   variant  ProductVariant? @relation(fields: [variantId], references: [id])
 
-  @@map("return_items")
   @@index([returnId])
   // The index the cumulative-limit check reads: "everything ever returned
   // against this SaleItem".
   @@index([saleItemId, direction])
+  @@map("return_items")
 }
 
 // ---------- Mermas (shrinkage write-offs) ----------
@@ -951,27 +1000,27 @@ model Merma {
   // business paid for goods it can no longer sell), retail impact is the
   // revenue-equivalent that walked out the door. Snapshotted totals rather
   // than live joins to Product.cost/price, which drift.
-  totalCostImpact   Decimal  @map("total_cost_impact") @db.Decimal(10, 2)
-  totalRetailImpact Decimal  @map("total_retail_impact") @db.Decimal(10, 2)
-  createdAt         DateTime @default(now()) @map("created_at")
+  totalCostImpact    Decimal   @map("total_cost_impact") @db.Decimal(10, 2)
+  totalRetailImpact  Decimal   @map("total_retail_impact") @db.Decimal(10, 2)
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   branch       Branch      @relation(fields: [branchId], references: [id])
   requestedBy  User        @relation("MermasRequested", fields: [requestedByUserId], references: [id])
   authorizedBy User        @relation("MermasAuthorized", fields: [authorizedByUserId], references: [id])
   items        MermaItem[]
 
-  @@map("mermas")
   @@index([branchId, createdAt])
   @@index([type])
   @@index([createdAt])
+  @@map("mermas")
 }
 
 model MermaItem {
-  id        String  @id @default(uuid())
-  mermaId   String  @map("merma_id")
-  productId String  @map("product_id")
-  variantId String? @map("variant_id")
-  quantity  Int
+  id         String  @id @default(uuid())
+  mermaId    String  @map("merma_id")
+  productId  String  @map("product_id")
+  variantId  String? @map("variant_id")
+  quantity   Int
   // Snapshotted from Product.cost / the resolved sale price at write-off
   // time, for the same reason PurchaseItem.unitCost is snapshotted: a
   // historical loss report must keep showing the numbers that were true when
@@ -983,6 +1032,87 @@ model MermaItem {
   product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
-  @@map("merma_items")
   @@index([mermaId])
+  @@map("merma_items")
+}
+
+// ---------- Inventarios físicos parciales (cycle counts) ----------
+// A count is scoped at creation to EXACTLY ONE of: a category, a brand, or
+// an explicit manual product list (categoryId/brandId are both null in the
+// manual case — the chosen products are simply the InventoryCountItem rows
+// created up front, there's nothing else to store). A whole-branch count is
+// just the same manual case with every active product selected; there is no
+// separate "ALL" flag because it needs no different handling.
+enum InventoryCountStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+}
+
+model InventoryCount {
+  id                String               @id @default(uuid())
+  folio             Int                  @default(autoincrement())
+  branchId          String               @map("branch_id")
+  categoryId        String?              @map("category_id")
+  brandId           String?              @map("brand_id")
+  status            InventoryCountStatus @default(OPEN)
+  notes             String?
+  startedByUserId   String               @map("started_by_user_id")
+  completedByUserId String?              @map("completed_by_user_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  completedAt       DateTime?            @map("completed_at")
+
+  branch      Branch               @relation(fields: [branchId], references: [id])
+  category    Category?            @relation(fields: [categoryId], references: [id])
+  brand       Brand?               @relation(fields: [brandId], references: [id])
+  startedBy   User                 @relation("InventoryCountsStarted", fields: [startedByUserId], references: [id])
+  completedBy User?                @relation("InventoryCountsCompleted", fields: [completedByUserId], references: [id])
+  items       InventoryCountItem[]
+
+  @@index([branchId, status])
+  @@index([createdAt])
+  @@map("inventory_counts")
+}
+
+model InventoryCountItem {
+  id           String    @id @default(uuid())
+  countId      String    @map("count_id")
+  productId    String    @map("product_id")
+  variantId    String?   @map("variant_id")
+  // Snapshotted the moment the count is created — this is the number the
+  // physical count is being checked AGAINST, so it must never silently
+  // drift if a sale/transfer/adjustment touches the same row mid-count.
+  systemStock  Int       @map("system_stock")
+  // Null until someone actually counts this line. Distinguishing "not yet
+  // counted" from "counted as zero" is why this is nullable rather than
+  // defaulted to 0 — completing a count with uncounted lines is rejected by
+  // the service specifically because 0 would be indistinguishable from a
+  // genuine empty-shelf count.
+  countedStock Int?      @map("counted_stock")
+  countedAt    DateTime? @map("counted_at")
+
+  count   InventoryCount  @relation(fields: [countId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([countId])
+  @@map("inventory_count_items")
+}
+
+// Storefront satisfaction rating ("que el cliente pueda poner su
+// satisfacción o calificación de la página"). Deliberately anonymous —
+// there is no login on the storefront to attach it to, and requiring one
+// just to leave a rating would kill the whole point. `page` records which
+// storefront route the rating was left from (e.g. "/", "/catalogo") purely
+// for admin context when reviewing feedback; it is never used to identify
+// a visitor.
+model SiteRating {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  page      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("site_ratings")
 }

@@ -9,10 +9,8 @@ const POLL_INTERVAL_MS = 30000;
 
 function FloatingMessagesButtonInner() {
   const [count, setCount] = useState(0);
-  // mounted/visible split mirrors Modal.tsx's own pattern: the DOM node is
-  // fully removed (not just visually hidden) once the fade/scale-out
-  // transition finishes, so an unread badge of 0 never leaves a dead node
-  // sitting in the page.
+  // Patrón mounted/visible (igual que Modal.tsx): el nodo se elimina del DOM
+  // por completo al terminar la transición de salida, no solo se oculta.
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const rafRef = useRef<number | undefined>(undefined);
@@ -35,9 +33,8 @@ function FloatingMessagesButtonInner() {
     };
   }, []);
 
-  // Refetch promptly whenever navigating AWAY from /mensajes, so reading
-  // messages there is reflected right away instead of waiting up to 30s
-  // for the next poll tick.
+  // Vuelve a consultar al salir de /mensajes, para reflejar la lectura de
+  // inmediato en vez de esperar hasta 30s al siguiente sondeo.
   useEffect(() => {
     if (location.pathname === "/admin/mensajes") return;
     messageService.getUnreadCount().then((res) => setCount(res.count)).catch(() => {});
@@ -80,8 +77,8 @@ function FloatingMessagesButtonInner() {
   );
 }
 
-// A user without messages.view shouldn't see this at all — same
-// PermissionGate pattern used by Sidebar's nav items.
+// Un usuario sin messages.view no debe ver esto, mismo patrón de
+// PermissionGate que usan los ítems de navegación del Sidebar.
 export function FloatingMessagesButton() {
   return (
     <PermissionGate code="messages.view">

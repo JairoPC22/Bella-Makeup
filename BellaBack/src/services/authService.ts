@@ -8,22 +8,20 @@ import { mapRole } from "../utils/roleMapper";
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-// The single chokepoint through which every user object leaves this API
-// (/api/auth/me, /api/users, /api/profile all route through here), so it is
-// also the single place credential hashes get stripped. `pinHash` is
-// destructured out alongside `passwordHash` for exactly that reason: it is a
-// bcrypt hash of a 4-6 digit secret, which is brute-forceable offline in
-// seconds if it ever leaked, and the whole point of the supervisor-PIN
-// primitive is that nobody — not even an admin reading GET /api/users — can
-// learn who holds which PIN. Adding the field to the schema without adding
-// it here would have silently published it on three existing endpoints.
+// Único punto por el que sale cualquier objeto de usuario de esta API
+// (/api/auth/me, /api/users, /api/profile pasan todos por aquí), así que
+// es también el único lugar donde se quitan los hashes de credenciales.
+// `pinHash` se extrae junto con `passwordHash` porque es un hash de un
+// secreto de 4-6 dígitos, atacable por fuerza bruta offline en segundos si
+// se filtrara; nadie, ni siquiera un admin, debe poder saber qué PIN tiene
+// cada usuario.
 export function toPublicUser(user: any) {
   const { passwordHash, pinHash, role, userBranches, ...rest } = user;
   return {
     ...rest,
-    // Booleans, not the hash: the frontend legitimately needs to know
-    // whether the current user has a PIN configured (to show "set" vs
-    // "change" in the profile UI) without ever receiving the hash itself.
+    // Un booleano, no el hash: el frontend necesita saber si el usuario ya
+    // tiene un PIN configurado (para mostrar "definir" o "cambiar" en el
+    // perfil) sin recibir jamás el hash en sí.
     hasPin: Boolean(pinHash),
     role: mapRole(role),
     branches: userBranches?.map((ub: any) => ub.branch) ?? [],
@@ -58,8 +56,8 @@ export async function refresh(refreshToken: string) {
   const user = await findUserById(payload.sub);
   if (!user || user.status !== "ACTIVE") throw new AppError(401, "Sesión inválida");
 
-  // Rotate: revoke the presented refresh token and issue+store a new one so a
-  // captured refresh token cannot be replayed indefinitely.
+  // Rotación: se revoca el refresh token presentado y se emite/guarda uno
+  // nuevo, para que un token capturado no pueda reutilizarse indefinidamente.
   await revokeRefreshToken(user.id, refreshToken);
   const newRefreshToken = signRefreshToken({ sub: user.id });
   await storeRefreshToken(user.id, newRefreshToken, new Date(Date.now() + REFRESH_TOKEN_TTL_MS));

@@ -1,14 +1,8 @@
 import { z } from "zod";
+import { uuidShape } from "./common.validators";
 
-// Same `uuidShape` convention as every other validator in this project —
-// never `.uuid()`, which rejects the deterministic seed ids. See
-// return.validators.ts / transfer.validators.ts for the full note.
-const uuidShape = z
-  .string()
-  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
-
-// The boss's five categories, kept as literal Spanish business terms because
-// that is exactly what staff will see on screen and say out loud.
+// Las cinco categorías definidas por el cliente, en español literal porque
+// es exactamente lo que el personal verá en pantalla y dirá en voz alta.
 export const mermaTypeSchema = z.enum([
   "TESTER_EXHIBICION",
   "DANO_EN_TIENDA",
@@ -26,16 +20,16 @@ const mermaItemSchema = z.object({
 export const registerMermaSchema = z.object({
   branchId: uuidShape,
   type: mermaTypeSchema,
-  // Mandatory and non-trivial. An unexplained inventory decrement is exactly
-  // the shape internal theft takes, so the explanation is a hard requirement
-  // rather than a nicety — `.trim().min(3)` also rejects a whitespace-only
-  // string, which would satisfy a naive min(1) while explaining nothing.
+  // Obligatorio y no trivial. Un descuento de inventario sin explicación es
+  // justo la forma que toma el robo interno, así que la explicación es un
+  // requisito duro, no un detalle. `.trim().min(3)` también rechaza un
+  // string de solo espacios, que pasaría un min(1) ingenuo sin explicar nada.
   comments: z.string().trim().min(3, "El comentario es obligatorio (mínimo 3 caracteres)"),
   items: z.array(mermaItemSchema).min(1, "La merma debe tener al menos un artículo"),
-  // Unconstrained string on purpose — see the same note in
-  // return.validators.ts: constraining it here would leak that a malformed
-  // PIN never reached the comparison stage.
-  pinCode: z.string().min(1),
+  // Opcional: solo se exige cuando CompanySettings.requirePinForShrinkage
+  // está activo (ver mermaService.registerMerma). Sin restricciones de
+  // formato a propósito — ver la misma nota en return.validators.ts.
+  pinCode: z.string().min(1).optional(),
 });
 
 export const listMermasQuerySchema = z.object({

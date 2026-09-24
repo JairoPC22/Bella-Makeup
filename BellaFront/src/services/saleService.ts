@@ -19,6 +19,7 @@ export interface CreateSaleInput {
   customerId?: string;
   items: SaleItemInput[];
   payments: SalePaymentInput[];
+  pinCode?: string;
 }
 
 export const listSales = (filters?: { branchId?: string; status?: Sale["status"]; from?: string; to?: string }) => {
@@ -36,5 +37,5 @@ export const getSale = (id: string) => apiFetch<Sale>(`/sales/${id}`);
 export const createSale = (input: CreateSaleInput) =>
   apiFetch<Sale>("/sales", { method: "POST", body: JSON.stringify(input) });
 
-export const cancelSale = (id: string, reason: string) =>
-  apiFetch<Sale>(`/sales/${id}/cancel`, { method: "PATCH", body: JSON.stringify({ reason }) });
+export const cancelSale = (id: string, reason: string, pinCode?: string) =>
+  apiFetch<Sale>(`/sales/${id}/cancel`, { method: "PATCH", body: JSON.stringify({ reason, pinCode }) });

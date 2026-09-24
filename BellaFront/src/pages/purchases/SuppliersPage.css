@@ -92,3 +92,14 @@
   .suppliers-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
   .supplier-form__row { grid-template-columns: 1fr; }
 }
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .suppliers-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

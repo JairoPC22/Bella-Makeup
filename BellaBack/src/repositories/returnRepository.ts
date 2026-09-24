@@ -1,24 +1,18 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-// Shared shape for list/detail/create responses, mirroring
-// purchaseRepository.ts's `purchaseInclude` in spirit: the branch, the two
-// users involved narrowed to a display-safe subset, and items carrying
-// product/variant name+sku so the returns screen can label every line
-// without a second round trip.
+// Forma compartida para list/detail/create: sucursal, los dos usuarios
+// involucrados reducidos a un subconjunto seguro, e items con
+// nombre/sku de producto/variante para no requerir una segunda consulta.
 //
-// Both user sub-selects are explicit allow-lists rather than `true` for the
-// same reason they are in purchaseRepository/saleRepository, and here it
-// matters more than anywhere else in the codebase: `authorizedBy` is by
-// construction a user who HAS a supervisor PIN set, so selecting the whole
-// relation would publish a bcrypt hash of a 4-6 digit PIN — the exact
-// credential this module's whole control depends on — on every returns list
-// response.
+// Los sub-selects de usuario son listas explícitas, no `true`: aquí importa
+// más que en ningún otro módulo, porque `authorizedBy` siempre es un usuario
+// con PIN de supervisor configurado, y seleccionar la relación completa
+// expondría el hash de ese PIN en cada respuesta.
 //
-// `originalSale` is deliberately a narrow select rather than the full
-// saleInclude: the return screen needs to identify which ticket this came
-// from (folio/total/date), not re-render the entire original sale, and
-// pulling saleInclude here would nest that sale's own user relation.
+// `originalSale` usa un select angosto en vez del saleInclude completo: la
+// pantalla de devoluciones solo necesita identificar el ticket de origen
+// (folio/total/fecha), no volver a traer toda la venta original.
 export const returnInclude = {
   originalSale: {
     select: { id: true, folio: true, total: true, createdAt: true, status: true, branchId: true },
@@ -49,20 +43,19 @@ export function findReturnById(id: string, tx: Prisma.TransactionClient = prisma
   return tx.return.findUnique({ where: { id }, include: returnInclude });
 }
 
-// The cumulative over-return guard's data source. Sums, per SaleItem, every
-// quantity EVER returned against it — across all prior Return documents, not
-// just the one being processed — so "you cannot give back more of a line
-// than you bought" holds over an unbounded series of partial returns, not
-// merely within a single request.
+// Fuente de datos para la validación de sobre-devolución acumulada: suma,
+// por SaleItem, todo lo devuelto en TODOS los Return anteriores (no solo el
+// actual), para que "no puedes devolver más de lo comprado" se cumpla a
+// través de una serie ilimitada de devoluciones parciales.
 //
-// direction: "RETURNED" is essential: NEW lines on a previous exchange are
-// merchandise that went OUT and must never count toward how much of an
-// original line has come back.
+// direction: "RETURNED" es esencial: las líneas NUEVAS de un cambio previo
+// son mercancía que salió y nunca deben contar como devolución de una línea
+// original.
 //
-// Takes a `tx` (and every caller passes one) so the read happens inside the
-// same transaction that will write the new rows — reading it outside would
-// open a window where two concurrent returns each see the same stale sum and
-// both pass the check.
+// Recibe `tx` (y cada llamador lo pasa) para leer dentro de la misma
+// transacción que escribirá las nuevas filas; leer fuera de ella abriría una
+// ventana donde dos devoluciones concurrentes verían la misma suma y ambas
+// pasarían la validación.
 export async function sumReturnedQuantitiesBySaleItem(
   saleItemIds: string[],
   tx: Prisma.TransactionClient = prisma
@@ -89,9 +82,9 @@ export interface ListReturnsFilters {
   to?: Date;
 }
 
-// Same branch clause as listPurchases: a return belongs to exactly one
-// branch (the one that took the merchandise back), so it is visible to
-// whoever can see that branch.
+// Mismo filtro de sucursal que listPurchases: una devolución pertenece a
+// una sola sucursal (la que recibió la mercancía), así que es visible para
+// quien pueda ver esa sucursal.
 export function listReturns(filters: ListReturnsFilters) {
   const branchClause = filters.branchId
     ? { branchId: filters.branchId }

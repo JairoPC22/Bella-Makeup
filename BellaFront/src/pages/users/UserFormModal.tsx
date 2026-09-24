@@ -32,16 +32,9 @@ export function UserFormModal({ open, onClose, onSaved, roles, branches, editing
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mirrors the backend guard in BellaBack/src/services/userService.ts's
-  // updateUser: an Administrator account's roleId can never be changed —
-  // not by that admin editing themselves (self-demotion), and not by a
-  // different admin editing them. The backend already throws a 400 for
-  // this, so what's here is purely the matching UI affordance: without it
-  // the dropdown looked fully editable and only failed on save, which
-  // reads as a bug rather than as an intentional rule. Keyed off
-  // role.code (stable) rather than role.name (renameable by an admin on
-  // the Roles page). Only applies when editing — a brand-new user can
-  // still be created with the admin role.
+  // Refleja la validación del backend (userService.updateUser): el rol de
+  // una cuenta Administrador nunca se puede cambiar. Se usa role.code
+  // (estable) en vez de role.name (editable desde Roles).
   const isAdminAccount = editingUser?.role.code === "admin";
 
   function toggleBranch(id: string) {
@@ -56,9 +49,8 @@ export function UserFormModal({ open, onClose, onSaved, roles, branches, editing
       const saved = editingUser
         ? await userService.updateUser(editingUser.id, form)
         : await userService.createUser(form);
-      // Branch assignment isn't part of createUser/updateUser's payload on
-      // this backend — it's its own endpoint, so it's called as a
-      // follow-up request right after the user record itself is saved.
+      // La asignación de sucursales es un endpoint aparte, no va en el
+      // payload de createUser/updateUser.
       const withBranches = await userService.assignBranches(saved.id, branchIds, allBranches);
       onSaved(withBranches);
       onClose();

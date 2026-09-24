@@ -21,8 +21,8 @@
   transform: translateY(-3px);
 }
 
-/* The branch name now carries a small pin marker to its left, which also
-   gives the card a consistent left rhythm with the fact list below it. */
+/* El nombre de sucursal lleva un pin pequeño a la izquierda, alineado con
+   el ritmo de la lista de datos debajo. */
 .storefront-location-card h2 {
   display: flex;
   align-items: center;

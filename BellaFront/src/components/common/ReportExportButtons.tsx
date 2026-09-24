@@ -4,11 +4,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { exportReportToPdf, exportReportToExcel, type ReportColumn } from "../../utils/reportExport";
 import "./ReportExportButtons.css";
 
-// Reusable "Exportar PDF" / "Exportar Excel" toolbar — exports exactly the
-// rows currently passed in (i.e. whatever the host page's own filters have
-// already narrowed down), branded with the app's logo/colors. Used by
-// InventoryPage and ProductsPage; any future filterable table page can
-// reuse it the same way instead of hand-rolling its own export buttons.
+// Barra reutilizable "Exportar PDF" / "Exportar Excel": exporta exactamente
+// las filas recibidas (ya filtradas por la página que la usa).
 export function ReportExportButtons<T>({
   title,
   columns,

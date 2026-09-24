@@ -1,17 +1,14 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-// Shared shape for list/detail/create/receive/cancel responses, mirroring
-// transferRepository.ts's `transferInclude` exactly in spirit: supplier and
-// branch, the creating/receiving users narrowed to a display-safe subset, and
-// items carrying product/variant name+sku so the receiving screen can label
-// every line without a second round trip.
+// Forma compartida para list/detail/create/receive/cancel: proveedor y
+// sucursal, los usuarios que crean/reciben reducidos a un subconjunto
+// seguro, e items con nombre/sku de producto/variante para no requerir una
+// segunda consulta en la pantalla de recepción.
 //
-// The user sub-selects are explicit allow-lists rather than `true` for the
-// same reason they are in transferRepository/saleRepository — and that now
-// matters twice over, because User carries BOTH `passwordHash` and (as of
-// this change) `pinHash`. Selecting the whole relation here would publish a
-// bcrypt hash of a 4-6 digit supervisor PIN on every purchase list response.
+// Los sub-selects de usuario son listas explícitas (no `true`) porque User
+// incluye `passwordHash` y `pinHash`; seleccionar la relación completa
+// expondría el hash del PIN del supervisor en cada respuesta.
 export const purchaseInclude = {
   supplier: { select: { id: true, name: true, contactName: true, phone: true, email: true, status: true } },
   branch: { select: { id: true, name: true } },
@@ -56,9 +53,9 @@ export function setPurchaseItemReceived(
   return tx.purchaseItem.update({ where: { id }, data: { receivedQuantity } });
 }
 
-// Records what was actually paid on the most recent real delivery. Kept in
-// the repository layer (rather than reaching for prisma.product directly from
-// the service) so every Prisma call for this module stays in one file.
+// Registra el costo real pagado en la última entrega. Se mantiene en el
+// repositorio (en vez de usar prisma.product directo desde el servicio) para
+// que todas las llamadas a Prisma de este módulo vivan en un solo archivo.
 export function updateProductCost(productId: string, cost: Prisma.Decimal | number, tx: Prisma.TransactionClient = prisma) {
   return tx.product.update({ where: { id: productId }, data: { cost } });
 }
@@ -72,9 +69,9 @@ export interface ListPurchasesFilters {
   to?: Date;
 }
 
-// Simpler branch clause than listTransfers': a purchase has exactly one
-// branch (the receiving one), so there is no source-OR-destination case to
-// handle — a purchase is visible to whoever can see the branch it lands in.
+// Filtro de sucursal más simple que el de listTransfers: una compra tiene
+// una sola sucursal (la que recibe), así que es visible para quien pueda
+// ver esa sucursal.
 export function listPurchases(filters: ListPurchasesFilters) {
   const branchClause = filters.branchId
     ? { branchId: filters.branchId }
@@ -91,9 +88,9 @@ export function listPurchases(filters: ListPurchasesFilters) {
   return prisma.purchase.findMany({ where, include: purchaseInclude, orderBy: { createdAt: "desc" } });
 }
 
-// ---------- Suppliers ----------
-// No branch scoping anywhere below: suppliers are company-wide master data,
-// not branch-owned, so every branch orders from the same supplier catalog.
+// ---------- Proveedores ----------
+// Sin filtro de sucursal: los proveedores son catálogo maestro de toda la
+// empresa, no pertenecen a una sucursal en particular.
 
 export function listSuppliers(status?: "ACTIVE" | "INACTIVE") {
   return prisma.supplier.findMany({ where: { status }, orderBy: { name: "asc" } });

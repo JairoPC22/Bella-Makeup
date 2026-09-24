@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as orderService from "../services/orderService";
-import { listOrdersQuerySchema, updateOrderStatusSchema } from "../validators/order.validators";
+import { listOrdersQuerySchema, updateOrderStatusSchema, setOrderEtaSchema } from "../validators/order.validators";
 
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
@@ -17,7 +17,14 @@ export async function getById(req: Request, res: Response, next: NextFunction) {
 
 export async function updateStatus(req: Request, res: Response, next: NextFunction) {
   try {
-    const { status, reason } = updateOrderStatusSchema.parse(req.body);
-    res.json(await orderService.updateOrderStatus(req.params.id, status, req.user!.id, reason));
+    const { status, reason, pickupCode } = updateOrderStatusSchema.parse(req.body);
+    res.json(await orderService.updateOrderStatus(req.params.id, status, req.user!.id, reason, pickupCode));
+  } catch (err) { next(err); }
+}
+
+export async function setEta(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { estimatedReadyAt } = setOrderEtaSchema.parse(req.body);
+    res.json(await orderService.setEstimatedReadyAt(req.params.id, estimatedReadyAt, req.user!.id));
   } catch (err) { next(err); }
 }

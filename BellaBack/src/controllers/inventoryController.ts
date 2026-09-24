@@ -3,14 +3,11 @@ import * as inventoryService from "../services/inventoryService";
 import { adjustInventory } from "../services/inventoryAdjustmentService";
 import { listInventoryQuerySchema, listMovementsQuerySchema, adjustInventorySchema } from "../validators/inventory.validators";
 
-// Every row is mapped through inventoryService.computeStatus before it
-// leaves the API, so the status shown to a client is always computed here —
-// business logic (the OUT/CRITICAL/LOW/AVAILABLE thresholds) is never
-// recomputed on the frontend.
+// El status se calcula aquí (nunca en el frontend) para que las reglas de negocio queden centralizadas.
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
     const filters = listInventoryQuerySchema.parse(req.query);
-    const rows = await inventoryService.listInventory({ branchId: filters.branchId, categoryId: filters.categoryId });
+    const rows = await inventoryService.listInventory(req.user!.id, { branchId: filters.branchId, categoryId: filters.categoryId });
 
     const mapped = rows.map((row) => {
       const minStock = row.variant?.minStock ?? row.product.minStock;

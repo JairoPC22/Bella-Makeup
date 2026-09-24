@@ -9,13 +9,16 @@ interface InventoryAdjustModalProps {
   row: InventoryRow | undefined;
   open: boolean;
   onClose: () => void;
-  /** Called right after a successful adjustment so the parent page can refetch the table. */
+  /** Se llama justo después de un ajuste exitoso, para que la página recargue la tabla. */
   onAdjusted: () => void;
+  /** true cuando quien abre el modal no tiene inventory.adjust y por eso necesita el PIN de un supervisor. */
+  requiresPin?: boolean;
 }
 
-export function InventoryAdjustModal({ row, open, onClose, onAdjusted }: InventoryAdjustModalProps) {
+export function InventoryAdjustModal({ row, open, onClose, onAdjusted, requiresPin = false }: InventoryAdjustModalProps) {
   const [quantity, setQuantity] = useState("");
   const [reason, setReason] = useState("");
+  const [pinCode, setPinCode] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -46,12 +49,14 @@ export function InventoryAdjustModal({ row, open, onClose, onAdjusted }: Invento
         branchId: row.branch.id,
         quantity: parsedQuantity,
         reason: reason.trim(),
+        ...(requiresPin ? { pinCode } : {}),
       });
       setSuccess(true);
       onAdjusted();
       setTimeout(() => {
         setQuantity("");
         setReason("");
+        setPinCode("");
         setSuccess(false);
         onClose();
       }, 700);
@@ -104,6 +109,21 @@ export function InventoryAdjustModal({ row, open, onClose, onAdjusted }: Invento
             />
           </label>
 
+          {requiresPin && (
+            <label>
+              PIN de un supervisor
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                placeholder="••••"
+                value={pinCode}
+                onChange={(e) => setPinCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </label>
+          )}
+
           {error && <p className="inventory-adjust__error">{error}</p>}
           {success && (
             <p className="inventory-adjust__success">
@@ -111,7 +131,7 @@ export function InventoryAdjustModal({ row, open, onClose, onAdjusted }: Invento
             </p>
           )}
 
-          <button type="submit" disabled={saving || success}>
+          <button type="submit" disabled={saving || success || (requiresPin && pinCode.length < 4)}>
             {saving ? "Guardando..." : success ? "Listo" : "Registrar ajuste"}
           </button>
         </form>

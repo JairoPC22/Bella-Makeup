@@ -19,6 +19,15 @@ async function tryRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
+// AuthContext se suscribe a este handler para limpiar `user` cuando el
+// refresh realmente falla (sesión expirada confirmada), y así
+// ProtectedRoute redirige a /admin/login en vez de dejar el panel en un
+// estado inconsistente (UI activa pero peticiones fallando en silencio).
+let onSessionExpired: (() => void) | null = null;
+export function setSessionExpiredHandler(fn: (() => void) | null): void {
+  onSessionExpired = fn;
+}
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}, _retried = false): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -29,6 +38,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}, _retr
   if (res.status === 401 && !_retried && path !== "/auth/login") {
     const refreshed = await tryRefresh();
     if (refreshed) return apiFetch<T>(path, options, true);
+    if (path !== "/auth/me") onSessionExpired?.();
   }
 
   if (!res.ok) {

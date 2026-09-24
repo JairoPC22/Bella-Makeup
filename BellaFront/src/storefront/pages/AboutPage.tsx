@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Gem, HandHeart, MapPinned, Sparkles, Tag, Users } from "lucide-react";
+import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
+import { RevealWords } from "../../components/common/RevealWords";
 import "./AboutPage.css";
 
 const VALUES = [
@@ -26,6 +29,10 @@ const VALUES = [
 ];
 
 export function AboutPage() {
+  const storyReveal = useRevealOnScroll<HTMLElement>();
+  const valuesReveal = useRevealOnScroll<HTMLElement>();
+  const branchesReveal = useRevealOnScroll<HTMLElement>();
+
   return (
     <div className="storefront-about">
       <div className="storefront-page-header__band">
@@ -33,7 +40,7 @@ export function AboutPage() {
           <span className="storefront-page-header__eyebrow">
             <Sparkles size={13} aria-hidden="true" /> Sobre nosotros
           </span>
-          <h1>Belleza que se siente tan bien como se ve.</h1>
+          <h1><RevealWords as="span" text="Belleza que se siente tan bien como se ve." delay={80} /></h1>
           <p>
             Bella Makeup nació de una idea simple: el maquillaje y el cuidado de la piel deberían sentirse
             accesibles, personales y de verdad efectivos. Hoy seguimos esa misma idea todos los días, en cada
@@ -42,9 +49,12 @@ export function AboutPage() {
         </header>
       </div>
 
-      <section className="storefront-section storefront-about__story">
+      <section
+        ref={storyReveal.ref}
+        className={`storefront-section storefront-about__story reveal-on-scroll${storyReveal.inView ? " is-in-view" : ""}`}
+      >
         <div className="storefront-about__story-text">
-          <h2>Nuestra historia</h2>
+          <h2><RevealWords as="span" text="Nuestra historia" inView stagger={55} /></h2>
           <p>
             Empezamos como una tienda de barrio enfocada en un solo objetivo: ayudar a cada clienta a encontrar
             el producto correcto, no simplemente venderle uno más. Con el tiempo, esa forma de trabajar nos
@@ -61,27 +71,53 @@ export function AboutPage() {
           </Link>
         </div>
         <div className="storefront-about__story-media">
-          <img src="/media/hero/Hero-Ima1.jpeg" alt="Modelo con productos de cuidado de la piel Bella Makeup" />
+          {/* Real bug fixed here: this used the WIDE, uncropped original
+              (Hero-Ima1.jpeg, 1672x941, subject living only in the right
+              ~55%) forced into a tall 4:5 portrait tile via object-fit:
+              cover with no object-position set — cover crops around the
+              CENTER of the source by default, which for this photo is
+              mostly empty backdrop, cutting off most of the model
+              entirely. Swapped to the same subject-cropped photo the
+              homepage hero already uses (hero-photo.jpg/.webp — a pure
+              crop of the same source, not a re-edit), which is centered
+              on her instead of on empty background. */}
+          <picture>
+            <source srcSet="/media/hero/hero-photo.webp" type="image/webp" />
+            <img
+              src="/media/hero/hero-photo.jpg"
+              alt="Modelo con productos de cuidado de la piel Bella Makeup"
+              loading="lazy"
+              width={936}
+              height={941}
+            />
+          </picture>
         </div>
       </section>
 
-      <section className="storefront-section">
+      <section
+        ref={valuesReveal.ref}
+        className={`storefront-section reveal-on-scroll${valuesReveal.inView ? " is-in-view" : ""}`}
+      >
         <div className="storefront-section__header">
           <div className="storefront-section__heading">
             <p className="storefront-section__eyebrow">
               <Gem size={13} aria-hidden="true" /> Lo que nos mueve
             </p>
-            <h2>Nuestros valores</h2>
+            <h2><RevealWords as="span" text="Nuestros valores" inView stagger={55} /></h2>
             <p className="storefront-section__sub">
               Cuatro principios que se notan igual en sucursal que en cada pedido en línea.
             </p>
           </div>
         </div>
         <div className="storefront-about__values">
-          {VALUES.map((value) => {
+          {VALUES.map((value, i) => {
             const Icon = value.icon;
             return (
-              <div className="storefront-about__value-card" key={value.title}>
+              <div
+                className="storefront-about__value-card"
+                key={value.title}
+                style={{ transitionDelay: `${i * 90}ms` } as CSSProperties}
+              >
                 <span className="storefront-about__value-icon">
                   <Icon size={20} aria-hidden="true" />
                 </span>
@@ -93,13 +129,16 @@ export function AboutPage() {
         </div>
       </section>
 
-      <section className="storefront-about__branches">
+      <section
+        ref={branchesReveal.ref}
+        className={`storefront-about__branches reveal-on-scroll${branchesReveal.inView ? " is-in-view" : ""}`}
+      >
         <div className="storefront-about__branches-inner">
           <span className="storefront-about__branches-icon">
             <MapPinned size={22} aria-hidden="true" />
           </span>
           <div>
-            <h2>En sucursal y en línea, la misma experiencia</h2>
+            <h2><RevealWords as="span" text="En sucursal y en línea, la misma experiencia" inView stagger={45} /></h2>
             <p>
               Todo lo que encuentras aquí también vive en nuestras sucursales físicas — y lo que ves en
               sucursal, poco a poco lo vamos sumando a este catálogo. Compra como prefieras: recorre los

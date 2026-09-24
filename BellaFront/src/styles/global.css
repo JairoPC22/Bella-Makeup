@@ -34,9 +34,9 @@ button {
   font-family: var(--font-body);
 }
 
-/* Shared entrance convention used across the app: opacity 0→1,
-   translateY 20px→0, plays once. Extend with utility classes instead of
-   redefining the keyframes per page. */
+/* Convención de entrada compartida en toda la app: opacity 0→1,
+   translateY 20px→0, se reproduce una vez. Extender con clases utilitarias
+   en vez de redefinir el keyframe por página. */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -46,35 +46,38 @@ button {
   animation: fade-in-up var(--duration-entrance) var(--ease-premium) both;
 }
 
-/* Lighter variant for list/card staggers and route transitions, paired
-   with a per-item --stagger-delay custom property set inline. */
+/* Variante más ligera para staggers de listas/tarjetas y transiciones de
+   ruta, con una propiedad --stagger-delay por ítem inline. */
 .animate-in-stagger {
   animation: fade-in-up 0.6s var(--ease-premium) both;
   animation-delay: var(--stagger-delay, 0ms);
 }
 
-/* ---------- Sitewide native <select> styling ----------
-   CSS-only custom treatment (per the "don't build a full listbox" scope
-   decision) applied to every native <select> in the app — role dropdowns,
-   branch/manager pickers, audit filters, etc. — so they match the input
-   system instead of the browser default. `appearance: none` removes the
-   native arrow/box chrome; the chevron is redrawn via a background-image
-   data URI (data URIs can't reference CSS custom properties, so its
-   stroke color is the literal hex of --color-text-secondary rather than a
-   new invented color). Multi-selects (select[multiple], e.g. the Users
-   table's branch assignment) keep native listbox rendering — a single
-   trailing chevron doesn't make sense on a scrollable multi-row box — but
-   still inherit the shared border/radius/token treatment below.
+/* Usado con el hook useRevealOnScroll: a diferencia de .animate-in/-stagger
+   (que siempre se reproduce al montar), esta es una transición controlada
+   por una clase, para que la sección se revele al hacer scroll hasta ella.
+   Solo transform + opacity, propiedades de compositor, sin costo de layout. */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s var(--ease-premium), transform 0.7s var(--ease-premium);
+}
+.reveal-on-scroll.is-in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
 
-   The most-visible selects in the app (product form, Products/Inventory
-   filter bars, Users/Branches selects) have since been migrated to
-   components/common/Select.tsx, which wraps the native <select> and layers
-   a real lucide ChevronDown icon on top instead of this data-URI — see
-   that file's comment for why (a real icon uses currentColor, no baked-in
-   hex, and sidesteps whatever it was about the data-URI +
-   appearance:none combination that a client screenshot showed smearing/
-   tiling in one browser). Any <select> NOT yet migrated still relies on
-   the data-URI treatment below as a functional fallback. */
+/* ---------- Estilo nativo de <select> en toda la app ----------
+   Tratamiento solo-CSS para que todo <select> nativo combine con el
+   sistema de inputs. `appearance: none` quita el chrome nativo; el chevron
+   se redibuja con un data URI (no puede referenciar variables CSS, por eso
+   usa el hex literal de --color-text-secondary). Los multi-select
+   conservan el listbox nativo pero heredan el mismo borde/radio/tokens.
+
+   Los selects más visibles ya se migraron a components/common/Select.tsx,
+   que usa un ícono ChevronDown real en vez de este data-URI (ver comentario
+   ahí). Los <select> no migrados siguen usando este tratamiento como
+   respaldo funcional. */
 select {
   font-family: var(--font-body);
   font-size: 0.9rem;
@@ -111,12 +114,17 @@ select:focus {
 select:disabled { background-color: var(--color-bg); color: var(--color-text-secondary); cursor: not-allowed; filter: opacity(0.7); }
 select option { font-family: var(--font-body); }
 
-/* Multi-selects (e.g. the Users table's row-level branch assignment) keep
-   native listbox rendering, but get padded/rounded options and a themed
-   selected-row color instead of the OS-default flat blue highlight. The
-   `background` shorthand (not `background-color`) on `:checked` is a
-   deliberate cross-browser quirk: some engines only honor a custom
-   selected-option color through the shorthand. */
+/* Corrige el bug del "doble rectángulo": muchos campos tienen un wrapper
+   con su propio anillo de foco (:focus-within), y el input nativo agregaba
+   su propio outline encima. Se quita globalmente el outline nativo. */
+input:focus, textarea:focus {
+  outline: none;
+}
+
+/* Los multi-select mantienen el listbox nativo pero con opciones con
+   padding/radio y un color de selección con tema. Se usa el shorthand
+   `background` (no `background-color`) en `:checked` porque algunos
+   motores solo respetan el color personalizado así. */
 select[multiple] { padding: 4px; }
 select[multiple] option {
   padding: 6px 8px;
@@ -125,6 +133,64 @@ select[multiple] option {
 select[multiple] option:checked {
   background: var(--color-pink-100) linear-gradient(0deg, var(--color-pink-100) 0%, var(--color-pink-100) 100%);
   color: var(--color-pink-deep);
+}
+
+/* ---------- Tratamiento móvil compartido para toda barra de filtros ----------
+   Grilla de 2 columnas para que los Select se agrupen de a pares
+   (categoría + marca) en vez de ocupar una fila completa cada uno; el
+   buscador, el DateRangePicker y los botones de exportar siempre ocupan
+   el ancho completo en su propia fila, con un divisor que separa la fila
+   de exportación de los filtros. Se usa grid (no flex-wrap) porque el
+   auto-placement agrupa los pares sin ajustes por página. */
+@media (max-width: 640px) {
+  .products-filters, .inventory-filters, .counts-filters, .purchases-filters,
+  .sales-filters, .orders-filters, .mermas-filters, .transfers-filters, .audit-filters,
+  .caja-history__filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2_5);
+    margin: var(--space-2) 0;
+  }
+  /* Por defecto cada campo ocupa el ancho completo... */
+  .products-filters > *, .inventory-filters > *, .counts-filters > *, .purchases-filters > *,
+  .sales-filters > *, .orders-filters > *, .mermas-filters > *, .transfers-filters > *, .audit-filters > *,
+  .caja-history__filters > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  /* ...excepto los Select (.select-wrapper), que se agrupan de a dos en
+     orden de documento, ya que cada página siempre lista sus Selects antes
+     que los campos de búsqueda/fecha/exportar. */
+  .products-filters .select-wrapper, .inventory-filters .select-wrapper, .counts-filters .select-wrapper,
+  .purchases-filters .select-wrapper, .sales-filters .select-wrapper, .orders-filters .select-wrapper,
+  .mermas-filters .select-wrapper, .transfers-filters .select-wrapper, .audit-filters .select-wrapper,
+  .caja-history__filters .select-wrapper {
+    grid-column: auto;
+  }
+  /* Los botones de exportar son otro tipo de acción (exportar vs. filtrar):
+     un divisor y margen superior los separa visualmente de los filtros. */
+  .report-export {
+    border-top: 1px solid var(--color-divider-soft);
+    padding-top: var(--space-2_5);
+    margin-top: 2px;
+  }
+
+  /* Dos Selects compartiendo fila solo tienen ~160px cada uno; texto y
+     padding más chicos dejan más espacio para que se lea la palabra que
+     distingue cada opción en vez de truncarse ambas igual. */
+  .products-filters .select-wrapper__trigger, .inventory-filters .select-wrapper__trigger,
+  .counts-filters .select-wrapper__trigger, .purchases-filters .select-wrapper__trigger,
+  .sales-filters .select-wrapper__trigger, .orders-filters .select-wrapper__trigger,
+  .mermas-filters .select-wrapper__trigger, .transfers-filters .select-wrapper__trigger,
+  .audit-filters .select-wrapper__trigger, .caja-history__filters .select-wrapper__trigger {
+    font-size: 0.82rem;
+    padding: var(--space-2) var(--space-2);
+    gap: 4px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

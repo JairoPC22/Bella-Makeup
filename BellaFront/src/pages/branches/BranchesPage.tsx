@@ -4,6 +4,7 @@ import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { BranchFormModal } from "./BranchFormModal";
+import { BranchRevenueSection } from "./BranchRevenueSection";
 import { ApiError } from "../../services/apiClient";
 import * as branchService from "../../services/branchService";
 import * as userService from "../../services/userService";
@@ -19,11 +20,9 @@ export function BranchesPage() {
   const [editingBranch, setEditingBranch] = useState<Branch | undefined>(undefined);
 
   useEffect(() => {
-    // The users list only feeds the "Responsable" dropdown inside the
-    // branches.manage-gated create/edit modal — it's fetched independently
-    // so a user without users.view (not the case for any seeded role today,
-    // but not guaranteed forever) still sees the branches list load fine;
-    // the manager dropdown just falls back to an empty option set.
+    // La lista de usuarios solo alimenta el dropdown "Responsable" del modal
+    // de crear/editar. Se obtiene por separado para que un usuario sin
+    // users.view igual pueda ver la lista de sucursales cargar bien.
     branchService.listBranches()
       .then((b) => { setBranches(b); setStatus("ready"); })
       .catch(() => setStatus("error"));
@@ -93,6 +92,13 @@ export function BranchesPage() {
         editingBranch={editingBranch}
         users={users}
       />
+
+      {/* branches.manage es solo para admin (branch_manager tiene
+          branches.view pero no branches.manage). El backend valida el
+          mismo permiso de forma independiente; este gate es solo de UX. */}
+      <PermissionGate code="branches.manage">
+        <BranchRevenueSection />
+      </PermissionGate>
     </div>
   );
 }

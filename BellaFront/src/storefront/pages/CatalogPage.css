@@ -1,8 +1,7 @@
-/* ---------- Filter toolbar ----------
-   Previously a bare <select> plus a bordered text input sitting loose on
-   the page background — functional, but it read like an admin filter row,
-   which is most of why the catalog felt generic. It is now one raised
-   toolbar surface holding real category chips and a pill search field. */
+/* ---------- Barra de filtros ----------
+   Una superficie elevada con chips de categoría y un buscador tipo pill,
+   en vez de un <select> y un input sueltos que se veían como un filtro
+   de panel de administración. */
 
 .storefront-catalog__toolbar {
   display: flex;
@@ -107,7 +106,7 @@
 }
 .storefront-catalog__search-clear:hover { background: var(--color-pink-soft); }
 
-/* ---------- Result meta row ---------- */
+/* ---------- Fila de metadatos de resultados ---------- */
 
 .storefront-catalog__meta {
   display: flex;
@@ -148,13 +147,10 @@
   color: var(--color-pink-deep);
 }
 
-/* The card's image/brand/name are <Link>s — they need their anchor
-   underline and inherited color cleared. They must NOT be forced to
-   `display: block`: this file is injected globally (the router imports
-   every page eagerly), and a blanket `display: block` here was silently
-   overriding the shared `display: flex` on .storefront-product-card__image
-   on EVERY page, which is why the placeholder glyph on image-less products
-   sat jammed in the tile's top-left corner instead of centered. */
+/* Imagen/marca/nombre de la tarjeta son <Link>: se les quita el subrayado
+   y el color heredado. .storefront-product-card__image no debe forzarse a
+   `display: block` porque este archivo se carga globalmente y sobreescribía
+   el `display: flex` compartido, descentrando el placeholder sin imagen. */
 .storefront-product-card__brand,
 .storefront-product-card__name {
   text-decoration: none;
@@ -208,6 +204,12 @@
     border-radius: var(--radius-lg);
     flex-direction: column;
     align-items: stretch;
+    /* `flex-wrap: wrap` del desktop, combinado con flex-direction: column
+       aquí, hacía que Chromium calculara mal la altura de referencia y
+       los dos bloques (chips y buscador) se desbordaran del ancho del
+       toolbar. `nowrap` los mantiene en una sola columna apilada; los
+       chips siguen con scroll horizontal propio. */
+    flex-wrap: nowrap;
   }
   .storefront-catalog__search { flex: 1 1 auto; }
 }

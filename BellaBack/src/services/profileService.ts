@@ -25,8 +25,9 @@ export async function changePassword(userId: string, currentPassword: string, ne
     throw new AppError(400, "La contraseña actual no es correcta");
   }
   await updateUser(userId, { passwordHash: await hashPassword(newPassword) });
-  // A password change is meant to cut off any stolen session: revoke every
-  // refresh token this user currently holds so old cookies stop working.
+  // Un cambio de contraseña debe cortar cualquier sesión robada: se revocan
+  // todos los refresh tokens del usuario para que las cookies viejas dejen
+  // de funcionar.
   await revokeAllUserRefreshTokens(userId);
   await logAudit({ userId, action: "profile.change_password", module: "profile", entityType: "user", entityId: userId });
 }

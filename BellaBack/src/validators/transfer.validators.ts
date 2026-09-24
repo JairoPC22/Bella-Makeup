@@ -1,16 +1,5 @@
 import { z } from "zod";
-
-// Same recurring bug class documented in sale.validators.ts and every other
-// validator file: Zod's strict `.uuid()` rejects the deterministic seed ids
-// ("00000000-...-000000000001") used by seeded branches, which are
-// valid UUID-shaped strings but fail the RFC version/variant check.
-// sourceBranchId/destinationBranchId can reference those seeded fixtures, so
-// they use this shape-only regex. productId/variantId/transferId stay on the
-// strict `.uuid()` below since products, variants, and transfers always get
-// Prisma's real v4 `uuid()` default, never one of these fixture ids.
-const uuidShape = z
-  .string()
-  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
+import { uuidShape } from "./common.validators";
 
 const transferItemSchema = z.object({
   productId: z.string().uuid(),

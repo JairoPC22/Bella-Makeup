@@ -16,9 +16,7 @@ export function findRoleByCode(code: string) {
   return prisma.role.findUnique({ where: { code } });
 }
 
-// Role + its initial permission set created in one transaction, so a
-// reader never observes a role that exists but has no permissions rows
-// yet (same reasoning as replaceRolePermissions below).
+// Rol + permisos iniciales en una transacción, para no exponer un rol sin permisos a medio crear.
 export function createRoleWithPermissions(
   data: { code: string; name: string; description: string },
   permissionIds: string[]
@@ -38,10 +36,8 @@ export function deleteRoleById(id: string) {
   return prisma.role.delete({ where: { id } });
 }
 
-// Full replace, not a diff/patch: deletes every existing RolePermission row
-// for this role and recreates the set from the caller's validated
-// permissionIds, inside one transaction so a reader never observes a
-// role with zero permissions mid-update.
+// Reemplazo completo (no un parche): borra y recrea los permisos del rol
+// en una sola transacción para no exponer un estado intermedio sin permisos.
 export function replaceRolePermissions(roleId: string, permissionIds: string[]) {
   return prisma.$transaction(async (tx) => {
     await tx.rolePermission.deleteMany({ where: { roleId } });

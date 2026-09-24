@@ -1,0 +1,32 @@
+.code-slots {
+  display: flex;
+  gap: 8px;
+}
+
+.code-slots__input {
+  width: 40px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-border, #d9d9de);
+  background: var(--color-white, #fff);
+  color: var(--color-ink, #1d1d1f);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.code-slots__input:focus {
+  outline: none;
+  border-color: var(--color-pink-elegant, #2997ff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pink-elegant, #2997ff) 22%, transparent);
+}
+
+.code-slots__input[data-filled="true"] {
+  border-color: var(--color-pink-deep, #0066cc);
+}
+
+.code-slots--error .code-slots__input {
+  border-color: #d33a3a;
+}

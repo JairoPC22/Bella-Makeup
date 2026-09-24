@@ -8,13 +8,13 @@ import { AppError } from "../utils/AppError";
 
 const MAX_WIDTH = 1200;
 
-// Resizes the file multer already wrote to disk down to a max width, keeping
-// aspect ratio and never upscaling smaller images. Reads the original bytes
-// into memory first (closing the file descriptor) rather than pointing sharp
-// directly at the path and writing back to that same path — on Windows the
-// read handle sharp opens is not guaranteed closed by the time toBuffer()
-// resolves, and writing to the same path while it's still held throws
-// EBUSY/UNKNOWN. Processing an in-memory buffer sidesteps that entirely.
+// Redimensiona el archivo que multer ya escribió en disco a un ancho
+// máximo, manteniendo el aspect ratio y sin agrandar imágenes pequeñas. Lee
+// los bytes originales a memoria primero, en vez de apuntar sharp
+// directamente al path y reescribir ese mismo archivo: en Windows no está
+// garantizado que sharp cierre el handle de lectura antes de que
+// toBuffer() resuelva, y escribir sobre el mismo path mientras sigue abierto
+// lanza EBUSY/UNKNOWN. Procesar un buffer en memoria evita eso por completo.
 async function resizeInPlace(filePath: string): Promise<void> {
   const original = await fs.readFile(filePath);
   const resized = await sharp(original)
@@ -34,12 +34,11 @@ export async function uploadProductImage(productId: string, file: Express.Multer
     throw new AppError(404, "Producto no encontrado");
   }
 
-  // A corrupt/truncated upload (bytes that pass multer's MIME sniff but
-  // that libvips can't actually decode) used to escape as a raw 500 with
-  // "Error interno del servidor" AND leave multer's already-written file
-  // orphaned in uploads/products forever, since nothing below this point
-  // ran. Mirror the not-found branch above: clean the stray file up and
-  // surface it as a 400 the user can act on.
+  // Una subida corrupta/truncada (bytes que pasan el sniff de MIME de
+  // multer pero que libvips no puede decodificar) antes escapaba como un
+  // 500 crudo y dejaba huérfano el archivo ya escrito por multer en
+  // uploads/products. Igual que la rama de "no encontrado" arriba: se
+  // limpia el archivo y se expone como un 400 accionable.
   try {
     await resizeInPlace(file.path);
   } catch {

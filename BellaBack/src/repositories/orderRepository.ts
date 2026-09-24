@@ -1,15 +1,9 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-// Shared shape for create/list/detail/status-update responses, mirroring
-// saleRepository.ts's `saleInclude` / transferRepository.ts's
-// `transferInclude` exactly in spirit: customer, branch (scoped to the
-// public-safe subset — id/name/address, matching OnlineOrder's `branch`
-// field in BellaFront/src/types/api.ts), and items with product/variant
-// name+sku. There is no `User` relation on this model at all (a public
-// order has no authenticated actor), so there's no passwordHash-style leak
-// risk to guard against here the way sale/transfer's `user`/`requestedBy`
-// selects do.
+// Include compartido, similar a saleInclude/transferInclude: customer,
+// branch (subset público) e items con producto/variante. No hay `User`
+// en este modelo, así que no hay riesgo de filtrar datos sensibles aquí.
 export const orderInclude = {
   customer: true,
   branch: { select: { id: true, name: true, address: true } },
@@ -19,6 +13,8 @@ export const orderInclude = {
       variant: { select: { id: true, name: true, sku: true } },
     },
   },
+  // Presente solo cuando el pedido se completó (orderService.updateOrderStatus).
+  sale: { select: { id: true, folio: true } },
 } satisfies Prisma.OrderInclude;
 
 export function createOrder(data: Prisma.OrderUncheckedCreateInput, tx: Prisma.TransactionClient = prisma) {
@@ -33,8 +29,7 @@ export function findOrderById(id: string, tx: Prisma.TransactionClient = prisma)
   return tx.order.findUnique({ where: { id }, include: orderInclude });
 }
 
-// Used by the public order-tracking lookup (GET /api/public/orders/:orderNumber),
-// which only has the folio (decoded from the orderNumber) to go on.
+// Usado por el rastreo público de pedidos, que solo tiene el folio decodificado.
 export function findOrderByFolio(folio: number) {
   return prisma.order.findFirst({ where: { folio }, include: orderInclude });
 }

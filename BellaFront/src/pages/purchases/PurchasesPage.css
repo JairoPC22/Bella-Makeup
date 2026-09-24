@@ -1,7 +1,6 @@
-/* Structure and tokens follow TransfersPage.css closely — same page header,
-   filter bar, table, status-badge and modal-action conventions, adapted for
-   purchasing (an extra per-line cost column, and a received-vs-ordered
-   comparison in the detail view). */
+/* La estructura y los tokens siguen de cerca a TransfersPage.css: mismo
+   encabezado, filtros, tabla y badges, adaptados a compras (columna de costo
+   por línea y comparación recibido-vs-ordenado en el detalle). */
 
 .purchases-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
 
@@ -11,7 +10,7 @@
 .purchases-page__title h1 { margin: 0; }
 .purchases-page__header-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 
-/* Proveedores has no sidebar entry by design; this is its only entry point. */
+/* Proveedores no tiene entrada propia en el sidebar; este es su único acceso. */
 .purchases-page__suppliers-link {
   display: inline-flex; align-items: center; gap: 6px;
   padding: var(--space-2) var(--space-3);
@@ -33,7 +32,7 @@
 .purchases-page__new-btn:hover { background: var(--color-primary-focus); }
 .purchases-page__new-btn:active { transform: scale(0.98); }
 
-/* ---------- Filter bar ---------- */
+/* ---------- Barra de filtros ---------- */
 .purchases-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-1) 0; }
 .purchases-filters__date {
   display: flex; align-items: center; gap: 6px;
@@ -47,7 +46,7 @@
 }
 .purchases-filters__date input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
 
-/* ---------- Table ---------- */
+/* ---------- Tabla ---------- */
 .purchases-table {
   width: 100%;
   border-collapse: collapse;
@@ -77,9 +76,9 @@
 }
 .purchases-table__view:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
 
-/* Same visual convention as .sale-status-badge / .transfer-status-badge.
-   "Con diferencias" gets amber rather than red on purpose — it's a valid,
-   informational outcome, not a failure. */
+/* Misma convención visual que .sale-status-badge / .transfer-status-badge.
+   "Con diferencias" es ámbar y no rojo a propósito: es un resultado
+   informativo válido, no un error. */
 .purchase-status-badge {
   display: inline-flex; flex-shrink: 0;
   font-size: 0.74rem; font-weight: 700;
@@ -90,7 +89,7 @@
 .purchase-status-badge--received_with_discrepancies { background: #FDF0D5; color: #A66A00; }
 .purchase-status-badge--cancelled { background: #FBE5E1; color: #B3261E; }
 
-/* ---------- Create modal ---------- */
+/* ---------- Modal de creación ---------- */
 .purchase-create-modal.modal { max-width: 620px; }
 .purchase-create { display: flex; flex-direction: column; gap: var(--space-3); }
 
@@ -139,9 +138,9 @@
 .purchase-create__result-name { flex: 1 1 auto; min-width: 0; font-size: 0.88rem; color: var(--color-ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .purchase-create__result-sku { flex: 0 0 auto; font-size: 0.72rem; color: var(--color-text-muted); }
 
-/* Line grid: name | qty | unit cost | line total | remove. The shared column
-   template on the header row and the line rows is what keeps the little
-   "Cantidad / Costo unit. / Importe" captions aligned over their inputs. */
+/* Grilla de línea: nombre | cantidad | costo unit. | total | quitar. La
+   misma plantilla de columnas en encabezado y filas mantiene alineadas las
+   etiquetas "Cantidad / Costo unit. / Importe" con sus inputs. */
 .purchase-create__lines { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding-right: 2px; }
 .purchase-create__lines-head,
 .purchase-create__line {
@@ -220,7 +219,7 @@
 .purchase-create__submit:active:not(:disabled) { transform: scale(0.98); }
 .purchase-create__submit:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* ---------- Detail modal ---------- */
+/* ---------- Modal de detalle ---------- */
 .purchase-detail-modal.modal { max-width: 560px; }
 .purchase-detail { display: flex; flex-direction: column; gap: var(--space-3); }
 
@@ -254,8 +253,8 @@
   padding: var(--space-2) var(--space-2_5);
   border: 1px solid var(--color-border); border-radius: var(--radius-md);
 }
-/* Per-line visual flag: an amber left edge + tint marks the lines where what
-   arrived didn't match what was ordered. */
+/* Marca visual por línea: borde y fondo ámbar en las líneas donde lo
+   recibido no coincidió con lo ordenado. */
 .purchase-detail__item--diff { border-color: #E8C98A; background: #FFFBF2; box-shadow: inset 3px 0 0 #D9A03A; }
 .purchase-detail__item-info { flex: 1 1 auto; min-width: 0; }
 .purchase-detail__item-name { margin: 0; font-size: 0.88rem; font-weight: 500; color: var(--color-ink); }
@@ -316,8 +315,8 @@
   font-variant-numeric: tabular-nums;
 }
 .purchase-detail__receive-line input:focus { outline: none; border-color: #1F7A3E; }
-/* A line the clerk has edited away from the ordered quantity reads amber
-   immediately, before submitting — no surprise at confirmation time. */
+/* Una línea que el usuario editó respecto a la cantidad ordenada se marca en
+   ámbar de inmediato, antes de confirmar. */
 .purchase-detail__receive-input--diff { border-color: #D9A03A !important; background: #FFFBF2 !important; color: #A66A00; font-weight: 700; }
 .purchase-detail__receive-warning {
   display: flex; align-items: flex-start; gap: 6px;
@@ -366,15 +365,12 @@
   .purchase-detail__item { flex-wrap: wrap; }
 }
 
-/* ---------- Modal-scoped re-assertions ----------
-   Modal.css's `.modal__body label` (specificity 0,1,1) forces
-   flex-direction: column on EVERY <label> inside a modal — correct for the
-   field labels above, but it would stack the product search row's icon on
-   top of its input. Likewise `.modal__body input` re-boxes every input with
-   its own padding/border/font-size, which would undo the borderless search
-   field and the compact numeric line inputs. These rules restate the intent
-   at matching-or-higher specificity rather than fighting it with
-   !important. */
+/* ---------- Reafirmaciones dentro del modal ----------
+   `.modal__body label` de Modal.css fuerza flex-direction: column en todo
+   <label> del modal, y `.modal__body input` re-estiliza cada input; ambas
+   reglas romperían el buscador de productos y los inputs numéricos
+   compactos. Estas reglas restauran la intención con especificidad
+   equivalente o mayor, en vez de usar !important. */
 .modal__body .purchase-create__search { flex-direction: row; align-items: center; }
 .modal__body .purchase-create__search input {
   border: none; padding: 0; font-size: 0.9rem; border-radius: 0;
@@ -387,4 +383,11 @@
 }
 .modal__body .purchase-detail__receive-line input {
   padding: 5px 4px; font-size: 0.86rem; text-align: center;
+}
+
+/* Corrige el scroll horizontal en pantallas angostas: se limita el scroll
+   a la tabla misma (sin envoltorio JSX adicional) para que el encabezado y
+   los filtros queden fijos y solo la tabla se desplace. */
+@media (max-width: 900px) {
+  .purchases-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }

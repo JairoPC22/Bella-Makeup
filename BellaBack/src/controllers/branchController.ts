@@ -29,3 +29,11 @@ export async function updateStatus(req: Request, res: Response, next: NextFuncti
     res.json(await branchService.updateBranchStatus(req.params.id, status, req.user!.id));
   } catch (err) { next(err); }
 }
+
+export async function revenue(req: Request, res: Response, next: NextFunction) {
+  try {
+    const from = typeof req.query.from === "string" && req.query.from ? new Date(req.query.from) : undefined;
+    const to = typeof req.query.to === "string" && req.query.to ? new Date(req.query.to) : undefined;
+    res.json(await branchService.getRevenueReport(from, to));
+  } catch (err) { next(err); }
+}

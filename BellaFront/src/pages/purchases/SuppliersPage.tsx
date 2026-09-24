@@ -10,10 +10,11 @@ import * as supplierService from "../../services/supplierService";
 import type { Supplier } from "../../types/api";
 import "./SuppliersPage.css";
 
-// Deliberately a simple, secondary page: a table plus one small form modal.
-// Suppliers are supporting master data for the purchase flow — the main event
-// is PurchasesPage — so this doesn't get filters, a detail view or its own
-// sidebar entry; it's reached from the "Gestionar proveedores" link there.
+// Página simple y secundaria a propósito: una tabla más un modal pequeño.
+// Los proveedores son datos de apoyo para el flujo de compras (el
+// protagonista es PurchasesPage), por eso no tiene filtros, vista de
+// detalle ni entrada propia en el sidebar; se accede desde el link
+// "Gestionar proveedores" de esa página.
 
 interface SupplierForm {
   name: string;
@@ -76,9 +77,8 @@ export function SuppliersPage() {
     setSaving(true);
     setError(null);
     try {
-      // The backend's create/update schemas use `.min(1)` on every optional
-      // string, so an emptied-out field has to be omitted rather than sent as
-      // "" — otherwise Zod rejects the whole payload.
+      // Los esquemas del backend usan `.min(1)` en cada string opcional, así
+      // que un campo vaciado debe omitirse en vez de enviarse como "".
       const base = {
         name: form.name.trim(),
         contactName: form.contactName.trim() || undefined,
@@ -91,8 +91,7 @@ export function SuppliersPage() {
       upsert(saved);
       setModalOpen(false);
     } catch (err) {
-      // Surface the server's real validation message (e.g. an invalid email)
-      // rather than a generic one.
+      // Se muestra el mensaje de validación real del servidor en vez de uno genérico.
       setError(err instanceof ApiError ? err.message : "No se pudo guardar el proveedor.");
     } finally {
       setSaving(false);

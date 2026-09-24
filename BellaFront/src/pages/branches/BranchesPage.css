@@ -29,3 +29,120 @@
 .branch-card__actions button:hover { background: var(--color-pink-elegant); color: var(--color-white); }
 .branch-card__actions button:active { transform: scale(0.96); }
 .branch-form__error { color: var(--color-pink-deep); margin: 0; }
+
+.branches-revenue {
+  margin-top: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  animation: fade-in-up 0.6s var(--ease-premium) both;
+}
+.branches-revenue__title { display: flex; align-items: flex-start; gap: var(--space-2); color: var(--color-pink-deep); }
+.branches-revenue__title h2 { font-size: 1.05rem; color: var(--color-ink); letter-spacing: var(--tracking-tight); }
+.branches-revenue__title p { margin: 2px 0 0; font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 400; }
+
+.branches-revenue__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+.branches-revenue__period-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+}
+.branches-revenue__period-tab {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.branches-revenue__period-tab.is-active { background: var(--color-pink-deep); color: var(--color-white); }
+.branches-revenue__period-tab:hover:not(.is-active) { background: var(--color-pink-100); }
+
+.branches-revenue__date {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+.branches-revenue__date input {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--color-primary);
+}
+
+.branches-revenue__table-wrap { overflow-x: auto; }
+.branches-revenue__table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.branches-revenue__table th, .branches-revenue__table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-divider-soft); }
+.branches-revenue__table th { color: var(--color-text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: var(--tracking-tight); }
+/* Columna 1 = chevron de expandir (angosta), col 2 = Sucursal (izquierda),
+   3 y 4 = numéricas (derecha) — antes ":not(:first-child)" asumía que
+   Sucursal era la primera columna; ahora que hay una columna extra para el
+   chevron, el selector se ajusta explícitamente por posición. */
+.branches-revenue__table th:first-child, .branches-revenue__table td:first-child { width: 28px; padding-right: 0; }
+.branches-revenue__table td:nth-child(3), .branches-revenue__table th:nth-child(3),
+.branches-revenue__table td:nth-child(4), .branches-revenue__table th:nth-child(4) { text-align: right; }
+.branches-revenue__table tfoot td { font-weight: 700; color: var(--color-ink); border-top: 2px solid var(--color-border); border-bottom: none; }
+
+.branches-revenue__chevron-cell { color: var(--color-text-muted); }
+.branches-revenue__chevron-cell svg { transition: transform var(--transition-fast) var(--ease-premium); }
+.branches-revenue__chevron-cell svg.is-open { transform: rotate(180deg); }
+
+.branches-revenue__row.is-clickable { cursor: pointer; }
+.branches-revenue__row.is-clickable:hover { background: var(--color-bg); }
+.branches-revenue__row.is-expanded { background: var(--color-pink-50); }
+.branches-revenue__row.is-expanded .branches-revenue__chevron-cell { color: var(--color-pink-deep); }
+
+.branches-revenue__detail-row td { padding: 0; border-bottom: 1px solid var(--color-divider-soft); background: var(--color-bg); }
+.branches-revenue__detail-loading {
+  display: flex; align-items: center; gap: 8px; padding: var(--space-3) var(--space-4);
+  font-size: 0.85rem; color: var(--color-text-secondary);
+}
+.branches-revenue__detail-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: var(--space-2) 0; }
+.branches-revenue__detail-table th, .branches-revenue__detail-table td { padding: 6px var(--space-4); text-align: left; }
+.branches-revenue__detail-table th { color: var(--color-text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: var(--tracking-tight); }
+.branches-revenue__detail-table td:nth-child(5), .branches-revenue__detail-table th:nth-child(5),
+.branches-revenue__detail-table td:nth-child(6), .branches-revenue__detail-table th:nth-child(6) { text-align: right; }
+.branches-revenue__detail-table tbody tr:hover { background: var(--color-white); }
+
+.branches-revenue__clear-filters {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--color-border); background: var(--color-white); color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); padding: var(--space-2) var(--space-3); font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.branches-revenue__clear-filters:hover { background: var(--color-pink-50); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+@media (max-width: 640px) {
+  .branches-revenue__filters { flex-direction: column; align-items: stretch; }
+  /* Real bug found on a phone-width audit: the pill container's fixed
+     border-radius assumes a single row — once "Rango de fechas" wraps
+     onto its own line inside that same pill, the shape reads as broken
+     (a lone pill-shaped sliver floating under the first three). A 2x2
+     grid fills the same rounded container evenly instead of wrapping
+     unevenly, so it always reads as one deliberate block regardless of
+     how many periods exist. */
+  .branches-revenue__period-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .branches-revenue__period-tab { text-align: center; }
+  .branches-revenue__date { width: 100%; }
+  .branches-revenue__clear-filters { width: 100%; justify-content: center; }
+}

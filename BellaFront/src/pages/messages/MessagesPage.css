@@ -1,6 +1,12 @@
 .messages-page { display: flex; flex-direction: column; height: calc(100vh - var(--space-5) * 2 - 65px); }
 
 .messages-page__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); flex: 0 0 auto; }
+.messages-page__title { display: flex; align-items: center; gap: var(--space-2); }
+.messages-page__unread-total {
+  display: inline-flex; align-items: center;
+  background: var(--color-pink-50); color: var(--color-pink-deep); font-weight: 700;
+  border-radius: var(--radius-pill); padding: 3px 10px; font-size: 0.76rem;
+}
 .messages-page__header button {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--color-pink-deep); color: var(--color-white);
@@ -41,6 +47,38 @@
 .messages-list::-webkit-scrollbar-track { background: transparent; }
 .messages-list::-webkit-scrollbar-thumb { background-color: var(--color-pink-soft); border-radius: var(--radius-pill); }
 .messages-list::-webkit-scrollbar-thumb:hover { background-color: var(--color-pink-elegant); }
+
+/* ---------- List toolbar: search + unread filter ---------- */
+.messages-list__toolbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: var(--space-2); border-bottom: 1px solid var(--color-divider-soft);
+}
+.messages-list__search {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-pill);
+  padding: 6px var(--space-2_5); color: var(--color-text-muted);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.messages-list__search:focus-within { border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.messages-list__search svg { flex-shrink: 0; }
+.messages-list__search input {
+  flex: 1 1 auto; min-width: 0; border: none; outline: none; background: none;
+  font-family: var(--font-body); font-size: 0.84rem; color: var(--color-primary);
+}
+.messages-list__search-clear {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; border: none; background: var(--color-bg);
+  color: var(--color-text-muted); cursor: pointer; padding: 0;
+}
+.messages-list__search-clear:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); }
+.messages-list__unread-toggle {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--color-border); background: var(--color-white); color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); padding: 6px 10px; font-size: 0.76rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.messages-list__unread-toggle:hover { background: var(--color-pink-50); color: var(--color-pink-deep); }
+.messages-list__unread-toggle.is-active { background: var(--color-pink-deep); color: var(--color-white); border-color: var(--color-pink-deep); }
 
 .messages-list__items { list-style: none; margin: 0; padding: var(--space-2); display: flex; flex-direction: column; gap: 4px; }
 
@@ -95,6 +133,11 @@
 .messages-list__hide-confirm--no { background: var(--color-bg); color: var(--color-text-secondary); }
 .messages-list__hide-confirm--no:hover { background: var(--color-border); }
 .messages-list__hide-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+/* HoldButton's own "sm" preset (36px tall, 16px side padding) is sized
+   for a normal button context — too roomy for this dense conversation
+   row, which used a 3px/10px pill everywhere else. Shrinks it down to
+   match without touching the shared component. */
+.messages-list__hide-hold.hold-button { height: 24px; padding: 0 10px; font-size: 0.72rem; font-weight: 700; }
 .messages-list__item-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .messages-list__name { margin: 0; font-size: 0.92rem; font-weight: 600; color: var(--color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .messages-list__caption {
@@ -131,6 +174,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -146,24 +190,46 @@
 /* Each row holds the (optional) avatar + bubble, justified to the side that
    matches who sent it — the single biggest usability/design upgrade over
    the old all-left, undifferentiated bubble list. */
-.message-row { display: flex; align-items: flex-end; gap: var(--space-2); max-width: 100%; animation: fade-in-up 0.3s var(--ease-premium) both; }
+.messages-thread__day-divider {
+  display: flex; align-items: center; justify-content: center;
+  margin: var(--space-2) 0; gap: var(--space-2);
+}
+.messages-thread__day-divider span {
+  background: var(--color-surface-pearl); color: var(--color-text-muted);
+  border: 1px solid var(--color-divider-soft); border-radius: var(--radius-pill);
+  padding: 3px 12px; font-size: 0.7rem; font-weight: 700;
+}
+
+/* Real bug found on a phone-width audit: "no haya scroll horizontal" — a
+   flex item's default min-width is `auto`, not 0, meaning it refuses to
+   shrink below its own content's natural width even when its max-width
+   would otherwise allow it to. A long message with no spaces to wrap at
+   (a URL, a run-on word) was forcing .message-row — and with it
+   .messages-thread__scroll, the whole thread — wider than the phone
+   screen instead of wrapping. min-width: 0 on every link in this flex
+   chain (row → stack → bubble) is what actually lets word-break: break-word
+   below do its job on a narrow screen. */
+.message-row { display: flex; align-items: flex-end; gap: var(--space-2); max-width: 100%; min-width: 0; animation: fade-in-up 0.3s var(--ease-premium) both; }
 .message-row--theirs { justify-content: flex-start; }
 .message-row--mine { justify-content: flex-end; }
 
 /* Wraps the bubble + the "Visto" caption underneath it (1:1 only, last
    message of mine only) so the caption inherits the same left/right
-   alignment as the bubble it belongs to. */
-.message-row__stack { display: flex; flex-direction: column; max-width: 520px; }
+   alignment as the bubble it belongs to. max-width uses min() so it caps
+   at 520px on desktop but never exceeds the actually-available width on
+   a narrow phone screen. */
+.message-row__stack { display: flex; flex-direction: column; max-width: min(520px, 100%); min-width: 0; }
 .message-row--mine .message-row__stack { align-items: flex-end; }
 .message-row--theirs .message-row__stack { align-items: flex-start; }
-.message-row__seen { margin-top: 2px; font-size: 0.68rem; color: var(--color-text-muted); }
+.message-row__seen { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: 0.68rem; color: var(--color-pink-deep); }
 
 .message-bubble__author {
   font-size: 0.72rem; font-weight: 700; color: var(--color-pink-deep);
 }
 
 .message-bubble {
-  max-width: 520px;
+  max-width: min(520px, 100%);
+  min-width: 0;
   border-radius: var(--radius-md);
   padding: var(--space-2_5) var(--space-3);
   display: flex;
@@ -183,16 +249,27 @@
   color: var(--color-white);
 }
 
-.message-bubble__body { margin: 0; font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.message-bubble__body { margin: 0; font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
 .message-bubble__time { align-self: flex-end; font-size: 0.68rem; opacity: 0.7; }
 
 .message-bubble__attachments { display: flex; flex-wrap: wrap; gap: 6px; }
 .attachment-chip {
   display: inline-flex; align-items: center; gap: 6px;
+  max-width: 100%; min-width: 0;
   background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-pill);
   padding: 4px 10px; font-size: 0.78rem; color: var(--color-pink-deep); text-decoration: none;
   font-family: inherit; cursor: pointer;
   transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+/* Real bug found from a screenshot: a long filename (a URL-like name with
+   no spaces) had nothing capping its width, so it just kept the whole
+   chip — and with it the bubble, and the thread underneath — growing
+   until it ran off the edge of the screen. Ellipsis-truncates instead;
+   the full name is still available as a native title tooltip and,
+   crucially, still openable — clicking the chip opens the real
+   attachment regardless of how the name is displayed. */
+.attachment-chip__name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 .attachment-chip:hover { background: var(--color-pink-50); border-color: var(--color-pink-elegant); }
 .message-bubble--mine .attachment-chip {
@@ -338,7 +415,35 @@
 .people-picker__submit:active:not(:disabled) { transform: scale(0.98); }
 .people-picker__submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.messages-thread__back {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-right: 2px;
+}
+.messages-thread__back:hover { background: var(--color-bg); color: var(--color-ink); }
+
+/* Real two-screen mobile chat: the list OR the thread, never both — the
+   old fixed max-height:220px list + a mostly-empty thread placeholder
+   underneath it (confirmed on a real phone-width audit) is gone. Default
+   (nothing selected) shows the list at full height; selecting a
+   conversation (.messages-layout--thread-open, set in MessagesPage.tsx)
+   swaps to showing only the thread, with .messages-thread__back to
+   return. */
 @media (max-width: 768px) {
   .messages-layout { grid-template-columns: 1fr; }
-  .messages-list { border-right: none; border-bottom: 1px solid var(--color-border); max-height: 220px; }
+  .messages-list { border-right: none; display: flex; flex-direction: column; }
+  .messages-thread { display: none; }
+  .messages-thread__back { display: inline-flex; }
+
+  .messages-layout--thread-open .messages-list { display: none; }
+  .messages-layout--thread-open .messages-thread { display: flex; }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import {
   Plus,
   Paperclip,
@@ -9,12 +9,17 @@ import {
   Image as ImageIcon,
   Search,
   Check,
+  CheckCheck,
   Trash2,
   Loader2,
   Users as UsersIcon,
+  MailOpen,
+  ChevronLeft,
 } from "lucide-react";
+import { staggerStyle } from "../../utils/staggerStyle";
 import { Modal } from "../../components/common/Modal";
 import { AttachmentPreviewModal } from "../../components/common/AttachmentPreviewModal";
+import HoldButton from "../../components/common/HoldButton";
 import { StatusState } from "../../components/common/StatusState";
 import { Avatar } from "../../components/common/Avatar";
 import { useAuth } from "../../hooks/useAuth";
@@ -39,14 +44,6 @@ const EXCEL_MIME = new Set([
 ]);
 const GROUP_NAME_LABEL_LIMIT = 2;
 
-// Same --stagger-delay custom-property pattern used across
-// ProductsPage/InventoryPage/UsersPage/DashboardPage — the conversation
-// list previously had no entrance animation at all (individual message
-// bubbles already fade in via .message-row's own animation).
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
-
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -60,15 +57,30 @@ function formatRelativeTime(iso: string): string {
   return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
 }
 
-// Reuses formatRelativeTime (same helper used for message timestamps) so
-// "last seen" and message times read consistently instead of introducing a
-// second relative-time implementation.
+// Reutiliza formatRelativeTime para que "última conexión" y las horas de
+// los mensajes sean consistentes, sin duplicar la lógica de tiempo relativo.
 function lastSeenText(lastLoginAt: string | null): string {
   return lastLoginAt ? `última conexión ${formatRelativeTime(lastLoginAt).toLowerCase()}` : "nunca ha iniciado sesión";
 }
 
-// Branch is purely display context for "the other person" — computed live
-// from their own allBranches/branches, never stored per-message.
+function dayKey(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// "Hoy" / "Ayer" / fecha completa, para separar visualmente los días en el hilo.
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (dayKey(iso) === dayKey(today.toISOString())) return "Hoy";
+  if (dayKey(iso) === dayKey(yesterday.toISOString())) return "Ayer";
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+}
+
+// La sucursal es solo contexto visual del otro participante, se calcula al
+// vuelo desde su allBranches/branches, nunca se guarda por mensaje.
 function branchCaption(party: Pick<MessagingParty, "allBranches" | "branches">): string {
   if (party.allBranches) return "Todas las sucursales";
   if (party.branches.length === 0) return "Sin sucursal asignada";
@@ -80,7 +92,7 @@ function otherParticipant(conv: Conversation, myUserId: string | undefined): Con
   return conv.participants.find((p) => p.user.id !== myUserId) ?? null;
 }
 
-// "Ana, Luis +2 más" — the fallback display for a group with no `name` set.
+// "Ana, Luis +2 más": nombre de respaldo para un grupo sin `name` definido.
 function groupParticipantsLabel(conv: Conversation, myUserId: string | undefined): string {
   const others = conv.participants.filter((p) => p.user.id !== myUserId).map((p) => p.user.displayName);
   if (others.length <= GROUP_NAME_LABEL_LIMIT) return others.join(", ") || "Grupo";
@@ -106,6 +118,8 @@ export function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [conversationsStatus, setConversationsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [messagingUsers, setMessagingUsers] = useState<MessagingParty[]>([]);
+  const [listSearch, setListSearch] = useState("");
+  const [unreadOnly, setUnreadOnly] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
@@ -144,11 +158,9 @@ export function MessagesPage() {
       .then(({ conversation, messages: msgs }) => {
         setMessages(msgs);
         setMessagesStatus("ready");
-        // Viewing IS reading (server-side side effect of the same GET) —
-        // reflect that immediately in local state: refresh this
-        // conversation's participants (so the "Visto" indicator and any
-        // group participant list use fresh data) and zero its unread
-        // badge, without waiting for a full list refetch.
+        // Ver el hilo ya cuenta como leído (efecto secundario del mismo GET
+        // en el servidor): se refleja de inmediato en el estado local,
+        // actualizando participantes y poniendo el contador en 0.
         setConversations((prev) =>
           prev
             ? prev.map((c) =>
@@ -169,9 +181,8 @@ export function MessagesPage() {
   const selectedConversation = conversations?.find((c) => c.id === selectedId) ?? null;
   const selectedOtherParticipant = selectedConversation ? otherParticipant(selectedConversation, user?.id) : null;
 
-  // The id of the LAST message I sent in the open thread — "Visto" only
-  // ever renders under this one, never older messages of mine, and never
-  // in a group.
+  // Id del ÚLTIMO mensaje que envié en el hilo abierto: "Visto" solo se
+  // muestra bajo este, nunca en mensajes míos anteriores ni en grupos.
   const lastMineMessageId = useMemo(() => {
     if (!messages || selectedConversation?.isGroup) return null;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -179,6 +190,26 @@ export function MessagesPage() {
     }
     return null;
   }, [messages, selectedConversation?.isGroup, user?.id]);
+
+  // Filtra la lista ya cargada por nombre visible (1:1 o grupo) y por el
+  // toggle de "solo no leídos", para poder buscar sin depender del scroll.
+  const filteredConversations = useMemo(() => {
+    if (!conversations) return conversations;
+    const q = listSearch.trim().toLowerCase();
+    return conversations.filter((c) => {
+      if (unreadOnly && c.unreadCount === 0) return false;
+      if (!q) return true;
+      const name = conversationDisplayName(c, user?.id).toLowerCase();
+      const other = otherParticipant(c, user?.id);
+      const haystack = [name, other?.user.role.name ?? "", ...(other ? other.user.branches.map((b) => b.name) : [])].join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [conversations, listSearch, unreadOnly, user?.id]);
+
+  const totalUnread = useMemo(
+    () => conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0,
+    [conversations]
+  );
 
   const filteredPeople = useMemo(() => {
     const q = peopleSearch.trim().toLowerCase();
@@ -226,6 +257,9 @@ export function MessagesPage() {
   async function handleSend(e: FormEvent) {
     e.preventDefault();
     if (!selectedId) return;
+    // `sending` deshabilita el botón, pero Enter-to-send lo saltaba y podía
+    // disparar un segundo envío mientras el primero seguía en curso.
+    if (sending) return;
     if (composeBody.trim().length === 0 && composeFiles.length === 0) return;
 
     setSending(true);
@@ -305,8 +339,8 @@ export function MessagesPage() {
         setMessages(null);
       }
     } catch {
-      // Non-fatal — leave the row in place, the confirm state resets below
-      // so the user can just try again.
+      // No es grave: se deja la fila y el estado de confirmación se reinicia
+      // abajo, para que el usuario pueda reintentar.
     } finally {
       setHidingId(null);
       setConfirmHideId(null);
@@ -318,12 +352,52 @@ export function MessagesPage() {
   return (
     <div className="messages-page">
       <div className="messages-page__header">
-        <h1>Mensajes</h1>
+        <div className="messages-page__title">
+          <h1>Mensajes</h1>
+          {totalUnread > 0 && <span className="messages-page__unread-total">{totalUnread > 99 ? "99+" : totalUnread} sin leer</span>}
+        </div>
         <button onClick={openNewConversationModal}><Plus size={16} /> Nueva conversación</button>
       </div>
 
-      <div className="messages-layout">
+      {/* Real bug found on a phone-width audit: below 768px the thread
+          panel used to render permanently squeezed under the list (list
+          capped to max-height:220px), so with nothing selected the screen
+          was mostly a big empty "Selecciona una conversación" placeholder,
+          and with something selected there was no way to see the thread
+          at a usable size at all. Below, this becomes a real two-screen
+          mobile chat: the list OR the thread, never both at once, with a
+          back button in the thread header to return to the list — the
+          --thread-open modifier drives that via CSS only, no separate
+          mobile-only markup. */}
+      <div className={`messages-layout${selectedId ? " messages-layout--thread-open" : ""}`}>
         <aside className="messages-list">
+          {conversationsStatus === "ready" && conversations && conversations.length > 0 && (
+            <div className="messages-list__toolbar">
+              <div className="messages-list__search">
+                <Search size={15} />
+                <input
+                  type="text"
+                  placeholder="Buscar conversación..."
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                />
+                {listSearch && (
+                  <button type="button" className="messages-list__search-clear" onClick={() => setListSearch("")} aria-label="Limpiar búsqueda">
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className={`messages-list__unread-toggle${unreadOnly ? " is-active" : ""}`}
+                onClick={() => setUnreadOnly((v) => !v)}
+                aria-pressed={unreadOnly}
+              >
+                <MailOpen size={13} /> No leídos
+              </button>
+            </div>
+          )}
+
           {conversationsStatus === "loading" && <StatusState kind="loading" compact />}
           {conversationsStatus === "error" && (
             <StatusState kind="error" compact message="No se pudieron cargar las conversaciones." />
@@ -331,9 +405,12 @@ export function MessagesPage() {
           {conversationsStatus === "ready" && conversations?.length === 0 && (
             <StatusState kind="empty" compact message="Todavía no hay conversaciones." />
           )}
-          {conversationsStatus === "ready" && conversations && conversations.length > 0 && (
+          {conversationsStatus === "ready" && conversations && conversations.length > 0 && filteredConversations?.length === 0 && (
+            <StatusState kind="empty" compact message={unreadOnly ? "No tienes conversaciones sin leer." : "Nada coincide con tu búsqueda."} />
+          )}
+          {conversationsStatus === "ready" && filteredConversations && filteredConversations.length > 0 && (
             <ul className="messages-list__items">
-              {conversations.map((conv, i) => {
+              {filteredConversations.map((conv, i) => {
                 const other = otherParticipant(conv, user?.id);
                 const displayName = conversationDisplayName(conv, user?.id);
                 const last = conv.messages?.[0];
@@ -390,14 +467,26 @@ export function MessagesPage() {
                     <div className="messages-list__row-actions">
                       {isConfirming ? (
                         <>
-                          <button
-                            type="button"
-                            className="messages-list__hide-confirm messages-list__hide-confirm--yes"
-                            onClick={() => handleHideConversation(conv.id)}
+                          {/* Same HoldButton used for "Eliminar rol" — a
+                              deliberate hold instead of a one-tap "Sí",
+                              since this conversation (and every message in
+                              it, for this user) is gone for good once
+                              confirmed. */}
+                          <HoldButton
                             disabled={hidingId === conv.id}
+                            onHold={() => handleHideConversation(conv.id)}
+                            holdTime={1000}
+                            size="sm"
+                            radius={999}
+                            backgroundColor="#FBE5E1"
+                            fillColor="#B3261E"
+                            textColor="#B3261E"
+                            fillTextColor="#ffffff"
+                            resetAfter={1000}
+                            className="messages-list__hide-hold"
                           >
-                            {hidingId === conv.id ? <Loader2 size={12} className="spin" /> : "Sí"}
-                          </button>
+                            Mantén
+                          </HoldButton>
                           <button
                             type="button"
                             className="messages-list__hide-confirm messages-list__hide-confirm--no"
@@ -436,6 +525,14 @@ export function MessagesPage() {
           {selectedId && selectedConversation && (
             <>
               <div className="messages-thread__header">
+                <button
+                  type="button"
+                  className="messages-thread__back"
+                  onClick={() => setSelectedId(null)}
+                  aria-label="Volver a la lista de conversaciones"
+                >
+                  <ChevronLeft size={20} />
+                </button>
                 {selectedConversation.isGroup ? (
                   <span className="messages-list__group-avatar" aria-hidden="true"><UsersIcon size={18} /></span>
                 ) : (
@@ -478,7 +575,7 @@ export function MessagesPage() {
                   <StatusState kind="empty" message="Todavía no hay mensajes en esta conversación." />
                 )}
                 {messagesStatus === "ready" &&
-                  messages?.map((m) => {
+                  messages?.map((m, i) => {
                     const mine = m.author.id === user?.id;
                     const showSeen =
                       mine &&
@@ -486,8 +583,15 @@ export function MessagesPage() {
                       m.id === lastMineMessageId &&
                       !!selectedOtherParticipant?.lastReadAt &&
                       new Date(m.createdAt).getTime() <= new Date(selectedOtherParticipant.lastReadAt).getTime();
+                    // Divisor de día cuando cambia el día de calendario
+                    // respecto al mensaje anterior, igual que cualquier app de chat.
+                    const showDayDivider = i === 0 || dayKey(m.createdAt) !== dayKey(messages[i - 1].createdAt);
                     return (
-                      <div key={m.id} className={`message-row${mine ? " message-row--mine" : " message-row--theirs"}`}>
+                      <Fragment key={m.id}>
+                      {showDayDivider && (
+                        <div className="messages-thread__day-divider"><span>{dayLabel(m.createdAt)}</span></div>
+                      )}
+                      <div className={`message-row${mine ? " message-row--mine" : " message-row--theirs"}`}>
                         {!mine && (
                           <Avatar
                             avatarStyle={m.author.avatarStyle}
@@ -512,16 +616,17 @@ export function MessagesPage() {
                                     onClick={() => setPreviewAttachment(a)}
                                   >
                                     <AttachmentIcon mimeType={a.mimeType} />
-                                    <span>{a.fileName}</span>
+                                    <span className="attachment-chip__name" title={a.fileName}>{a.fileName}</span>
                                   </button>
                                 ))}
                               </div>
                             )}
                             <span className="message-bubble__time">{formatRelativeTime(m.createdAt)}</span>
                           </div>
-                          {showSeen && <span className="message-row__seen">Visto</span>}
+                          {showSeen && <span className="message-row__seen"><CheckCheck size={11} /> Visto</span>}
                         </div>
                       </div>
+                      </Fragment>
                     );
                   })}
               </div>

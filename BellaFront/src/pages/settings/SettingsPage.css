@@ -1,0 +1,147 @@
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: var(--space-4) 0 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  width: fit-content;
+}
+.settings-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.settings-tabs__tab.is-active { background: var(--color-pink-deep); color: var(--color-white); }
+.settings-tabs__tab:hover:not(.is-active) { background: var(--color-pink-100); color: var(--color-ink); }
+
+.settings-tabs__panel {
+  margin-top: var(--space-4);
+  animation: fade-in-up 0.4s var(--ease-premium) both;
+}
+/* General's own form stays a readable form width even though the page
+   around it is now full-width (see .settings-page in
+   CompanySettingsPage.css) — the Usuarios/Roles tabs rendered in this same
+   panel intentionally do NOT get this constraint, so their tables can use
+   the full page width. */
+.settings-tabs__panel .settings-form,
+.settings-tabs__panel > .settings-section {
+  max-width: 760px;
+}
+
+/* ---------- General tab: form + live preview side by side ----------
+   Puts the page's now-freed-up width to use instead of leaving it as dead
+   space next to a 760px form: a sticky "how this looks to a customer"
+   summary card, updating live as the admin types. Falls back to a single
+   column (preview below the form) once there's no room for both. */
+.settings-general-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 760px) minmax(240px, 320px);
+  gap: var(--space-5);
+  align-items: start;
+}
+.settings-general-layout__form { min-width: 0; }
+
+.settings-preview {
+  position: sticky;
+  top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.settings-preview__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.settings-preview__card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-md);
+  animation: fade-in-up 0.5s var(--ease-premium) both;
+}
+.settings-preview__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-ink);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+.settings-preview__brand svg { color: var(--color-pink-deep); flex-shrink: 0; }
+.settings-preview__tagline {
+  margin: var(--space-3) 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.settings-preview__facts {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+.settings-preview__socials {
+  display: flex;
+  gap: 8px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-divider-soft);
+}
+.settings-preview__socials span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-pink-100);
+  color: var(--color-pink-deep);
+}
+.settings-preview__hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 1080px) {
+  .settings-general-layout { grid-template-columns: 1fr; }
+  .settings-preview { position: static; max-width: 420px; }
+}
+/* Nested pages (UsersPage/RolesPage) come with their own max-width /
+   page-level containers — reset those constraints so they fill this tab
+   panel the same width as the General tab's form instead of looking
+   narrower/misaligned when embedded here. */
+.settings-tabs__panel .users-page,
+.settings-tabs__panel .roles-page {
+  max-width: none;
+}
+
+@media (max-width: 640px) {
+  .settings-tabs { width: 100%; }
+  .settings-tabs__tab { flex: 1 1 auto; justify-content: center; }
+}

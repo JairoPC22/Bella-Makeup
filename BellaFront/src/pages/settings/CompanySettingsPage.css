@@ -1,4 +1,8 @@
-.settings-page { max-width: 760px; }
+/* Sin max-width aquí: Configuración también aloja las pestañas Usuarios/Roles
+   (ver SettingsPage.tsx), que necesitan el ancho completo de la página. El
+   formulario de la pestaña General mantiene su propio ancho legible vía
+   .settings-form en SettingsPage.css. */
+.settings-page { max-width: 1280px; }
 .settings-page__subtitle { margin: 2px 0 0; color: var(--color-text-secondary); font-size: 0.92rem; }
 
 .settings-form {
@@ -16,11 +20,9 @@
   animation: fade-in-up 0.6s var(--ease-premium) both;
   transition: border-color var(--transition-base) var(--ease-premium);
 }
-/* The "Actividad reciente" card sits outside .settings-form as its own
-   sibling section (it's a navigation link, not a saveable field, so it
-   isn't part of the form) — .settings-form's internal flex `gap` doesn't
-   reach a sibling after the form closes, which without this rule left it
-   touching the Guardar cambios button directly. */
+/* La tarjeta "Actividad reciente" es una sección hermana fuera del form
+   (es un link de navegación, no un campo guardable); sin este margen
+   quedaría pegada al botón Guardar cambios. */
 .settings-form + .settings-section { margin-top: var(--space-4); }
 .settings-section:nth-of-type(2) { animation-delay: 60ms; }
 .settings-section:nth-of-type(3) { animation-delay: 120ms; }
@@ -43,6 +45,48 @@
   gap: var(--space-3);
 }
 .settings-section__span2 { grid-column: 1 / -1; }
+
+.settings-section--pin .settings-section__header { position: relative; padding-right: 170px; }
+.settings-section__reset {
+  position: absolute; top: 0; right: 0;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid var(--color-border); border-radius: var(--radius-pill);
+  padding: 5px 12px; font-size: 0.76rem; font-weight: 600; color: var(--color-text-secondary);
+  cursor: pointer; transition: border-color var(--transition-base) var(--ease-premium), color var(--transition-base) var(--ease-premium);
+}
+.settings-section__reset:hover { border-color: var(--color-pink-elegant); color: var(--color-pink-deep); }
+
+.settings-section__pin-group { margin-top: var(--space-3); }
+.settings-section__pin-group:first-of-type { margin-top: 0; }
+.settings-section__pin-group-title { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--color-ink); }
+.settings-section__pin-group-hint { margin: 2px 0 var(--space-2); font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.45; }
+
+.settings-section__pin-toggles { display: flex; flex-direction: column; gap: var(--space-2); }
+.settings-section__toggle-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-base) var(--ease-premium), background-color var(--transition-base) var(--ease-premium);
+}
+.settings-section__toggle-row:has(input:checked) { border-color: var(--color-pink-100); background: var(--color-pink-50); }
+.settings-section__toggle-row input[type="checkbox"] { width: auto; margin: 0; flex-shrink: 0; align-self: flex-start; margin-top: 3px; }
+.settings-section__toggle-icon { flex-shrink: 0; color: var(--color-pink-deep); margin-top: 1px; }
+.settings-section__toggle-row > span:not(.settings-section__toggle-badge) { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.settings-section__toggle-row strong { font-size: 0.88rem; color: var(--color-ink); font-weight: 600; }
+.settings-section__toggle-row small { font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.4; }
+
+.settings-section__toggle-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  background: var(--color-border); color: var(--color-text-secondary);
+}
+.settings-section__toggle-badge.is-on { background: var(--color-pink-deep); color: var(--color-white); }
 
 .settings-section label {
   display: flex;

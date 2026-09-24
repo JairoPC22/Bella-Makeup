@@ -1,0 +1,122 @@
+.peek-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2, 12px);
+  text-align: center;
+  padding: var(--space-4, 20px);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.peek-rating__title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+.peek-rating__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+
+.peek-rating__stars {
+  display: flex;
+  gap: 6px;
+}
+
+.peek-rating__star {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.35);
+  display: inline-flex;
+  line-height: 0;
+}
+.peek-rating__star:focus-visible {
+  outline: 2px solid var(--color-pink-elegant, #2997ff);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* `--filled` viene de PeekRating.tsx (misma condición `n <= active` que ya
+   controla el ícono relleno), así todas las estrellas anteriores se iluminan
+   juntas en vez de solo la seleccionada. */
+.peek-rating__star--filled {
+  color: #ffd75e;
+}
+
+.peek-rating__followup {
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.peek-rating__comment {
+  width: 100%;
+  resize: none;
+  min-height: 56px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.peek-rating__comment::placeholder { color: rgba(255, 255, 255, 0.4); }
+.peek-rating__comment:focus {
+  outline: none;
+  border-color: var(--color-pink-elegant, #2997ff);
+}
+
+.peek-rating__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.peek-rating__error {
+  font-size: 0.78rem;
+  color: #ff8a8a;
+  margin-right: auto;
+}
+
+.peek-rating__submit {
+  padding: 8px 18px;
+  border-radius: var(--radius-pill, 9999px);
+  border: none;
+  background: var(--color-pink-deep, #0066cc);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background-color var(--transition-base, 240ms) var(--ease-premium, ease), transform var(--transition-base, 240ms) var(--ease-premium, ease);
+}
+.peek-rating__submit:hover:not(:disabled) { background: var(--color-primary-focus, #2997ff); }
+.peek-rating__submit:active:not(:disabled) { transform: scale(0.97); }
+.peek-rating__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.peek-rating--done {
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 14px;
+}
+.peek-rating__done-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(60, 200, 130, 0.18);
+  color: #4ade80;
+}

@@ -81,6 +81,22 @@
 .pos-search__row-sku { flex: 0 0 auto; font-size: 0.72rem; color: var(--color-text-muted); }
 .pos-search__row-price { flex: 0 0 auto; font-size: 0.85rem; font-weight: 600; color: var(--color-pink-deep); font-variant-numeric: tabular-nums; }
 
+/* Out-of-stock row — red border/tint so a cashier with no POS background
+   recognizes at a glance that this item cannot be sold at this branch,
+   plus the disabled cursor since the button is actually inert. */
+.pos-search__row--out {
+  background: #FDECEC;
+  border-color: #F3B9B9;
+  cursor: not-allowed;
+}
+.pos-search__row--out:hover { background: #FDECEC; border-color: #F3B9B9; }
+.pos-search__row--out .pos-search__row-name { color: #A32E2E; }
+.pos-search__row-outbadge {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.75rem; font-weight: 700; color: #B3261E;
+}
+
 /* ---------- Cart + checkout column ---------- */
 .pos-cart {
   display: flex;
@@ -281,3 +297,22 @@
   .pos-layout { grid-template-columns: 1fr; }
   .pos-search { position: static; max-height: none; }
 }
+
+/* ---------- Cash drawer required blocking state ---------- */
+.pos-cash-required {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-2);
+  max-width: 380px; margin: 10vh auto 0;
+  background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  padding: var(--space-5); box-shadow: var(--shadow-md);
+}
+.pos-cash-required svg { color: var(--color-pink-deep); }
+.pos-cash-required h2 { font-size: 1.15rem; color: var(--color-ink); margin: 0; }
+.pos-cash-required p { margin: 0; color: var(--color-text-secondary); font-size: 0.9rem; }
+.pos-cash-required__button {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: var(--space-2);
+  background: var(--color-pink-deep); color: var(--color-white); border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2_5) var(--space-5); font-weight: 700; text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.pos-cash-required__button:hover { background: var(--color-primary-focus); }
+.pos-cash-required__button:active { transform: scale(0.98); }

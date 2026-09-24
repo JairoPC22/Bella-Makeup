@@ -1,0 +1,143 @@
+.caja-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 900px; }
+
+.caja-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
+.caja-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.caja-page__title svg { color: var(--color-pink-deep); }
+.caja-page__title h1 { margin: 0; }
+
+.caja-page__branch-picker { display: flex; align-items: center; gap: var(--space-2); font-size: 0.85rem; color: var(--color-text-secondary); font-weight: 500; }
+.caja-page__branch-label { margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); }
+.caja-page__branch-label strong { color: var(--color-ink); }
+
+/* ---------- Shared card shell ---------- */
+.caja-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  animation: fade-in-up 0.5s var(--ease-premium) both;
+}
+.caja-card__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.caja-card__title svg { color: var(--color-pink-deep); }
+.caja-card__title h2 { margin: 0; font-size: 1.05rem; }
+.caja-card__hint { margin: 0; font-size: 0.86rem; color: var(--color-text-secondary); line-height: 1.5; }
+
+.caja-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--color-text-secondary); font-weight: 500; max-width: 320px; }
+.caja-field input {
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.caja-field input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+.caja-error {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 0; padding: var(--space-2) var(--space-3);
+  background: #FBE5E1; border: 1px solid #F3B9B9;
+  border-radius: var(--radius-sm); color: #B3261E; font-size: 0.85rem; line-height: 1.4;
+}
+
+.caja-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  align-self: flex-start;
+  border-radius: var(--radius-pill);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.95rem; font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+  border: none;
+}
+.caja-btn--primary { background: var(--color-pink-deep); color: var(--color-white); }
+.caja-btn--primary:hover:not(:disabled) { background: var(--color-primary-focus); }
+.caja-btn--primary:active:not(:disabled) { transform: scale(0.98); }
+.caja-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Open session status ---------- */
+.caja-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.caja-status-grid dt { margin: 0; font-size: 0.74rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.caja-status-grid dd { margin: 2px 0 0; font-size: 0.92rem; color: var(--color-ink); font-weight: 500; }
+
+/* ---------- Denomination grid ---------- */
+.caja-denominations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-2);
+}
+.caja-denomination {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+.caja-denomination span { font-size: 0.82rem; font-weight: 700; color: var(--color-pink-deep); }
+.caja-denomination--coin span { color: var(--color-text-secondary); }
+.caja-denomination input {
+  padding: 6px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  background: var(--color-white);
+}
+.caja-denomination input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+.caja-declared-total {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem; color: var(--color-text-secondary);
+}
+.caja-declared-total strong { font-size: 1.1rem; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- Close result ---------- */
+.caja-result-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.caja-result-table th, .caja-result-table td { padding: var(--space-2) var(--space-2_5); text-align: left; border-bottom: 1px solid var(--color-divider-soft); }
+.caja-result-table th { color: var(--color-text-secondary); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: var(--tracking-tight); }
+.caja-result-table td:not(:first-child), .caja-result-table th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.caja-result-table__diff { color: #B3261E; font-weight: 700; }
+
+.caja-result-status { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.95rem; font-weight: 700; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); }
+.caja-result-status--exact { color: #1F7A3E; background: #E8F5EC; }
+.caja-result-status--warning { color: #B3261E; background: #FBE5E1; }
+
+/* ---------- Historial de turnos ---------- */
+.caja-history__filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3); }
+.caja-history__date { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--color-text-secondary); }
+.caja-history__date input {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--color-primary);
+}
+
+.caja-history__table-wrap { overflow-x: auto; }
+.caja-history__table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.caja-history__table th, .caja-history__table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-divider-soft); white-space: nowrap; }
+.caja-history__table th { color: var(--color-text-secondary); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: var(--tracking-tight); }
+.caja-history__row { cursor: pointer; transition: background-color var(--transition-fast) var(--ease-premium); }
+.caja-history__row:hover { background: var(--color-pink-50); }
+
+.caja-detail { display: flex; flex-direction: column; gap: var(--space-3); }
+
+@media (max-width: 640px) {
+  .caja-history__filters { flex-direction: column; align-items: stretch; }
+  .caja-denominations { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+}

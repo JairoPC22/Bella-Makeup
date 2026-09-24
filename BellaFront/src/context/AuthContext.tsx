@@ -1,7 +1,7 @@
 import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
 import type { User } from "../types/api";
 import * as authService from "../services/authService";
-import { ApiError } from "../services/apiClient";
+import { ApiError, setSessionExpiredHandler } from "../services/apiClient";
 
 interface AuthContextValue {
   user: User | null;
@@ -27,6 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // See apiClient.ts's setSessionExpiredHandler comment: any request whose
+  // own refresh attempt genuinely fails (not just a transient 401) clears
+  // `user` here, so ProtectedRoute's existing `!user` check redirects to
+  // login instead of the admin panel silently limping along with a dead
+  // session.
+  useEffect(() => {
+    setSessionExpiredHandler(() => setUser(null));
+    return () => setSessionExpiredHandler(null);
+  }, []);
+
   const login = useCallback(async (username: string, password: string) => {
     const { user } = await authService.login(username, password);
     setUser(user);
@@ -37,11 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  // Lets pages that mutate the current user (e.g. /perfil editing the
-  // display name or avatar) push the fresh record back into the shared
-  // session state, so chrome that reads from this context — like the
-  // header's UserMenu avatar/name — updates immediately instead of staying
-  // stale until the next full page reload re-runs the /auth/me effect.
+  // Permite que páginas que editan el usuario actual (ej. /perfil) actualicen
+  // el estado compartido de sesión sin esperar a un recargue de página.
   const updateUser = useCallback((updated: User) => {
     setUser(updated);
   }, []);

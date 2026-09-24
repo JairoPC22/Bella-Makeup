@@ -61,9 +61,8 @@ export const getPublicProduct = (id: string) => publicFetch<PublicProduct>(`/pro
 
 export const listPublicBranches = () => publicFetch<PublicBranch[]>("/branches");
 
-// Backs the floating WhatsApp button (StorefrontLayout) and the Ubicación
-// page's contact details — company name/address/phone/hours/social links,
-// safe for a fully anonymous visitor.
+// Datos de contacto (nombre, dirección, teléfono, horarios, redes) para el
+// botón flotante de WhatsApp y la página de Ubicación; seguro para anónimos.
 export const getPublicCompanyInfo = () => publicFetch<PublicCompanyInfo>("/company");
 
 export const createOnlineOrder = (input: CreateOnlineOrderInput) =>
@@ -72,11 +71,13 @@ export const createOnlineOrder = (input: CreateOnlineOrderInput) =>
 export const trackOnlineOrder = (orderNumber: string, phone: string) =>
   publicFetch<OnlineOrder>(`/orders/${orderNumber}?phone=${encodeURIComponent(phone)}`);
 
-// Product images are served from the same static /uploads root as the
-// admin product images (see productService.ts's buildProductImageUrl) —
-// mirrored here rather than imported, since that function lives alongside
-// the authenticated messageService import chain and this file is meant to
-// stay fully independent of anything auth-related.
+// Usado por PeekRating. `page` es solo la ruta actual para contexto en el
+// admin, nunca se usa para identificar al visitante.
+export const submitSiteRating = (input: { rating: number; comment?: string; page?: string }) =>
+  publicFetch<{ id: string }>("/ratings", { method: "POST", body: JSON.stringify(input) });
+
+// Misma raíz estática /uploads que buildProductImageUrl; se duplica en vez
+// de importar para mantener este archivo independiente de todo lo autenticado.
 const UPLOADS_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 export function buildPublicImageUrl(relativeUrl: string): string {
   if (/^https?:\/\//i.test(relativeUrl)) return relativeUrl;

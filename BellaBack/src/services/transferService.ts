@@ -3,6 +3,7 @@ import { prisma } from "../config/prisma";
 import { AppError } from "../utils/AppError";
 import { applyMovement } from "./inventoryService";
 import { logAudit } from "./auditService";
+import { assertBranchAccess, getAccessibleBranchIds } from "./branchAccessService";
 import * as transferRepo from "../repositories/transferRepository";
 
 export interface TransferItemInput {
@@ -20,25 +21,6 @@ export interface CreateTransferInput {
 
 export function formatTransferNumber(folio: number): string {
   return `T-${String(folio).padStart(6, "0")}`;
-}
-
-// Mirrors saleService.ts's assertBranchAccess exactly (same rationale: no
-// currently-live shared helper for a body-supplied branchId, since
-// requireBranchScope middleware only reads req.params).
-async function assertBranchAccess(client: Prisma.TransactionClient, userId: string, branchId: string): Promise<void> {
-  const user = await client.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return;
-  const assignment = await client.userBranch.findUnique({ where: { userId_branchId: { userId, branchId } } });
-  if (!assignment) throw new AppError(403, "Sin acceso a esta sucursal");
-}
-
-async function getAccessibleBranchIds(userId: string): Promise<string[] | "ALL"> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return "ALL";
-  const rows = await prisma.userBranch.findMany({ where: { userId }, select: { branchId: true } });
-  return rows.map((r) => r.branchId);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,8 +105,7 @@ export async function createTransfer(input: CreateTransferInput, actorId: string
         tx
       );
 
-      // Goods have physically left the source branch the moment the
-      // transfer is dispatched — decrement immediately, not on receipt.
+      // El stock se descuenta al despachar, no al recibir (la mercancía ya salió de la sucursal origen).
       await applyMovement(
         {
           productId: item.productId,

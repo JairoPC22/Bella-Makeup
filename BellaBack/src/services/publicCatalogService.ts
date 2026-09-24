@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma";
 import { AppError } from "../utils/AppError";
+import { paginationParams, buildPageResult } from "../utils/pagination";
 
 const PAGE_SIZE = 20;
 
@@ -13,12 +14,11 @@ function mapBrand(brand: any) {
   return { id: brand.id, name: brand.name };
 }
 
-// A shopper doesn't care WHICH branch has stock, only whether the item is
-// orderable at all — the actual branch-level availability is re-checked at
-// checkout time (orderService.createOnlineOrder validates against the
-// specific chosen branchId). `inStock` here is therefore "does ANY branch
-// have stock > 0", computed via a single grouped aggregate query per
-// product page rather than N+1 per-product queries.
+// Al cliente no le importa QUÉ sucursal tiene stock, solo si el producto se
+// puede pedir; la disponibilidad real por sucursal se revalida en el
+// checkout (orderService.createOnlineOrder valida contra el branchId
+// elegido). `inStock` aquí es entonces "¿alguna sucursal tiene stock > 0?",
+// calculado con una sola consulta agregada por página, no N+1 consultas.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapProduct(product: any, productStock: Map<string, number>, variantStock: Map<string, number>) {
   return {
@@ -45,10 +45,10 @@ function mapProduct(product: any, productStock: Map<string, number>, variantStoc
   };
 }
 
-// Builds { productId -> total stock across all branches/variants, variantId
-// -> total stock across all branches } for exactly the given product ids, in
-// one grouped query — used by both listPublicProducts (page of N products)
-// and getPublicProduct (single product) so neither pays an N+1 cost.
+// Construye { productId -> stock total en todas las sucursales/variantes,
+// variantId -> stock total en todas las sucursales } para exactamente los
+// ids dados, en una sola consulta agrupada — usado por listPublicProducts y
+// getPublicProduct para no pagar un costo N+1.
 async function loadStockTotals(productIds: string[]): Promise<{ productStock: Map<string, number>; variantStock: Map<string, number> }> {
   const productStock = new Map<string, number>();
   const variantStock = new Map<string, number>();
@@ -69,10 +69,10 @@ async function loadStockTotals(productIds: string[]): Promise<{ productStock: Ma
   return { productStock, variantStock };
 }
 
-// Safe public subset of CompanySettings — the authenticated GET /api/settings
-// exposes the full row (including taxId, which is fine for staff but not
-// meant for a public unauthenticated response), so the storefront gets its
-// own endpoint with only what a customer-facing footer/contact button needs.
+// Subconjunto público seguro de CompanySettings — el GET /api/settings
+// autenticado expone la fila completa (incluyendo taxId, válido para staff
+// pero no para una respuesta pública), así que el storefront tiene su
+// propio endpoint con solo lo que necesita un footer/botón de contacto.
 export async function getPublicCompanyInfo() {
   const settings = await prisma.companySettings.findFirst();
   if (!settings) return null;
@@ -112,13 +112,13 @@ export interface ListPublicProductsFilters {
 }
 
 const publicProductInclude = {
-  // isPrimary first so images[0] (what the storefront shows as the single
-  // thumbnail) is always the product's actual primary image, not whichever
-  // image happens to tie-break first on sortOrder alone — see
-  // productRepository.ts's identical fix for the same reasoning.
+  // isPrimary primero para que images[0] (el thumbnail que muestra el
+  // storefront) sea siempre la imagen primaria real del producto, no la que
+  // gane el desempate solo por sortOrder — ver el mismo ajuste en
+  // productRepository.ts.
   images: { orderBy: [{ isPrimary: "desc" as const }, { sortOrder: "asc" as const }] },
-  // Only ACTIVE variants are shown to a public shopper — mirrors the same
-  // "active only" rule applied to the products themselves.
+  // Solo se muestran variantes ACTIVE al público, igual regla que para los
+  // productos mismos.
   variants: { where: { status: "ACTIVE" as const } },
   category: true,
   brand: true,
@@ -143,20 +143,14 @@ export async function listPublicProducts(filters: ListPublicProductsFilters) {
       where,
       include: publicProductInclude,
       orderBy: { name: "asc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
+      ...paginationParams(page, PAGE_SIZE),
     }),
     prisma.product.count({ where }),
   ]);
 
   const { productStock, variantStock } = await loadStockTotals(items.map((p) => p.id));
 
-  return {
-    items: items.map((p) => mapProduct(p, productStock, variantStock)),
-    total,
-    page,
-    pageSize: PAGE_SIZE,
-  };
+  return buildPageResult(items.map((p) => mapProduct(p, productStock, variantStock)), total, page, PAGE_SIZE);
 }
 
 export async function getPublicProduct(id: string) {

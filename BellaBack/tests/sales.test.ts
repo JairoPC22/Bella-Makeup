@@ -14,6 +14,7 @@ describe("Sales / POS checkout", () => {
   let authorizerCookie: string;
   let noPermCookie: string;
   let scopedCookie: string; // only assigned to branchA, used for cross-branch 403 tests
+  const DISCOUNT_SUPERVISOR_PIN = "9182";
 
   let branchA: { id: string };
   let branchB: { id: string };
@@ -28,6 +29,7 @@ describe("Sales / POS checkout", () => {
     "sales_test_authorizer",
     "sales_test_noperm",
     "sales_test_scoped",
+    "sales_test_discount_supervisor",
   ];
   const testRoleCodes = ["sales_test_discount_authorizer", "sales_test_no_perms"];
 
@@ -136,6 +138,19 @@ describe("Sales / POS checkout", () => {
       create: { userId: scopedUser.id, branchId: branchA.id },
     });
     scopedCookie = `access_token=${signAccessToken({ sub: scopedUser.id, roleId: branchManagerRole.id })}`;
+
+    // Supervisor con PIN para las pruebas de escalamiento de descuento vía
+    // PIN: branch_manager ya tiene discounts.authorize por el seed.
+    await prisma.user.upsert({
+      where: { username: "sales_test_discount_supervisor" },
+      update: { pinHash: await hashPassword(DISCOUNT_SUPERVISOR_PIN) },
+      create: {
+        firstName: "Sales", lastName: "Supervisor", displayName: "Sales Supervisor",
+        username: "sales_test_discount_supervisor", email: "sales_test_discount_supervisor@bellamakeup.demo",
+        passwordHash: await hashPassword("Password#123"), avatarSeed: "seed", roleId: branchManagerRole.id,
+        allBranches: true, pinHash: await hashPassword(DISCOUNT_SUPERVISOR_PIN),
+      },
+    });
   });
 
   afterAll(async () => {
@@ -372,6 +387,35 @@ describe("Sales / POS checkout", () => {
       saleIds.push(res.body.id);
       expect(Number(res.body.total)).toBe(84);
     });
+
+    it("a wrong supervisor PIN rejects an above-threshold discount with 401 and writes nothing", async () => {
+      const res = await request(app)
+        .post("/api/sales")
+        .set("Cookie", [cashierCookie])
+        .send({
+          branchId: branchA.id,
+          items: [{ productId: discountProduct.id, quantity: 1, discount: 16 }],
+          payments: [{ method: "CASH", amount: 84 }],
+          pinCode: "000000",
+        });
+      expect(res.status).toBe(401);
+      expect(res.body.message).toMatch(/PIN/);
+    });
+
+    it("a correct supervisor PIN authorizes an above-threshold discount for a cashier lacking discounts.authorize", async () => {
+      const res = await request(app)
+        .post("/api/sales")
+        .set("Cookie", [cashierCookie])
+        .send({
+          branchId: branchA.id,
+          items: [{ productId: discountProduct.id, quantity: 1, discount: 16 }],
+          payments: [{ method: "CASH", amount: 84 }],
+          pinCode: DISCOUNT_SUPERVISOR_PIN,
+        });
+      expect(res.status).toBe(201);
+      saleIds.push(res.body.id);
+      expect(Number(res.body.total)).toBe(84);
+    });
   });
 
   describe("POST /api/sales — payment validation", () => {
@@ -459,6 +503,24 @@ describe("Sales / POS checkout", () => {
         .set("Cookie", [adminCookie])
         .send({ reason: "Segundo intento de cancelación" });
       expect(res.status).toBe(400);
+    });
+
+    it("a cashier without sales.cancel gets 403 even though the route only requires sales.view", async () => {
+      const sale = await request(app)
+        .post("/api/sales")
+        .set("Cookie", [cashierCookie])
+        .send({
+          branchId: branchA.id,
+          items: [{ productId: cancelProduct.id, quantity: 1 }],
+          payments: [{ method: "CASH", amount: 20 }],
+        });
+      saleIds.push(sale.body.id);
+
+      const res = await request(app)
+        .patch(`/api/sales/${sale.body.id}/cancel`)
+        .set("Cookie", [cashierCookie])
+        .send({ reason: "Intento de cajero sin permiso" });
+      expect(res.status).toBe(403);
     });
   });
 

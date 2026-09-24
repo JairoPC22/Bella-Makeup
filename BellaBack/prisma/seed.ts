@@ -164,7 +164,12 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // notices the tester ran dry. Neither code lets them complete anything
     // alone — both endpoints require a supervisor PIN that this role's own
     // permissions can never satisfy.
-    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "cash.manage", "discounts.apply", "returns.view", "returns.create", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send"],
+    // branches.view is needed here for a reason unrelated to sucursal
+    // management: a cashier configured with allBranches (e.g. someone who
+    // covers more than one register) needs the branch picker in POS/Caja to
+    // actually list something — without this permission GET /api/branches
+    // 403s, the picker silently stays empty, and checkout can never proceed.
+    permissions: ["products.view", "inventory.view", "sales.view", "sales.create", "cash.manage", "discounts.apply", "returns.view", "returns.create", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send", "branches.view"],
   },
   {
     code: "warehouse",
@@ -182,7 +187,10 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // shrinkage.view/create. They get no returns.* at all — a return is a
     // counter transaction with a customer standing there, which is the
     // register's job, and this role has no sales.* permissions either.
-    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "purchases.view", "purchases.create", "purchases.receive", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send"],
+    // branches.view: same rationale as cashier's — an allBranches Almacenista
+    // needs GET /api/branches to succeed so the branch picker on
+    // transferencias/inventarios-físicos actually has options.
+    permissions: ["products.view", "inventory.view", "inventory.adjust", "inventory.count", "inventory.transfer", "inventory.receive", "transfers.view", "transfers.create", "transfers.receive", "purchases.view", "purchases.create", "purchases.receive", "shrinkage.view", "shrinkage.create", "messages.view", "messages.send", "branches.view"],
   },
   {
     code: "purchasing",
@@ -192,7 +200,9 @@ const ROLES: Array<{ code: string; name: string; description: string; permission
     // purchasing concern, not a branch-owned one. Still no purchases.cancel:
     // same conservative line drawn for Almacenista above — the role that
     // raises a purchase order is not the role that may unwind it.
-    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "suppliers.manage", "inventory.view", "messages.view", "messages.send"],
+    // branches.view: same rationale as cashier's/Almacenista's — needed for
+    // the branch picker on Compras to list anything when allBranches is set.
+    permissions: ["products.view", "purchases.view", "purchases.create", "purchases.receive", "suppliers.manage", "inventory.view", "messages.view", "messages.send", "branches.view"],
   },
   {
     code: "online_store_admin",

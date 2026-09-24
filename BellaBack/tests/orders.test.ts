@@ -112,6 +112,16 @@ describe("Online orders (/api/public/orders + /api/orders)", () => {
   });
 
   afterAll(async () => {
+    // Completing an order now materializes a real Sale (see
+    // orderService.updateOrderStatus) — clean those up first, before the
+    // Order rows that reference them via saleId, and before the products
+    // those SaleItems/OrderItems point at.
+    const completedOrders = await prisma.order.findMany({ where: { id: { in: orderIds }, saleId: { not: null } } });
+    const saleIds = completedOrders.map((o) => o.saleId!);
+    await prisma.salePayment.deleteMany({ where: { saleId: { in: saleIds } } });
+    await prisma.saleItem.deleteMany({ where: { saleId: { in: saleIds } } });
+    await prisma.order.updateMany({ where: { id: { in: orderIds } }, data: { saleId: null } });
+    await prisma.sale.deleteMany({ where: { id: { in: saleIds } } });
     await prisma.order.deleteMany({ where: { id: { in: orderIds } } }); // cascades OrderItem
     await prisma.inventoryMovement.deleteMany({ where: { productId: { in: productIds } } });
     await prisma.inventory.deleteMany({ where: { productId: { in: productIds } } });
@@ -415,14 +425,46 @@ describe("Online orders (/api/public/orders + /api/orders)", () => {
     });
 
     it("transitions the order PENDING -> CONFIRMED -> PREPARING -> READY -> COMPLETED in sequence", async () => {
+      // A PICKUP order generates its 6-digit pickupCode the moment it
+      // reaches READY (see orderService.updateOrderStatus) and requires it
+      // back to advance to COMPLETED — captured off the READY response so
+      // the final transition in this loop can send it.
+      let pickupCode: string | undefined;
       for (const status of ["CONFIRMED", "PREPARING", "READY", "COMPLETED"]) {
         const res = await request(app)
           .patch(`/api/orders/${orderId}/status`)
           .set("Cookie", [managerCookie])
-          .send({ status });
+          .send({ status, pickupCode });
         expect(res.status).toBe(200);
         expect(res.body.status).toBe(status);
+        if (status === "READY") pickupCode = res.body.pickupCode;
       }
+    });
+
+    it("completing the order materialized a real Sale (the 'ticket final') without double-decrementing stock", async () => {
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
+      expect(order.status).toBe("COMPLETED");
+      expect(order.saleId).not.toBeNull();
+
+      const sale = await prisma.sale.findUnique({ where: { id: order.saleId! }, include: { items: true, payments: true } });
+      expect(sale).not.toBeNull();
+      expect(sale!.status).toBe("COMPLETED");
+      expect(sale!.branchId).toBe(order.branchId);
+      expect(sale!.total.toString()).toBe(order.total.toString());
+      expect(sale!.items.length).toBe(order.items.length);
+      expect(sale!.payments.length).toBe(1);
+      expect(sale!.payments[0].method).toBe(order.paymentMethod);
+
+      // The API response's own mapOrder exposes the ticket reference.
+      const res = await request(app).get(`/api/orders/${orderId}`).set("Cookie", [managerCookie]);
+      expect(res.body.saleNumber).toMatch(/^V-\d{6}$/);
+
+      // Stock was decremented exactly once, at order CREATION — completing
+      // it must not have touched inventory a second time. branchA started
+      // with 30 (purchased), minus 2 for this order and minus 5 for the
+      // still-open orderIdToCancel (both decremented at checkout time, in
+      // this describe block's beforeAll) — nothing further happens here.
+      expect(await stockAt(product.id, branchA.id)).toBe(30 - 2 - 5);
     });
 
     it("rejects skipping ahead in the sequence with 400", async () => {
@@ -474,6 +516,53 @@ describe("Online orders (/api/public/orders + /api/orders)", () => {
         .set("Cookie", [managerCookie])
         .send({ status: "CANCELLED", reason: "Intento tras completar" });
       expect(res.status).toBe(400);
+    });
+
+    it("rejects setting an ETA on an already-completed order with 400", async () => {
+      const res = await request(app)
+        .patch(`/api/orders/${orderId}/eta`)
+        .set("Cookie", [managerCookie])
+        .send({ estimatedReadyAt: new Date(Date.now() + 3600_000).toISOString() });
+      expect(res.status).toBe(400);
+    });
+
+    it("PATCH /api/orders/:id/eta sets and clears the customer-visible ETA on an open order", async () => {
+      // orderIdToCancel is already CANCELLED by this point (see the
+      // "cancelling restores stock..." test above) — needs a fresh, still-
+      // open order of its own.
+      const createRes = await request(app)
+        .post("/api/public/orders")
+        .send({
+          customer: { firstName: "Eta", lastName: "Test", phone: `567${Date.now()}`.slice(0, 15) },
+          fulfillment: { type: "PICKUP", branchId: branchA.id },
+          paymentMethod: "CASH",
+          items: [{ productId: product.id, quantity: 1 }],
+        });
+      const etaOrderId = createRes.body.id;
+      orderIds.push(etaOrderId);
+
+      const eta = new Date(Date.now() + 45 * 60_000).toISOString();
+      const setRes = await request(app)
+        .patch(`/api/orders/${etaOrderId}/eta`)
+        .set("Cookie", [managerCookie])
+        .send({ estimatedReadyAt: eta });
+      expect(setRes.status).toBe(200);
+      expect(new Date(setRes.body.estimatedReadyAt).toISOString()).toBe(eta);
+
+      const clearRes = await request(app)
+        .patch(`/api/orders/${etaOrderId}/eta`)
+        .set("Cookie", [managerCookie])
+        .send({ estimatedReadyAt: null });
+      expect(clearRes.status).toBe(200);
+      expect(clearRes.body.estimatedReadyAt).toBeNull();
+    });
+
+    it("PATCH /api/orders/:id/eta requires orders.update (403 for a plain cashier)", async () => {
+      const res = await request(app)
+        .patch(`/api/orders/${orderId}/eta`)
+        .set("Cookie", [cashierCookie])
+        .send({ estimatedReadyAt: new Date().toISOString() });
+      expect(res.status).toBe(403);
     });
 
     it("a branch-scoped staff user without access to the order's branch gets 403", async () => {

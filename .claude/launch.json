@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bellafront",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "BellaFront", "run", "dev"],
+      "port": 5174,
+      "autoPort": true
+    },
+    {
+      "name": "bellaback",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "BellaBack", "run", "dev"],
+      "port": 4000
+    }
+  ]
+}

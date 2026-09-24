@@ -1,19 +1,12 @@
-/* Shared across every storefront page (Home/Catalog/ProductDetail/Checkout)
-   — imported once by StorefrontLayout.tsx since it wraps every storefront
-   route via <Outlet/>, so these rules are always available without each
-   page re-importing them. Page-specific CSS files hold only what's unique
-   to that page. */
+/* Compartido por todas las páginas de la tienda (Home/Catalog/ProductDetail/
+   Checkout), importado una sola vez por StorefrontLayout.tsx. Los archivos
+   CSS de cada página solo tienen lo específico a esa página. */
 
 .storefront-section {
-  /* `width: 100%` is load-bearing, not decoration. Several storefront page
-     roots stack their sections in a column *flex* container, and an auto
-     left/right margin on a flex item suppresses the normal `stretch`
-     behavior — the item then sizes to fit-content and centers instead.
-     That was silently collapsing the home page's category strip and
-     featured-product grid into one narrow column, and knocking the About
-     page's blocks out of alignment with each other. An explicit width
-     keeps the section at container width in flex AND block parents; the
-     max-width still caps it and the auto margins still center it. */
+  /* `width: 100%` es funcional, no decorativo: en un contenedor flex-column
+     los márgenes auto suprimen el stretch normal y el item se encoge a su
+     contenido, descentrando secciones. El width explícito lo evita tanto
+     en padres flex como block. */
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -21,12 +14,16 @@
 }
 .storefront-section--tight { padding-top: var(--space-5); padding-bottom: var(--space-5); }
 
-/* ---------- Editorial section header ----------
-   One header treatment reused by every section on every storefront page:
-   a small tracked eyebrow, a tight-tracking display title, an optional
-   supporting line, and an optional right-aligned link — the same
-   eyebrow / title / subtitle rhythm the admin DashboardPage hero uses, so
-   both surfaces read as one brand. */
+/* Reduce el padding superior de la sección que sigue a la banda de
+   encabezado, para evitar 112px de espacio muerto acumulado entre ambas. */
+.storefront-page-header__band + .storefront-section {
+  padding-top: var(--space-5);
+}
+
+/* ---------- Encabezado editorial de sección ----------
+   Un solo tratamiento reutilizado en todas las secciones de la tienda:
+   eyebrow, título y subtítulo, con el mismo ritmo que el hero de
+   DashboardPage en el admin. */
 
 .storefront-section__header {
   display: flex;
@@ -92,8 +89,8 @@
 }
 .storefront-section__link:hover svg { transform: translateX(3px); }
 
-/* A soft tinted band, mixed from the existing blue ramp rather than a new
-   hex, used to break up long stretches of flat page background. */
+/* Una banda con tinte suave, mezclada de la rampa azul existente, para
+   romper tramos largos de fondo plano. */
 .storefront-band {
   background: linear-gradient(
     180deg,
@@ -104,7 +101,7 @@
   border-bottom: 1px solid var(--color-divider-soft);
 }
 
-/* ---------- Category teaser strip ---------- */
+/* ---------- Franja de categorías destacadas ---------- */
 
 .storefront-category-strip {
   display: grid;
@@ -129,9 +126,8 @@
     transform var(--transition-base) var(--ease-premium),
     box-shadow var(--transition-base) var(--ease-premium);
 }
-/* A soft corner glow that only materializes on hover — the same
-   color-mix()-over-the-blue-ramp technique as the admin sidebar glow,
-   rather than a flat background swap. */
+/* Brillo suave en la esquina que aparece solo al hover, misma técnica de
+   color-mix() sobre la rampa azul que el brillo del sidebar del admin. */
 .storefront-category-card::before {
   content: "";
   position: absolute;
@@ -194,7 +190,7 @@
   transform: translateX(3px);
 }
 
-/* ---------- Product grid / card (reused: Home destacados, Catalog) ---------- */
+/* ---------- Grilla/tarjeta de producto (reutilizada en Home destacados y Catalog) ---------- */
 
 .storefront-product-grid {
   display: grid;
@@ -225,12 +221,9 @@
 .storefront-product-card__image {
   position: relative;
   aspect-ratio: 1;
-  /* A faint tinted wash instead of flat grey, so an image-less product
-     still reads as an intentional branded tile rather than an empty box.
-     NOTE: keep this `display: flex` — the placeholder glyph is centered by
-     it, and it was previously being clobbered by a later `display: block`
-     rule in CatalogPage.css (which is injected globally, so it broke the
-     home page's cards too). */
+  /* Tinte suave en vez de gris plano, para que un producto sin foto se lea
+     como un tile de marca intencional. Mantener `display: flex`: centra el
+     placeholder y CatalogPage.css (global) puede sobreescribirlo si cambia. */
   background:
     radial-gradient(circle at 50% 38%, var(--color-white) 0%, transparent 70%),
     linear-gradient(160deg,
@@ -242,6 +235,19 @@
   color: color-mix(in srgb, var(--color-pink-deep) 42%, var(--color-white));
   overflow: hidden;
 }
+
+/* Estado "Sin foto todavía" para la tarjeta de producto, mismo lenguaje
+   (ícono + etiqueta) que .storefront-detail__placeholder de ProductDetailPage. */
+.storefront-product-card__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .storefront-product-card__image img {
   width: 100%;
   height: 100%;
@@ -252,7 +258,7 @@
   transform: scale(1.05);
 }
 
-/* Corner badges (promo / sold out) sitting over the image tile. */
+/* Badges de esquina (promo / agotado) sobre el tile de imagen. */
 .storefront-product-card__badges {
   position: absolute;
   top: var(--space-2_5);
@@ -359,9 +365,8 @@
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.85rem;
-  /* Explicit: this class is used on both <button> and <a> (the "Ver
-     opciones" variant links through to the detail page), and without this
-     the anchor picked up the default underline. */
+  /* Explícito porque esta clase se usa en <button> y <a> (variante "Ver
+     opciones"); sin esto el enlace tendría el subrayado por defecto. */
   text-decoration: none;
   cursor: pointer;
   transition: background-color var(--transition-base) var(--ease-premium),
@@ -389,7 +394,7 @@
   box-shadow: none;
 }
 
-/* ---------- Toggle cards (fulfillment / payment choice on checkout) ---------- */
+/* ---------- Tarjetas de selección (entrega / pago en checkout) ---------- */
 
 .storefront-toggle-group {
   display: grid;
@@ -439,8 +444,8 @@
   color: var(--color-text-secondary);
   line-height: 1.45;
 }
-/* Selected-state tick in the corner, so the active choice is legible at a
-   glance and not only through a border-color difference. */
+/* Check en la esquina para el estado seleccionado, legible de un vistazo
+   y no solo por el color del borde. */
 .storefront-toggle-card__check {
   position: absolute;
   top: var(--space-2_5);
@@ -457,7 +462,7 @@
   transform: scale(1);
 }
 
-/* ---------- Generic storefront form fields ---------- */
+/* ---------- Campos de formulario genéricos de la tienda ---------- */
 
 .storefront-field {
   display: flex;
@@ -549,11 +554,9 @@
   white-space: nowrap;
 }
 
-/* ---------- Page header (About / FAQ / Shipping / Location) ----------
-   Shared intro block for the informational storefront pages. Now set on a
-   tinted band so these pages open with the same deliberate "this is a
-   designed surface" beat as the home hero, instead of dropping straight
-   onto flat page background. */
+/* ---------- Encabezado de página (About / FAQ / Shipping / Location) ----------
+   Bloque de intro compartido, sobre una banda con tinte para que estas
+   páginas abran con el mismo aire de "superficie diseñada" que el hero. */
 
 .storefront-page-header__band {
   position: relative;
@@ -565,8 +568,8 @@
   );
   border-bottom: 1px solid var(--color-divider-soft);
 }
-/* Faint grid, same motif and opacity family as the home hero's
-   .storefront-hero__grid, masked so it fades out before the copy. */
+/* Grilla sutil, mismo motivo y opacidad que .storefront-hero__grid del
+   home, enmascarada para que se desvanezca antes del texto. */
 .storefront-page-header__band::before {
   content: "";
   position: absolute;
@@ -585,6 +588,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-7) var(--space-4) var(--space-6);
+  /* Misma animación de entrada (fade-up) que el hero de home, para que
+     todas las páginas con esta banda abran de forma consistente. */
+  animation: fade-in-up 0.6s var(--ease-premium) both;
 }
 .storefront-page-header__eyebrow {
   display: inline-flex;

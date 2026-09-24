@@ -10,14 +10,9 @@ interface ImageUploaderProps {
   onImagesChange: (images: ProductImage[]) => void;
 }
 
-// Generic-enough-to-reuse multi-image manager, built for product images but
-// scoped only to the pieces this project's backend actually supports today
-// (single-file-per-request upload, delete, set-primary — all keyed off a
-// productId that must already exist). A controlled component: it never
-// keeps its own source-of-truth copy of `images`, only local UI state
-// (upload/delete/primary in-flight flags, the inline delete-confirm toggle,
-// and any client-side validation error) — every server response is handed
-// back to the parent via onImagesChange immediately.
+// Componente controlado: no guarda copia propia de `images`, solo estado de
+// UI local (flags de carga, confirmación de borrado, error). Cada respuesta
+// del servidor se propaga de inmediato al padre vía onImagesChange.
 export function ImageUploader({ productId, images, onImagesChange }: ImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);

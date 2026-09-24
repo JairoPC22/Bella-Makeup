@@ -8,16 +8,9 @@ const router = Router();
 
 router.get("/", requireAuth, requirePermission("returns.view"), returnController.list);
 router.get("/:id", requireAuth, requirePermission("returns.view"), returnController.getById);
-// `returns.create` is the CASHIER's own gate — permission to initiate the
-// flow. It is NOT what authorizes the operation: the supervisor's
-// `returns.authorize` is checked separately by verifySupervisorPin against
-// whoever's PIN was typed, inside the service. A cashier holding
-// returns.create can start a return and complete nothing without a second
-// person present.
-//
-// requireAuth first (the limiter keys on req.user.id), then the permission
-// gate, then the PIN attempt limiter — so a caller who lacks the permission
-// is rejected without ever consuming PIN-attempt budget.
+// `returns.create` solo inicia el flujo; `returns.authorize` (vía PIN de supervisor)
+// autoriza la operación. El orden requireAuth → permiso → limiter evita gastar
+// intentos de PIN en llamadas que ni siquiera tienen el permiso.
 router.post(
   "/",
   requireAuth,

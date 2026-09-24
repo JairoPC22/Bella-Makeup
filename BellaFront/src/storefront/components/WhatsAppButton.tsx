@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { getPublicCompanyInfo } from "../../services/storefrontService";
 import "./WhatsAppButton.css";
 
-// lucide-react is a generic icon set with no WhatsApp brand glyph, so the
-// recognizable WhatsApp "speech bubble + handset" mark is drawn inline here
-// instead (a small, standard path, filled with currentColor like the rest
-// of this app's icon usage).
+// lucide-react no tiene el ícono de marca de WhatsApp, así que se dibuja
+// aquí directamente con un path SVG estándar.
 function WhatsAppGlyph() {
   return (
     <svg viewBox="0 0 32 32" width={28} height={28} fill="currentColor" aria-hidden="true">
@@ -14,12 +12,8 @@ function WhatsAppGlyph() {
   );
 }
 
-// Fixed bottom-left floating action button, echoing the visual treatment of
-// the admin side's FloatingMessagesButton (circular, gradient-filled, pill
-// shadow, scale+fade mount transition) — but this is a storefront-only,
-// unauthenticated component, so it's built fresh here rather than reusing
-// that admin component (which is gated behind PermissionGate/messages.view
-// and lives in the authenticated tree).
+// Botón flotante inferior izquierdo, mismo estilo visual que el botón de
+// mensajes del admin, pero construido aparte por ser público y sin auth.
 export function WhatsAppButton() {
   const [phone, setPhone] = useState<string | null>(null);
 

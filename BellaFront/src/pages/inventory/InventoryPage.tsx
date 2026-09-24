@@ -1,10 +1,12 @@
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { PackageSearch, SlidersHorizontal, History, Search, Info } from "lucide-react";
+import { PackageSearch, SlidersHorizontal, History, Search, Info, AlertTriangle, PackageX } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Select } from "../../components/common/Select";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { ReportExportButtons } from "../../components/common/ReportExportButtons";
+import { usePermission } from "../../hooks/usePermission";
+import { useCompanySettings } from "../../hooks/useCompanySettings";
 import * as branchService from "../../services/branchService";
 import * as categoryService from "../../services/categoryService";
 import * as inventoryService from "../../services/inventoryService";
@@ -13,27 +15,23 @@ import type { ReportColumn } from "../../utils/reportExport";
 import { InventoryAdjustModal } from "./InventoryAdjustModal";
 import { KardexModal } from "./KardexModal";
 import "./InventoryPage.css";
-
-const STATUS_LABEL: Record<InventoryRow["status"], string> = {
-  AVAILABLE: "Disponible",
-  LOW: "Bajo",
-  CRITICAL: "Crítico",
-  OUT: "Agotado",
-};
+import { staggerStyle } from "../../utils/staggerStyle";
+import { INVENTORY_STATUS_LABEL as STATUS_LABEL } from "../../utils/inventoryStatus";
 
 const STATUS_OPTIONS: InventoryRow["status"][] = ["AVAILABLE", "LOW", "CRITICAL", "OUT"];
 
 type FetchStatus = "loading" | "ready" | "error";
 
-// Same --stagger-delay custom-property pattern as ProductsPage.tsx/
-// DashboardPage.tsx's staggerStyle, paired with the sitewide
-// .animate-in-stagger utility in global.css — this table previously only
-// faded in as one whole block (no per-row stagger), unlike Products'.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
-
 export function InventoryPage() {
+  // Igual patrón que discounts.authorize/sales.cancel: si el rol ya tiene
+  // inventory.adjust, el botón "Ajustar" siempre aparece. Si no, solo
+  // aparece cuando CompanySettings.allowPinForInventoryAdjust está activo
+  // (su default es false, igual de restrictivo que antes de esta función).
+  const canAdjustDirectly = usePermission("inventory.adjust");
+  const companySettings = useCompanySettings();
+  const allowPinForInventoryAdjust = companySettings?.allowPinForInventoryAdjust ?? false;
+  const canAttemptAdjust = canAdjustDirectly || allowPinForInventoryAdjust;
+
   const [rows, setRows] = useState<InventoryRow[] | null>(null);
   const [status, setStatus] = useState<FetchStatus>("loading");
 
@@ -45,12 +43,9 @@ export function InventoryPage() {
   const [statusFilter, setStatusFilter] = useState<InventoryRow["status"] | "">("");
   const [search, setSearch] = useState("");
 
-  // Row data and open/closed are deliberately separate pieces of state
-  // (mirrors UserFormModal's key={editingUser?.id ?? "new"} pattern) — the
-  // row is only ever updated at the moment a modal opens, never cleared
-  // when it closes, so the modal's own close-fade animation still has
-  // valid row data to render while it transitions out instead of losing it
-  // mid-animation.
+  // Fila y abierto/cerrado van en estado separado: la fila solo se actualiza
+  // al abrir el modal, nunca se limpia al cerrar, para que la animación de
+  // cierre siga teniendo datos válidos que renderizar mientras desaparece.
   const [adjustRow, setAdjustRow] = useState<InventoryRow | undefined>(undefined);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [kardexRow, setKardexRow] = useState<InventoryRow | undefined>(undefined);
@@ -74,6 +69,32 @@ export function InventoryPage() {
   }, [branchId, categoryId, statusFilter]);
 
   useEffect(() => { loadInventory(); }, [loadInventory]);
+
+  // Fetch separado y sin filtrar a propósito: si reusara `rows`, filtrar por
+  // estado o sucursal pondría en cero las demás categorías y la alerta
+  // just being filtered out of view. Reloaded after every adjustment
+  // (passed into InventoryAdjustModal's onAdjusted below) so restocking an
+  // item clears its own alert without needing a manual refresh.
+  const [alertRows, setAlertRows] = useState<InventoryRow[] | null>(null);
+  const loadAlertSummary = useCallback(() => {
+    inventoryService.listInventory({}).then(setAlertRows).catch(() => {});
+  }, []);
+  useEffect(() => { loadAlertSummary(); }, [loadAlertSummary]);
+
+  const stockAlert = useMemo(() => {
+    const rows = alertRows ?? [];
+    return {
+      out: rows.filter((r) => r.status === "OUT").length,
+      critical: rows.filter((r) => r.status === "CRITICAL").length,
+      low: rows.filter((r) => r.status === "LOW").length,
+    };
+  }, [alertRows]);
+
+  function viewStatus(target: InventoryRow["status"]) {
+    setStatusFilter(target);
+    setBranchId("");
+    setCategoryId("");
+  }
 
   const query = search.trim().toLowerCase();
   const visibleRows = (rows ?? []).filter((row) => {
@@ -121,6 +142,62 @@ export function InventoryPage() {
         </PermissionGate>
         .
       </p>
+
+      {/* Always-on health summary — separate from the per-row status
+          column below it, which only shows up once you're already looking
+          at a (possibly filtered) table. This surfaces the same
+          out-of-stock/low-stock condition the moment the page opens,
+          across every branch/category, whether or not the table itself is
+          currently filtered to something else. Nothing renders once both
+          counts are 0 — no need to show an empty "all good" banner taking
+          up space every time inventory is healthy. */}
+      {(stockAlert.out > 0 || stockAlert.critical > 0 || stockAlert.low > 0) && (
+        <div className="inventory-alerts animate-in">
+          {stockAlert.out > 0 && (
+            <div className="inventory-alert inventory-alert--out">
+              <span className="inventory-alert__icon"><PackageX size={17} /></span>
+              <p>
+                <strong>{stockAlert.out}</strong> {stockAlert.out === 1 ? "producto agotado" : "productos agotados"}
+              </p>
+              <button type="button" onClick={() => viewStatus("OUT")}>Ver agotados</button>
+            </div>
+          )}
+          {(stockAlert.critical > 0 || stockAlert.low > 0) && (
+            <div className="inventory-alert inventory-alert--low">
+              <span className="inventory-alert__icon"><AlertTriangle size={17} /></span>
+              <p>
+                {stockAlert.critical > 0 && (
+                  <>
+                    <strong>{stockAlert.critical}</strong> en nivel crítico
+                    {stockAlert.low > 0 ? " · " : ""}
+                  </>
+                )}
+                {stockAlert.low > 0 && (
+                  <>
+                    <strong>{stockAlert.low}</strong> con stock bajo
+                  </>
+                )}
+              </p>
+              {/* Un solo botón que solo filtraba a CRITICAL escondía en
+                  silencio los productos LOW cuando ambos conteos eran
+                  mayores a 0 — el texto de arriba anunciaba los dos, pero
+                  solo se podía ver uno de los dos grupos. Con ambos
+                  presentes se muestran dos botones, cada uno a su propio
+                  filtro. */}
+              {stockAlert.critical > 0 && stockAlert.low > 0 ? (
+                <div className="inventory-alert__buttons">
+                  <button type="button" onClick={() => viewStatus("CRITICAL")}>Ver crítico</button>
+                  <button type="button" onClick={() => viewStatus("LOW")}>Ver bajo</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => viewStatus(stockAlert.critical > 0 ? "CRITICAL" : "LOW")}>
+                  Ver stock bajo
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="inventory-filters">
         <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
@@ -200,11 +277,11 @@ export function InventoryPage() {
                 </td>
                 <td>
                   <div className="inventory-table__actions">
-                    <PermissionGate code="inventory.adjust">
+                    {canAttemptAdjust && (
                       <button onClick={() => { setAdjustRow(row); setAdjustOpen(true); }} title="Ajustar" aria-label="Ajustar inventario">
                         <SlidersHorizontal size={16} /> Ajustar
                       </button>
-                    </PermissionGate>
+                    )}
                     <button onClick={() => { setKardexRow(row); setKardexOpen(true); }} title="Ver movimientos" aria-label="Ver movimientos">
                       <History size={16} /> Ver movimientos
                     </button>
@@ -229,7 +306,8 @@ export function InventoryPage() {
         row={adjustRow}
         open={adjustOpen}
         onClose={() => setAdjustOpen(false)}
-        onAdjusted={loadInventory}
+        onAdjusted={() => { loadInventory(); loadAlertSummary(); }}
+        requiresPin={!canAdjustDirectly}
       />
 
       <KardexModal

@@ -1,40 +1,33 @@
 :root {
-  /* Palette rebuilt on Apple's own color system (per client's explicit
-     instruction), keeping this project's existing token NAMES so every
-     component that already consumes them updates automatically — only the
-     values changed, not the variable names. */
+  /* Paleta reconstruida sobre el sistema de color de Apple, conservando los
+     nombres de token existentes: solo cambian los valores. */
 
-  /* --color-primary keeps its original role in THIS codebase: near-black
-     "ink" for large chrome surfaces (sidebar rail, login brand panel),
-     default text color, and headline color — exactly what Apple's own
-     `ink` token (#1d1d1f) is for. Apple's Action Blue is NOT used for large
-     surfaces anywhere in Apple's own system (their nav bar is a thin 44px
-     strip, never a full sidebar) — it is reserved for actual interactive
-     elements. That role lives on --color-pink-deep below (buttons/CTAs),
-     keeping the existing per-component CSS working without a full rewrite. */
+  /* --color-primary conserva su rol original: "ink" casi negro para
+     superficies grandes (sidebar, panel de login), texto por defecto y
+     títulos. El Action Blue de Apple se reserva para elementos interactivos
+     reales, y vive en --color-pink-deep (botones/CTAs) para no reescribir
+     cada componente. */
   --color-primary: #1D1D1F;
   --color-ink: #1D1D1F;
-  /* Action Blue — the single interactive accent: every button, every link,
-     every focus signal that isn't --color-primary chrome. Consumed via
-     --color-pink-deep (see the ramp below) so every existing button/CTA
-     declaration in the codebase repaints without a per-file rewrite. */
+  /* Action Blue — el único acento interactivo: todo botón, link o señal de
+     foco que no sea el "ink" de --color-primary. Se consume vía
+     --color-pink-deep para que los CTAs existentes repinten sin reescribir
+     cada archivo. */
   --color-primary-focus: #0071E3;
-  /* Sky Link Blue — used for inline links/accents on dark surfaces, where
-     Action Blue would disappear against a near-black background. */
+  /* Sky Link Blue — para links/acentos sobre superficies oscuras, donde el
+     Action Blue desaparecería contra un fondo casi negro. */
   --color-primary-on-dark: #2997FF;
-  /* Parchment — Apple's signature off-white page background. */
+  /* Parchment — el fondo blanco-hueso característico de Apple. */
   --color-bg: #F5F5F7;
   --color-white: #FFFFFF;
-  /* Pearl — a near-white secondary surface, one step lighter than the
-     parchment background, for a card/hover surface that reads as
-     intentionally different without reaching for a shadow or border. */
+  /* Pearl — superficie secundaria casi blanca, un paso más clara que el
+     fondo, para tarjetas/hover que se distinguen sin sombra ni borde. */
   --color-surface-pearl: #FAFAFC;
 
-  /* Blue tint/shade ramp for hover/active/subtle-background states —
-     mirrors the structure this project already established, just built on
-     Action Blue instead of the prior rose hue. Kept under the existing
-     --color-pink-* names so every component that already consumes them
-     (buttons, badges, active nav states, chips) repaints automatically. */
+  /* Rampa de tinte/sombra azul para hover/activo/fondos sutiles, sobre la
+     misma estructura ya existente pero con Action Blue en vez del rosa
+     anterior. Se mantiene bajo los nombres --color-pink-* para que todo lo
+     que ya los consume (botones, badges, nav activo, chips) repinte solo. */
   --color-pink-50: #EAF3FC;
   --color-pink-100: #D6E8FA;
   --color-pink-soft: #ADD1F5;
@@ -48,24 +41,22 @@
   --color-pink-700: #004C99;
   --color-pink-800: #003666;
 
-  /* Dark surface tiles, for any future full-bleed dark section (Apple's
-     alternating light/dark tile rhythm) — not consumed anywhere yet, held
-     in reserve for when a page wants a dark band. */
+  /* Tiles de superficie oscura, reservados para una futura sección oscura
+     de ancho completo (ritmo claro/oscuro alternado de Apple). */
   --color-surface-tile-1: #272729;
   --color-surface-tile-2: #2A2A2C;
   --color-surface-tile-3: #252527;
   --color-surface-black: #000000;
 
   --color-text-secondary: #6E6E73;
-  /* A tertiary text tier lighter than --color-text-secondary, for
-     timestamps/fine-print-level text that should recede further than a
-     caption but stay legible. */
+  /* Nivel de texto terciario, más claro que --color-text-secondary, para
+     timestamps o texto muy fino que debe verse aún más discreto. */
   --color-text-muted: #86868B;
   --color-border: #E0E0E0;
   --color-divider-soft: #F0F0F0;
 
-  /* Bella Makeup's own rare, high-impact highlight — Apple's system has no
-     equivalent token, kept exactly as-is, still used sparingly. */
+  /* Acento propio de Bella Makeup, de uso puntual y alto impacto; Apple no
+     tiene un token equivalente. */
   --color-accent: #9FFF00;
 
   --font-heading: "Outfit", sans-serif;
@@ -87,31 +78,30 @@
   --radius-xl: 28px;
   --radius-pill: 9999px;
 
-  /* Negative letter-spacing tokens for display/headline sizes, per Apple's
-     "tight tracking at large sizes" principle. Only meant for text set
-     roughly 17px/1.05rem and up — never apply at caption/fine-print sizes. */
+  /* Tokens de tracking negativo para títulos grandes, según el principio de
+     Apple de "tracking apretado en tamaños grandes". Solo desde ~17px. */
   --tracking-tight: -0.02em;
   --tracking-tighter: -0.03em;
 
-  /* Apple uses almost no shadow — elevation comes from surface-color
-     change, not chrome. What shadow remains here is neutral/ink-tinted
-     (not color-tinted) and reserved for the rare moment something needs
-     real weight, consistent with that restraint. */
+  /* Apple casi no usa sombra: la elevación viene del cambio de color de
+     superficie. Las sombras que quedan son neutras (tinte ink, no color) y
+     se reservan para cuando algo realmente necesita peso visual. */
   --shadow-sm: 0 1px 2px rgba(29, 29, 31, 0.06);
   --shadow-md: 0 8px 24px rgba(29, 29, 31, 0.10), 0 2px 6px rgba(29, 29, 31, 0.04);
   --shadow-lg: 0 24px 64px rgba(29, 29, 31, 0.14), 0 6px 16px rgba(29, 29, 31, 0.05);
   --shadow-focus: 0 0 0 3px rgba(0, 102, 204, 0.35);
 
-  /* Motion: one easing curve, one entrance convention, reused everywhere. */
+  /* Movimiento: una sola curva de easing y una convención de entrada,
+     reutilizadas en toda la app. */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: 150ms;
   --transition-base: 240ms;
   --transition-slow: 400ms;
   --duration-entrance: 0.8s;
 
-  /* Sidebar rail widths, shared by Sidebar.tsx and AppShell so the
-     expand/collapse transition always animates between the same two
-     values instead of a hardcoded px creeping out of sync. */
+  /* Anchos del riel del sidebar, compartidos por Sidebar.tsx y AppShell
+     para que la transición de expandir/colapsar use siempre los mismos
+     dos valores. */
   --sidebar-width-expanded: 240px;
   --sidebar-width-collapsed: 72px;
 }

@@ -24,7 +24,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     if (err.code === "P2003") {
       return res.status(400).json({ message: "Referencia inválida (el registro relacionado no existe)." });
     }
-    // Fall through to the generic 500 for any other Prisma known-request error.
+    // Cualquier otro código de Prisma cae al 500 genérico.
   }
   console.error(err);
   return res.status(500).json({ message: "Error interno del servidor" });

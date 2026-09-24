@@ -1,8 +1,7 @@
-// Reusable branded report export utility — used by InventoryPage and
-// ProductsPage (and any future page with a filterable table) to export
-// exactly what's currently visible on screen to a branded PDF or Excel
-// file. Deliberately NOT a "reports module" with saved definitions or
-// scheduling — just export-what-you-see, per the client's actual ask.
+// Utilidad reutilizable de exportación de reportes con marca, usada por
+// InventoryPage y ProductsPage para exportar a PDF/Excel exactamente lo
+// visible en pantalla. No es un módulo de reportes con definiciones
+// guardadas ni programación, solo "exporta lo que ves".
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -13,25 +12,24 @@ export interface ReportColumn<T> {
 }
 
 export interface ReportOptions<T> {
-  /** e.g. "Reporte de Inventario" — shown as the document title. */
+  /** ej. "Reporte de Inventario", se muestra como título del documento. */
   title: string;
   columns: ReportColumn<T>[];
   rows: T[];
-  /** Current user's displayName — shown in the footer/meta line. */
+  /** displayName del usuario actual, se muestra en el pie/meta. */
   downloadedBy: string;
-  /** One-line description of active filters, e.g. "Sucursal: Centro · Estado: Bajo".
-   *  Omit entirely (don't pass an empty string) when no filters are active. */
+  /** Descripción de una línea de los filtros activos, ej. "Sucursal: Centro · Estado: Bajo".
+   *  Omitir por completo (no pasar string vacío) si no hay filtros activos. */
   filtersSummary?: string;
-  /** Base file name, e.g. "inventario" -> "inventario-2026-09-19.pdf".
-   *  Defaults to a slug of `title` if omitted. */
+  /** Nombre base del archivo, ej. "inventario" -> "inventario-2026-09-19.pdf".
+   *  Por defecto usa un slug de `title` si se omite. */
   fileBaseName?: string;
 }
 
-// ---------- Brand tokens — mirrors BellaFront/src/styles/tokens.css so the
-// exported documents actually look like they came from this app rather than
-// a generic library default. Kept as plain hex here (not read from CSS at
-// runtime) since jsPDF/SheetJS need literal color values, not custom
-// properties. ----------
+// ---------- Tokens de marca: reflejan BellaFront/src/styles/tokens.css
+// para que los documentos exportados se vean de esta app. Se guardan como
+// hex plano (no leídos de CSS en runtime) porque jsPDF/SheetJS necesitan
+// valores de color literales, no custom properties. ----------
 const BRAND = {
   pinkDeep: "#0066CC", // --color-pink-deep
   ink: "#1D1D1F", // --color-ink
@@ -42,13 +40,10 @@ const BRAND = {
   textMuted: "#86868B", // --color-text-muted
 };
 
-// The 480px-wide pre-sized variant of logo-full.png (same lockup, same
-// aspect ratio — 480x294 vs the source's 859x527) is used instead of the
-// full-resolution source: jsPDF embeds PNGs with an alpha channel as a raw
-// decompressed bitmap (not the PNG's own compressed stream), so the
-// full-size logo alone bloated exported PDFs to ~1.8MB. At the size this
-// header actually renders (~12mm tall), 480px source width is still far
-// more resolution than needed for crisp print output.
+// Se usa la variante pre-dimensionada de 480px de ancho en vez del logo a
+// resolución completa: jsPDF incrusta PNGs con canal alfa como bitmap
+// crudo, así que el logo completo inflaba los PDF exportados a ~1.8MB. A
+// la altura que realmente se renderiza (~12mm), 480px es más que suficiente.
 const LOGO_URL = "/brand/logo-full-480.png";
 
 interface LogoInfo {
@@ -57,8 +52,8 @@ interface LogoInfo {
   height: number;
 }
 
-// Cached across calls within a session — the logo asset never changes at
-// runtime, no reason to re-fetch/re-encode it on every export click.
+// Se guarda en caché durante la sesión: el logo nunca cambia en runtime,
+// no hay razón para volver a obtenerlo/codificarlo en cada exportación.
 let logoPromise: Promise<LogoInfo | null> | null = null;
 
 function loadLogo(): Promise<LogoInfo | null> {
@@ -82,8 +77,8 @@ function loadLogo(): Promise<LogoInfo | null> {
         });
         return { dataUrl, ...dims };
       } catch {
-        // A missing/broken logo shouldn't block the export — the report
-        // just renders without it.
+        // Un logo faltante o roto no debe bloquear la exportación: el
+        // reporte simplemente se genera sin él.
         return null;
       }
     })();
@@ -103,11 +98,9 @@ function dateSlug(date: Date): string {
 }
 
 function slugify(text: string): string {
-  // Drop combining diacritical marks (U+0300-U+036F) left behind by NFD
-  // normalization character-by-character, rather than a regex literal
-  // containing the marks themselves — keeps this file's source free of
-  // invisible/hard-to-diff combining characters (same pattern already
-  // used in RoleFormModal.tsx's own slugify).
+  // Quita las marcas diacríticas combinantes (U+0300-U+036F) que deja la
+  // normalización NFD, carácter por carácter (no con un regex literal que
+  // contenga esas marcas), igual que el slugify de RoleFormModal.tsx.
   const withoutAccents = Array.from(text.normalize("NFD"))
     .filter((ch) => {
       const code = ch.codePointAt(0) ?? 0;
@@ -122,7 +115,10 @@ function slugify(text: string): string {
   );
 }
 
-function buildFileName(options: ReportOptions<unknown>, ext: string, now: Date): string {
+// Solo lee `title`/`fileBaseName`, tipado como un pick acotado en vez del
+// genérico completo `ReportOptions<T>` para que llamadores con cualquier
+// `T` puedan pasar sus opciones directamente sin error de tipos.
+function buildFileName(options: Pick<ReportOptions<unknown>, "title" | "fileBaseName">, ext: string, now: Date): string {
   const base = options.fileBaseName ?? slugify(options.title);
   return `${base}-${dateSlug(now)}.${ext}`;
 }
@@ -133,7 +129,7 @@ export async function exportReportToPdf<T>(options: ReportOptions<T>): Promise<v
   const { title, columns, rows, downloadedBy, filtersSummary } = options;
   const now = new Date();
 
-  // Landscape reads better for wide tables (5-7 columns) than portrait.
+  // Horizontal se lee mejor que vertical para tablas anchas (5-7 columnas).
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "letter" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginLeft = 14;
@@ -193,12 +189,11 @@ export async function exportReportToPdf<T>(options: ReportOptions<T>): Promise<v
     alternateRowStyles: { fillColor: BRAND.bg },
   });
 
-  // Footer with date/downloader + "Página X de Y" on every page. jsPDF adds
-  // pages sequentially, so the final page count isn't known inside
-  // autoTable's didDrawPage hook while it's still drawing earlier pages —
-  // looping over every page after the table has fully rendered is the
-  // reliable way to stamp the true total on each one.
-  const pageCount = doc.internal.getNumberOfPages();
+  // Pie con fecha/usuario + "Página X de Y" en cada página. El total real
+  // de páginas no se conoce dentro del hook didDrawPage de autoTable
+  // mientras aún dibuja, así que se recorre cada página ya con la tabla
+  // completa para estampar el total correcto.
+  const pageCount = doc.getNumberOfPages();
   const footerDate = formatDateTimeEsMx(now);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -222,14 +217,11 @@ export async function exportReportToPdf<T>(options: ReportOptions<T>): Promise<v
 
 // ---------- Excel ----------
 
-// SheetJS Community Edition (the `xlsx` package installed here) does NOT
-// reliably write cell styling (fonts/fills/colors) to the output file —
-// that's a SheetJS Pro-only feature. Verified directly: setting `cell.s`
-// and writing to .xlsx produces a styles.xml with no trace of the
-// requested font/fill. So this export leans on the structural features
-// that DO work in the free build — merged header rows and column widths —
-// for a clean, deliberately-laid-out sheet instead of a bare data dump,
-// rather than promising colored/bold cells it can't actually deliver.
+// SheetJS Community Edition (el paquete `xlsx` instalado aquí) no escribe
+// de forma confiable el estilo de celdas (fuentes/rellenos/colores); eso es
+// una función solo de SheetJS Pro. Por eso esta exportación se apoya en lo
+// que sí funciona en la versión gratuita: filas de encabezado combinadas y
+// anchos de columna, para una hoja bien organizada sin prometer colores o negritas.
 export async function exportReportToExcel<T>(options: ReportOptions<T>): Promise<void> {
   const { title, columns, rows, downloadedBy, filtersSummary } = options;
   const now = new Date();

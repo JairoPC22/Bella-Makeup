@@ -35,25 +35,12 @@ export function listUsers() {
   });
 }
 
-// Candidate set for the supervisor-PIN co-sign primitive
-// (pinAuthService.verifySupervisorPin). There is deliberately NO "look up a
-// user by PIN value" query anywhere in this codebase: a 4-6 digit PIN is far
-// too small a space to identify anyone system-wide, and two users may
-// legitimately share one. Instead the candidate set is narrowed FIRST by
-// everything the server already knows — has a PIN at all, is ACTIVE, holds
-// the permission being authorized, and is reachable from the acting
-// cashier's branch — and only then are the submitted digits bcrypt-compared
-// against that short list.
-//
-// `pinHash` is selected here because comparing against it is the entire
-// point; this is the one and only place it is read, it never leaves
-// pinAuthService, and it is never included in any API response (see
-// toPublicUser, which strips it).
-//
-// `branchIds === undefined` means the acting user has `allBranches`, so no
-// branch restriction is applied. An empty array means the acting user has no
-// branch assignments at all, which correctly leaves only `allBranches`
-// supervisors eligible.
+// Candidatos para la autorización con PIN de supervisor. No existe una
+// búsqueda "por valor de PIN" en todo el código: el PIN es demasiado corto
+// para identificar a alguien, así que primero se filtra por permiso,
+// estado ACTIVE y sucursal, y solo después se compara el PIN con bcrypt.
+// `pinHash` se selecciona solo aquí; nunca sale de pinAuthService ni de la API.
+// `branchIds === undefined` significa que el usuario tiene `allBranches`.
 export function findPinSupervisorCandidates(permissionCode: string, branchIds?: string[]) {
   return prisma.user.findMany({
     where: {
@@ -68,9 +55,7 @@ export function findPinSupervisorCandidates(permissionCode: string, branchIds?: 
   });
 }
 
-// Minimal actor lookup for verifySupervisorPin's branch scoping — avoids
-// findUserById's heavy role/permission/branch includes when all that's
-// needed is "which branches is this cashier standing in".
+// Búsqueda mínima para el alcance de sucursales, sin los includes pesados de findUserById.
 export function findUserBranchScope(id: string) {
   return prisma.user.findUnique({
     where: { id },

@@ -1,0 +1,125 @@
+/* Same dark-panel language as LoginPage.css's .login-brand — near-black
+   surface, a blue radial glow top-right, a faint lime glow bottom-left,
+   a masked hairline grid — so this reads as a deliberate brand moment
+   instead of a bare framework fallback. Full-viewport: this page is NOT
+   nested inside AppShell or StorefrontLayout (it has to work whether the
+   broken link was an admin URL or a storefront one), so it supplies its
+   own complete background rather than relying on either shell's chrome. */
+.error-page {
+  position: relative;
+  overflow: hidden;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--space-4);
+  animation: fade-in-up var(--duration-entrance) var(--ease-premium) both;
+}
+
+.error-page__glow {
+  position: absolute;
+  inset: -20% -10% auto auto;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(41, 151, 255, 0.35) 0%, rgba(0, 102, 204, 0.18) 45%, transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+.error-page__glow::after {
+  content: "";
+  position: absolute;
+  left: -30%;
+  bottom: -80%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(159, 255, 0, 0.06) 0%, transparent 65%);
+}
+
+.error-page__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, 0.9), transparent 75%);
+}
+
+.error-page__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  max-width: 30rem;
+}
+
+.error-page__brand { margin-bottom: var(--space-4); }
+.error-page__brand img { height: 40px; width: auto; filter: brightness(0) invert(1); }
+
+.error-page__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(41, 151, 255, 0.14);
+  border: 1px solid rgba(41, 151, 255, 0.3);
+  color: var(--color-pink-elegant);
+  margin-bottom: var(--space-1);
+}
+
+.error-page__code {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(3.5rem, 8vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: var(--tracking-tighter);
+  background: linear-gradient(135deg, var(--color-white), var(--color-pink-elegant));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.error-page h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.error-page__message {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: rgba(247, 243, 241, 0.68);
+}
+
+.error-page__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-3);
+  background: var(--color-pink-deep);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2_5) var(--space-5);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.error-page__cta:hover { background: var(--color-primary-focus); box-shadow: 0 10px 28px rgba(0, 102, 204, 0.35); transform: translateY(-1px); }
+.error-page__cta:active { transform: scale(0.97); }

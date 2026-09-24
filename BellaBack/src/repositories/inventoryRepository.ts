@@ -1,32 +1,24 @@
 import { prisma } from "../config/prisma";
 
-// Postgres unique constraints treat every NULL as a distinct value, so the
-// `@@unique([productId, variantId, branchId])` index does NOT enforce
-// uniqueness across two rows that share productId/branchId and both have a
-// NULL variantId (i.e. products without variants). That means
-// `findUnique`/`upsert` against the generated `productId_variantId_branchId`
-// compound key can't be trusted for variant-less products — see
-// prisma/seed.ts's own findFirst-then-create workaround for the same issue.
-// Every lookup here builds an explicit where clause that branches on
-// variantId being present instead of relying on the compound unique input.
+// Postgres trata cada NULL como distinto, así que el índice único no protege
+// productos sin variante (variantId NULL); por eso el where se arma a mano.
 function whereRow(productId: string, variantId: string | undefined | null, branchId: string) {
   return variantId
     ? { productId, variantId, branchId }
     : { productId, variantId: null, branchId };
 }
 
-// Read-only. Writes to `inventory.stock` must only ever happen inside
-// inventoryService.applyMovement's locked transaction — see that file's
-// comment for why a bare findFirst-then-write here (outside a lock) would
-// be unsafe for concurrent callers.
+// Solo lectura: escribir `inventory.stock` fuera de la transacción bloqueada
+// de inventoryService.applyMovement sería inseguro con llamadas concurrentes.
 export function findInventoryRow(productId: string, variantId: string | undefined, branchId: string) {
   return prisma.inventory.findFirst({ where: whereRow(productId, variantId, branchId) });
 }
 
-export function listInventory(filters: { branchId?: string; categoryId?: string }) {
+// `branchIds` es el alcance de sucursales del usuario (undefined si tiene acceso a todas).
+export function listInventory(filters: { branchId?: string; categoryId?: string; branchIds?: string[] }) {
   return prisma.inventory.findMany({
     where: {
-      branchId: filters.branchId,
+      branchId: filters.branchId ?? (filters.branchIds ? { in: filters.branchIds } : undefined),
       product: filters.categoryId ? { categoryId: filters.categoryId } : undefined,
     },
     include: { product: true, variant: true, branch: true },

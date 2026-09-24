@@ -4,10 +4,8 @@ import "./ScrollToTopButton.css";
 
 const SHOW_AFTER_PX = 400;
 
-// Fixed bottom-right, opposite corner from WhatsAppButton (bottom-left) so
-// the two never overlap. Hidden until the visitor has scrolled down a
-// meaningful amount, same mount/visible-class pattern as the admin side's
-// FloatingMessagesButton.
+// Esquina opuesta a WhatsAppButton para que nunca se encimen. Oculto hasta
+// que el visitante haya bajado una cantidad significativa de scroll.
 export function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
 

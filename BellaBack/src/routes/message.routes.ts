@@ -8,12 +8,7 @@ const router = Router();
 
 router.get("/conversations", requireAuth, requirePermission("messages.view"), messageController.listConversations);
 router.post("/conversations", requireAuth, requirePermission("messages.send"), messageController.startConversation);
-// Deliberately ahead of nothing that would conflict (no other :id-shaped
-// route past /conversations/:id in this file), a plain DELETE on the
-// conversation resource — this project's REST convention elsewhere (see
-// e.g. product image delete) uses DELETE for a "remove this from my view"
-// action even when, as here, it's a soft/per-viewer flag rather than a
-// hard delete of the row.
+// DELETE aquí es "ocultar de mi vista" (soft, por usuario), no un borrado real de la fila.
 router.delete(
   "/conversations/:id",
   requireAuth,
@@ -34,10 +29,8 @@ router.post(
   messageController.sendMessage
 );
 router.get("/unread-count", requireAuth, requirePermission("messages.view"), messageController.getUnreadCount);
-// Deliberately not gated by users.view: roles like cashier get
-// messages.view/messages.send but not users.view in the seed, and still
-// need to see who they can message. Keeps the payload minimal (no
-// permissions/email/etc), not the full Users CRUD record.
+// No se restringe con users.view: roles como cajero necesitan ver a quién mensajear
+// aunque no tengan permiso para el CRUD de usuarios. Devuelve datos mínimos.
 router.get("/users", requireAuth, requirePermission("messages.view"), messageController.listUsers);
 
 export default router;

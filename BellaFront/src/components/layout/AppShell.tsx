@@ -3,18 +3,19 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { FloatingMessagesButton } from "./FloatingMessagesButton";
+import { AdminScrollTopButton } from "./AdminScrollTopButton";
 import "./AppShell.css";
 
 export function AppShell() {
   const location = useLocation();
   const contentRef = useRef<HTMLElement>(null);
 
-  // The page scrolls inside .app-shell__content (the sidebar/topbar stay
-  // fixed), not the window — so a plain "scroll window to top" fix
-  // wouldn't do anything here. Without this, navigating away from a page
-  // scrolled to the bottom lands the new page already scrolled down too,
-  // since the browser has no reason to know a route change should reset
-  // an inner scroll container.
+  // La página hace scroll dentro de .app-shell__content (sidebar/topbar
+  // quedan fijos), no en la ventana, así que un simple "scroll window to
+  // top" no serviría aquí. Sin esto, al navegar desde una página con scroll
+  // hasta abajo, la nueva página aparecería ya desplazada, ya que el
+  // navegador no tiene forma de saber que un cambio de ruta debe reiniciar
+  // un contenedor de scroll interno.
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
   }, [location.pathname]);
@@ -31,6 +32,7 @@ export function AppShell() {
         </main>
       </div>
       <FloatingMessagesButton />
+      <AdminScrollTopButton containerRef={contentRef} />
     </div>
   );
 }

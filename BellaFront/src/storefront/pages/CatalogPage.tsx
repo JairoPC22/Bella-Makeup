@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, LayoutGrid, Search, Sparkles, X } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
+import { RevealWords } from "../../components/common/RevealWords";
 import { listPublicCategories, listPublicProducts, buildPublicImageUrl } from "../../services/storefrontService";
 import type { PublicCategory, PublicProduct } from "../../types/api";
 import { useCart } from "../CartContext";
 import "./CatalogPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 type FetchStatus = "loading" | "ready" | "error";
 
@@ -47,19 +48,23 @@ export function CatalogPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
-  const loadProducts = useCallback(() => {
+  useEffect(() => {
+    // Guarda de cancelación: si una respuesta anterior llega después de una
+    // más reciente, no debe sobreescribir los productos de la categoría
+    // actual (mismo patrón que el efecto de relacionados en ProductDetailPage).
+    let cancelled = false;
     setStatus("loading");
     listPublicProducts({ categoryId: categoryId || undefined, search: search || undefined, page })
       .then((res) => {
+        if (cancelled) return;
         setProducts(res.items);
         setTotal(res.total);
         setPageSize(res.pageSize || 12);
         setStatus("ready");
       })
-      .catch(() => setStatus("error"));
+      .catch(() => { if (!cancelled) setStatus("error"); });
+    return () => { cancelled = true; };
   }, [categoryId, search, page]);
-
-  useEffect(() => { loadProducts(); }, [loadProducts]);
 
   function handleCategoryChange(value: string) {
     setSearchParams((prev) => {
@@ -105,7 +110,14 @@ export function CatalogPage() {
           <span className="storefront-page-header__eyebrow">
             <LayoutGrid size={13} aria-hidden="true" /> Catálogo
           </span>
-          <h1>{activeCategory ? activeCategory.name : "Todo lo que necesitas para tu rutina."}</h1>
+          <h1>
+            <RevealWords
+              key={activeCategory?.id ?? "all"}
+              as="span"
+              text={activeCategory ? activeCategory.name : "Todo lo que necesitas para tu rutina."}
+              delay={40}
+            />
+          </h1>
           <p>
             Maquillaje y cuidado de la piel seleccionados uno por uno. Filtra por categoría, agrega al
             carrito y elige si lo recoges en sucursal o te lo llevamos a casa.
@@ -205,9 +217,7 @@ export function CatalogPage() {
                   <div
                     key={product.id}
                     className="storefront-product-card animate-in-stagger"
-                    // Same per-item stagger convention as the admin
-                    // dashboard's card grid — the grid assembles itself
-                    // instead of appearing as one flat block.
+                    // Mismo patrón de stagger que la grilla del dashboard admin.
                     style={{ "--stagger-delay": `${Math.min(index, 11) * 45}ms` } as React.CSSProperties}
                   >
                     <Link to={`/producto/${product.id}`} className="storefront-product-card__image">
@@ -219,9 +229,19 @@ export function CatalogPage() {
                           <span className="storefront-badge storefront-badge--out">Agotado</span>
                         )}
                       </span>
-                      {image
-                        ? <img src={buildPublicImageUrl(image.url)} alt={product.name} />
-                        : <Sparkles size={30} aria-hidden="true" />}
+                      {image ? (
+                        <img src={buildPublicImageUrl(image.url)} alt={product.name} loading="lazy" />
+                      ) : (
+                        // Mismo estado "sin imagen" que ProductDetailPage
+                        // (icono + texto) — antes esta tarjeta mostraba
+                        // solo el ícono suelto, que sin ningún texto se
+                        // leía como una imagen rota en vez de un aviso
+                        // intencional de "todavía no hay foto".
+                        <span className="storefront-product-card__placeholder">
+                          <Sparkles size={26} aria-hidden="true" />
+                          <span>Imagen próximamente</span>
+                        </span>
+                      )}
                     </Link>
                     <div className="storefront-product-card__body">
                       <Link to={`/producto/${product.id}`} className="storefront-product-card__brand">

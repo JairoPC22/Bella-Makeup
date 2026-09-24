@@ -1,11 +1,9 @@
 import { apiFetch } from "./apiClient";
 import type { InventoryMovement, InventoryRow } from "../types/api";
 
-// listInventory started as just enough to feed the dashboard's low-stock
-// widget; the signature/export below is kept exactly as-is so
-// DashboardPage.tsx keeps working unchanged. categoryId + adjustInventory +
-// listMovements were added for the full Inventory page (filters,
-// adjustments, movement history).
+// listInventory se mantiene compatible con el widget de stock bajo del
+// dashboard; categoryId + adjustInventory + listMovements se agregaron
+// después para la página completa de Inventario.
 export const listInventory = (filters?: { branchId?: string; categoryId?: string; status?: InventoryRow["status"] }) => {
   const params = new URLSearchParams();
   if (filters?.branchId) params.set("branchId", filters.branchId);
@@ -21,6 +19,7 @@ export interface AdjustInventoryInput {
   branchId: string;
   quantity: number;
   reason: string;
+  pinCode?: string;
 }
 
 export const adjustInventory = (input: AdjustInventoryInput) =>

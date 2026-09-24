@@ -17,7 +17,7 @@ import { PublicApiError, trackOnlineOrder } from "../../services/storefrontServi
 import type { OnlineOrder } from "../../types/api";
 import "./OrderConfirmationPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 const PAYMENT_COPY: Record<OnlineOrder["paymentMethod"], { label: string; icon: typeof Banknote; note: string }> = {
   CASH: { label: "Efectivo", icon: Banknote, note: "Ten el monto exacto listo — el pago se realiza al recibir tu pedido." },
@@ -42,14 +42,11 @@ export function OrderConfirmationPage() {
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const location = useLocation();
 
-  // The order arrives via router state from CheckoutPage's
-  // navigate(path, { state: order }) on the happy path. That state does
-  // NOT survive a refresh, a bookmark or a shared link — which previously
-  // dead-ended the page on a bare "no encontramos ese pedido". There IS a
-  // public lookup endpoint (GET /api/public/orders/:orderNumber?phone=…,
-  // see public.routes.ts), phone-gated so an order number alone can't be
-  // enumerated, so the fallback below asks for the phone used on the
-  // order and re-fetches it instead of giving up.
+  // El pedido llega vía router state desde CheckoutPage, pero ese estado no
+  // sobrevive un refresh, un marcador o un link compartido. Como fallback
+  // existe un endpoint público protegido por teléfono
+  // (GET /api/public/orders/:orderNumber?phone=…) que se usa para
+  // reconsultar el pedido en vez de mostrar un error definitivo.
   const [order, setOrder] = useState<OnlineOrder | null>((location.state as OnlineOrder | null) ?? null);
   const [phone, setPhone] = useState("");
   const [lookupState, setLookupState] = useState<"idle" | "loading" | "error">("idle");
@@ -126,9 +123,7 @@ export function OrderConfirmationPage() {
 
   return (
     <div className="storefront-confirmation">
-      {/* The success moment gets its own ink band rather than a lone tick
-          on flat page background — this is the single highest-emotion
-          screen in the flow and it read as the plainest. */}
+      {/* Banda de color en vez de un tick plano: es la pantalla de mayor impacto emocional del flujo. */}
       <div className="storefront-confirmation__banner">
         <div className="storefront-confirmation__banner-inner">
           <span className="storefront-confirmation__tick">

@@ -1,29 +1,20 @@
 import { z } from "zod";
-
-// Same recurring bug class documented in sale.validators.ts,
-// transfer.validators.ts and every other validator file: Zod's strict
-// `.uuid()` rejects the deterministic seed ids
-// ("00000000-...-000000000001") used by seeded branches, which are valid
-// UUID-shaped strings but fail the RFC version/variant check. branchId can
-// reference those seeded fixtures, so it uses this shape-only regex.
-const uuidShape = z
-  .string()
-  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
+import { uuidShape } from "./common.validators";
 
 export const openCashSessionSchema = z.object({
   branchId: uuidShape,
-  // A float of exactly 0 is legitimate (a drawer that genuinely starts
-  // empty); a negative one never is.
+  // Un valor de exactamente 0 es legítimo (un cajón que en verdad arranca
+  // vacío); uno negativo nunca lo es.
   openingFloat: z.number().min(0, "El fondo de apertura no puede ser negativo"),
 });
 
-// The physical count, line by line. This is a hand-typed field on a POS
-// screen at the end of a long shift, so it is validated hard: a
-// denomination must be a positive amount of money (there is no $0 or
-// negative bill), and a count must be a whole non-negative number of
-// physical pieces (you cannot have counted 2.5 or -1 twenty-peso notes).
-// The service re-checks both independently — see cashSessionService's own
-// validation — so the rules hold even for a non-HTTP caller.
+// El conteo físico, línea por línea. Es un campo tecleado a mano en la
+// pantalla del POS al final de un turno largo, así que se valida
+// estrictamente: una denominación debe ser un monto positivo (no hay
+// billetes de $0 o negativos), y un conteo debe ser un entero no negativo
+// de piezas físicas (no se pueden contar 2.5 o -1 billetes de veinte). El
+// servicio revalida ambas cosas de forma independiente, para que la regla
+// se cumpla también para un llamador que no sea HTTP.
 const cashBreakdownLineSchema = z.object({
   denomination: z.number().positive("La denominación debe ser mayor a cero"),
   count: z.number().int("El conteo debe ser un número entero").min(0, "El conteo no puede ser negativo"),

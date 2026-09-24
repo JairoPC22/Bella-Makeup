@@ -1,11 +1,11 @@
-/* ---------- Header / stage rail ---------- */
+/* ---------- Encabezado / rieles de etapa ---------- */
 
 .storefront-checkout__header h1 {
   max-width: none;
 }
 
-/* Where the shopper is in the real three-step order flow (cart → this
-   page → confirmation). Not a fake wizard over a single-page form. */
+/* Indica en qué paso del flujo real de tres etapas está el comprador
+   (carrito → esta página → confirmación); no es un wizard simulado. */
 .storefront-checkout__stages {
   list-style: none;
   display: flex;
@@ -61,9 +61,8 @@
   color: var(--color-white);
 }
 
-/* ---------- Empty cart state ---------- */
-/* Was a bare StatusState plus a text link. Now an intentional, centered
-   moment with its own icon and a real CTA button. */
+/* ---------- Estado de carrito vacío ----------
+   Un momento centrado e intencional con ícono y botón CTA propios. */
 
 .storefront-checkout__empty {
   display: flex;
@@ -104,7 +103,7 @@
   font-weight: 600;
 }
 
-/* ---------- Layout ---------- */
+/* ---------- Disposición ---------- */
 
 .storefront-checkout__layout {
   display: grid;
@@ -129,8 +128,8 @@
   gap: var(--space-4);
 }
 
-/* Numbered block headings: the cheapest way to turn four visually
-   identical boxes into a sequence the eye can follow. */
+/* Encabezados numerados: la forma más simple de convertir cuatro cajas
+   visualmente idénticas en una secuencia que el ojo pueda seguir. */
 .storefront-checkout__block-head {
   display: flex;
   align-items: flex-start;
@@ -329,7 +328,7 @@
 }
 .storefront-checkout__hint svg { color: var(--color-pink-elegant); flex-shrink: 0; }
 
-/* ---------- Summary sidebar ---------- */
+/* ---------- Barra lateral de resumen ---------- */
 
 .storefront-checkout__summary {
   position: sticky;
@@ -383,9 +382,8 @@
   color: var(--color-text-secondary);
 }
 
-/* Line items now carry the product thumbnail, with the quantity as a
-   badge on its corner — the previous "2× Nombre" text row gave the
-   summary no visual anchor at all. */
+/* Cada línea lleva la miniatura del producto con la cantidad como badge
+   en la esquina, en vez del texto plano "2× Nombre". */
 .storefront-checkout__summary-thumb {
   position: relative;
   flex-shrink: 0;

@@ -4,7 +4,7 @@ import * as companySettingsService from "../../services/companySettingsService";
 import type { CompanySettings, Sale } from "../../types/api";
 import "./SaleReceipt.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 const PAYMENT_METHOD_LABEL: Record<Sale["payments"][number]["method"], string> = {
   CASH: "Efectivo",

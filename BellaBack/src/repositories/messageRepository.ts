@@ -2,19 +2,15 @@ import path from "path";
 import { prisma } from "../config/prisma";
 import { UPLOADS_MESSAGES_DIR } from "../config/multer";
 
-// Shared include shape for "a person" in the messaging graph (conversation
-// participants, message authors) — role name + branch assignments, which is
-// exactly what messageService's mapParty() needs to build a MessagingParty
-// without a second round trip per user.
+// Include compartido para "una persona" en mensajería: rol + sucursales,
+// lo que necesita messageService.mapParty() sin otra consulta.
 const partyInclude = {
   role: { select: { name: true } },
   userBranches: { include: { branch: true } },
 } as const;
 
-// Shared include shape for a conversation's participants: each row's own
-// user (party shape) plus lastReadAt/hiddenAt, which the service layer
-// needs both for the "other participant" / group participant list and for
-// computing unreadCount / the Task 3 "seen" contract.
+// Include compartido para participantes: usuario + lastReadAt/hiddenAt,
+// usados para la lista de participantes y el cálculo de unreadCount.
 const participantsInclude = {
   include: { user: { include: partyInclude } },
 } as const;
@@ -35,11 +31,8 @@ export function findConversationById(id: string) {
   });
 }
 
-// Looks for an existing 1:1 (isGroup: false) conversation between exactly
-// these two users. Queried as "conversations where isGroup is false and a
-// participant row exists for both ids", then filtered in JS to those with
-// exactly 2 participants — simplest way to express "the participant set is
-// EXACTLY {a, b}" without a more exotic aggregate query.
+// Busca una conversación 1:1 existente entre estos dos usuarios; se filtra
+// en JS a exactamente 2 participantes por simplicidad de la consulta.
 export async function findExisting1to1Conversation(userIdA: string, userIdB: string) {
   const candidates = await prisma.conversation.findMany({
     where: {
@@ -71,10 +64,8 @@ export function createConversationWithParticipants(input: {
   });
 }
 
-// Clears hiddenAt for a single participant's own row (used both when
-// re-starting a 1:1 conversation the caller had hidden, and — for the
-// OTHER participants — when a new message arrives in a conversation they'd
-// hidden).
+// Limpia hiddenAt de un participante: al reabrir una conversación oculta
+// o cuando llega un mensaje nuevo a una conversación que había ocultado.
 export function unhideParticipant(conversationId: string, userId: string) {
   return prisma.conversationParticipant.updateMany({
     where: { conversationId, userId, hiddenAt: { not: null } },
@@ -109,9 +100,8 @@ export function markConversationRead(conversationId: string, userId: string) {
   });
 }
 
-// Lists every non-hidden conversation for this user, including all
-// participants (regardless of THEIR hidden state — hiddenAt is per-viewer,
-// not global) and a 1-message preview, ordered most-recently-active first.
+// Lista las conversaciones no ocultas del usuario, con todos los participantes
+// (hiddenAt es por usuario, no global) y una vista previa de 1 mensaje.
 export function listConversationsForUser(userId: string) {
   return prisma.conversation.findMany({
     where: {
@@ -125,9 +115,7 @@ export function listConversationsForUser(userId: string) {
   });
 }
 
-// Lightweight query for the unread-count endpoint: just enough per
-// conversation (its own createdAt + the caller's own participant row) to
-// compute "since" for countUnreadMessages, without pulling avatars/roles.
+// Consulta liviana para el endpoint de no leídos: solo lo necesario para countUnreadMessages.
 export function listNonHiddenConversationsForUnread(userId: string) {
   return prisma.conversation.findMany({
     where: { participants: { some: { userId, hiddenAt: null } } },
@@ -139,9 +127,7 @@ export function listNonHiddenConversationsForUnread(userId: string) {
   });
 }
 
-// Unread-message count for one conversation, scoped to `userId`: messages
-// authored by someone else, created after the viewer's own lastReadAt (or
-// the conversation's createdAt if they've never read it).
+// Cuenta mensajes de otros creados después del lastReadAt del usuario (o de createdAt si nunca leyó).
 export function countUnreadMessages(conversationId: string, userId: string, since: Date) {
   return prisma.message.count({
     where: {
@@ -175,9 +161,7 @@ export interface CreateMessageInput {
   attachments: CreateMessageAttachmentInput[];
 }
 
-// Creates the message row + its attachment rows and bumps the parent
-// conversation's updatedAt (so it re-sorts to the top of the conversation
-// list) all inside a single transaction.
+// Crea el mensaje y sus adjuntos, y actualiza updatedAt de la conversación, todo en una transacción.
 export function createMessage(input: CreateMessageInput) {
   return prisma.$transaction(async (tx) => {
     const message = await tx.message.create({
@@ -209,11 +193,8 @@ export interface DeleteExpiredResult {
   filePaths: string[];
 }
 
-// Finds every message older than `cutoff` (with their attachments), deletes
-// them, and returns both the deleted message count and the deleted rows'
-// attachment file paths so the caller can unlink the underlying files from
-// disk. The find-then-delete happens inside a transaction so nothing slips
-// through between the two steps.
+// Busca y borra mensajes anteriores a `cutoff` en una transacción; devuelve
+// las rutas de los adjuntos para que el caller los borre del disco.
 export async function deleteMessagesOlderThan(cutoff: Date): Promise<DeleteExpiredResult> {
   return prisma.$transaction(async (tx) => {
     const expired = await tx.message.findMany({

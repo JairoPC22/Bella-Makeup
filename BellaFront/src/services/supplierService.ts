@@ -1,13 +1,10 @@
 import { apiFetch } from "./apiClient";
 import type { Supplier } from "../types/api";
 
-// Suppliers live at their own /api/suppliers resource (see BellaBack's
-// supplier.routes.ts) even though the backend service code sits inside
-// purchaseService.ts — so they get their own frontend service file too,
-// matching the URL surface rather than the backend's internal file layout.
-//
-// Note the split permission gate on the backend: GET is purchases.view (the
-// purchase form needs the dropdown), POST/PUT are suppliers.manage.
+// Proveedores viven en su propio recurso /api/suppliers, aunque el servicio
+// del backend esté dentro de purchaseService.ts. El permiso está dividido:
+// GET usa purchases.view (lo necesita el formulario de compras), POST/PUT
+// usan suppliers.manage.
 
 export interface SupplierInput {
   name: string;

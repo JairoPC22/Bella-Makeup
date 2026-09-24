@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
+import { paginationParams } from "../utils/pagination";
 
 export interface AuditFilters {
   userId?: string;
@@ -36,8 +37,7 @@ export async function findAuditLogs(filters: AuditFilters) {
         branch: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      ...paginationParams(page, pageSize),
     }),
     prisma.auditLog.count({ where }),
   ]);

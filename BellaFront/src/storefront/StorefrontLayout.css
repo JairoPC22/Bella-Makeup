@@ -5,10 +5,9 @@
   background: var(--color-bg);
 }
 
-/* ---------- Announcement rail ---------- */
-/* Deliberately dark (ink) so the white header below reads as a distinct
-   layer rather than the page just starting with a grey smear, and so the
-   ink→white→content sequence echoes the hero's ink surface further down. */
+/* ---------- Franja de anuncio ----------
+   Oscura a propósito para que el header blanco de abajo se lea como una
+   capa distinta, en línea con la secuencia oscuro→blanco→contenido. */
 
 .storefront-announce {
   background: var(--color-primary);
@@ -40,7 +39,7 @@
   background: color-mix(in srgb, var(--color-white) 35%, transparent);
 }
 
-/* ---------- Header ---------- */
+/* ---------- Encabezado ---------- */
 
 .storefront-header {
   position: sticky;
@@ -78,9 +77,8 @@
   justify-content: center;
 }
 
-/* Pill hover instead of a bare underline — the active item keeps a solid
-   tinted pill so the current section is unambiguous, matching how the
-   admin sidebar marks its active rail item. */
+/* Pill al hover en vez de subrayado plano; el item activo mantiene un pill
+   sólido, igual que el sidebar del admin marca su item activo. */
 .storefront-header__nav a {
   position: relative;
   font-family: var(--font-body);
@@ -91,8 +89,7 @@
   text-decoration: none;
   padding: 8px var(--space-3);
   border-radius: var(--radius-pill);
-  transition: color var(--transition-base) var(--ease-premium),
-    background-color var(--transition-base) var(--ease-premium);
+  transition: color var(--transition-base) var(--ease-premium);
 }
 
 .storefront-header__nav a:hover {
@@ -102,8 +99,22 @@
 
 .storefront-header__nav a.is-active {
   color: var(--color-pink-deep);
-  background: var(--color-pink-50);
   font-weight: 600;
+}
+
+/* El pill es un `motion.span` con layoutId compartido (StorefrontNavLinks
+   en StorefrontLayout.tsx), así se desliza al navegar en vez de aparecer
+   de golpe. Posicionado absoluto detrás de la etiqueta. */
+.storefront-header__nav-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-pink-50);
+  z-index: 0;
+}
+.storefront-header__nav-label {
+  position: relative;
+  z-index: 1;
 }
 
 .storefront-header__cart {
@@ -134,6 +145,59 @@
 }
 .storefront-header__cart:active { transform: scale(0.98); }
 
+.storefront-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Oculto en desktop; se muestra bajo el breakpoint donde el nav cambia a
+   este botón (ver media query abajo). */
+.storefront-header__menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.storefront-header__menu-toggle:hover { background: var(--color-pink-50); border-color: var(--color-pink-elegant); }
+
+/* Menú de pantalla completa (fixed + inset:0), con z-index justo debajo
+   del header para que el botón de cerrar siga visible y clickeable. */
+.storefront-header__mobile-nav {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-top: 64px;
+  background: var(--color-white);
+  animation: fade-in-up 0.25s var(--ease-premium) both;
+}
+.storefront-header__mobile-nav a {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-ink);
+  text-decoration: none;
+  padding: 14px var(--space-5);
+  border-radius: var(--radius-md);
+  text-align: center;
+  transition: color var(--transition-base) var(--ease-premium), background-color var(--transition-base) var(--ease-premium);
+}
+.storefront-header__mobile-nav a:hover { color: var(--color-pink-deep); background: color-mix(in srgb, var(--color-pink-50) 70%, transparent); }
+.storefront-header__mobile-nav a.is-active { color: var(--color-pink-deep); background: var(--color-pink-50); }
+
 .storefront-header__cart-badge {
   position: absolute;
   top: -5px;
@@ -153,19 +217,15 @@
   line-height: 1;
 }
 
-/* ---------- Main ---------- */
+/* ---------- Contenido principal ---------- */
 
 .storefront-main {
   flex: 1 1 auto;
 }
 
-/* ---------- Footer ---------- */
-/* Rebuilt from a single thin row (brand | links | map | copyright, all on
-   one baseline) into a real four-column editorial footer with its own
-   column headings, live contact facts and a separate bottom bar. The old
-   version carried almost no visual weight, which made every page end
-   abruptly — the most-visible symptom of the "se ve muy sencilla"
-   complaint below the fold. */
+/* ---------- Pie de página ----------
+   Footer editorial de cuatro columnas con encabezados propios, datos de
+   contacto y barra inferior separada. */
 
 .storefront-footer {
   position: relative;
@@ -173,8 +233,8 @@
   color: color-mix(in srgb, var(--color-white) 70%, transparent);
   margin-top: var(--space-8);
 }
-/* Faint blue wash bleeding in from the top-right, the same radial-glow
-   language as the home hero and the admin login panel. */
+/* Tinte azul sutil desde la esquina superior derecha, mismo lenguaje de
+   brillo radial que el hero de home y el panel de login del admin. */
 .storefront-footer::before {
   content: "";
   position: absolute;
@@ -202,6 +262,15 @@
   flex-direction: column;
   gap: var(--space-2_5);
   min-width: 0;
+}
+
+/* PeekRating ocupa todo el ancho del footer como fila propia, en vez de
+   competir por espacio como una quinta columna apretada. */
+.storefront-footer__col--rating {
+  grid-column: 1 / -1;
+  max-width: 420px;
+  margin: 0 auto var(--space-2);
+  color: var(--color-white);
 }
 
 .storefront-footer__col-title {
@@ -313,10 +382,9 @@
   color: var(--color-primary-on-dark);
 }
 
-/* ---------- Footer mini map ---------- */
-/* "El maps en pequeño en la sección de abajo" — a compact preview of the
-   primary branch's location, now living inside the contact column rather
-   than floating as its own unlabeled block. */
+/* ---------- Mini mapa del footer ----------
+   Vista previa compacta de la sucursal principal, dentro de la columna
+   de contacto. */
 
 .storefront-footer__map {
   display: flex;
@@ -335,9 +403,8 @@
   display: block;
   width: 100%;
   height: 132px;
-  /* The map tiles render in full color regardless — this just keeps the
-     surrounding footer chrome (border/link) legible against the dark
-     footer background without fighting the iframe's own white canvas. */
+  /* El mapa se ve a color igual; esto solo mantiene legible el resto del
+     footer oscuro sin pelear con el fondo blanco del iframe. */
   filter: saturate(0.9);
 }
 
@@ -356,7 +423,7 @@
   text-decoration: underline;
 }
 
-/* ---------- Footer bottom bar ---------- */
+/* ---------- Barra inferior del footer ---------- */
 
 .storefront-footer__bar {
   position: relative;
@@ -415,4 +482,12 @@
   .storefront-header__cart { padding: 10px; }
   .storefront-announce__inner { font-size: 0.7rem; gap: var(--space-2); }
   .storefront-footer__inner { grid-template-columns: 1fr; gap: var(--space-5); }
+}
+
+/* Bajo ~640px el logo + los 5 links + el carrito ya no caben en una fila
+   y el botón de carrito quedaba fuera de pantalla; por eso el nav
+   horizontal se reemplaza por un botón hamburguesa. */
+@media (max-width: 640px) {
+  .storefront-header__nav { display: none; }
+  .storefront-header__menu-toggle { display: inline-flex; }
 }

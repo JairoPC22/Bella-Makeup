@@ -1,7 +1,5 @@
-/* ---------- Breadcrumbs ---------- */
-/* Replaces the single "Volver al catálogo" link: on a shop, the path back
-   matters more than one step back, and a crumb row also gives the page a
-   proper opening line of type instead of starting cold on the gallery. */
+/* ---------- Migas de pan ----------
+   Reemplaza el link único "Volver al catálogo" con una ruta completa. */
 
 .storefront-detail__crumbs {
   display: flex;
@@ -49,7 +47,7 @@
   align-items: start;
 }
 
-/* ---------- Gallery ---------- */
+/* ---------- Galería ---------- */
 
 .storefront-detail__gallery {
   display: flex;
@@ -61,15 +59,12 @@
 
 .storefront-detail__main-image {
   position: relative;
-  /* 4:5 rather than a square. On a 6fr column a 1:1 tile ran ~600px tall,
-     which on this catalog (most products have no photo yet) meant a huge
-     empty panel dominating the page and pushing the buy controls into a
-     sea of whitespace. */
+  /* 4:5 en vez de cuadrado: un tile 1:1 en esta columna resultaba ~600px
+     de alto, un panel vacío enorme cuando el producto no tiene foto. */
   aspect-ratio: 4 / 5;
   max-height: 560px;
-  /* Same tinted wash as the product-card tile, so an image-less product
-     reads as a designed placeholder surface rather than a large empty
-     white rectangle (which is exactly how it looked before). */
+  /* Mismo tinte de las tarjetas de producto, para que un producto sin foto
+     se vea como un placeholder diseñado y no un rectángulo blanco vacío. */
   background:
     radial-gradient(circle at 50% 35%, var(--color-white) 0%, transparent 72%),
     linear-gradient(160deg,
@@ -96,17 +91,59 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Crossfade + gentle scale-in each time the `key` above changes (new
-     thumbnail clicked or variant swapped), instead of the previous instant
-     jump-cut between images. */
-  animation: storefront-gallery-fade 0.38s var(--ease-premium) both;
 }
-@keyframes storefront-gallery-fade {
-  from { opacity: 0; transform: scale(1.03); }
-  to { opacity: 1; transform: scale(1); }
+
+/* Controles de carrusel (anterior/siguiente + contador), visibles solo si
+   el producto tiene más de una imagen; ocultos y revelados al hover/focus
+   en desktop, siempre visibles en touch. */
+.storefront-detail__main-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-white) 90%, transparent);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.9);
+  transition: opacity var(--transition-fast) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), background-color var(--transition-fast) var(--ease-premium);
 }
+.storefront-detail__main-nav:hover { background: var(--color-white); color: var(--color-pink-deep); }
+.storefront-detail__main-nav--prev { left: var(--space-2_5); }
+.storefront-detail__main-nav--next { right: var(--space-2_5); }
+.storefront-detail__main-image:hover .storefront-detail__main-nav,
+.storefront-detail__main-nav:focus-visible {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+@media (hover: none) {
+  .storefront-detail__main-nav { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.storefront-detail__main-counter {
+  position: absolute;
+  bottom: var(--space-2_5);
+  right: var(--space-2_5);
+  z-index: 2;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  color: var(--color-white);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .storefront-detail__main-image-inner { animation: none; }
+  .storefront-detail__main-nav { transition: opacity 150ms ease; }
 }
 
 .storefront-detail__main-image img {
@@ -166,7 +203,7 @@
   transform: translateY(-1px) scale(1.04);
 }
 
-/* ---------- Info column ---------- */
+/* ---------- Columna de información ---------- */
 
 .storefront-detail__info {
   display: flex;
@@ -223,7 +260,7 @@
   color: var(--color-text-muted);
 }
 
-/* ---------- Price panel ---------- */
+/* ---------- Panel de precio ---------- */
 
 .storefront-detail__price-panel {
   display: flex;
@@ -297,7 +334,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ---------- Variants ---------- */
+/* ---------- Variantes ---------- */
 
 .storefront-detail__variants {
   display: flex;
@@ -367,7 +404,7 @@
   opacity: 0.85;
 }
 
-/* ---------- Actions ---------- */
+/* ---------- Acciones ---------- */
 
 .storefront-detail__actions {
   display: flex;
@@ -441,10 +478,9 @@
   font-size: inherit;
 }
 
-/* ---------- Trust list ---------- */
-/* Was a single grey line of text ("Retiro en tienda disponible"). Now a
-   proper reassurance block, which is also what fills the dead whitespace
-   that used to sit under the buy button on a short product record. */
+/* ---------- Lista de confianza ----------
+   Bloque de garantías en vez de una sola línea de texto, que también
+   llena el espacio vacío bajo el botón de compra. */
 
 .storefront-detail__trust {
   list-style: none;

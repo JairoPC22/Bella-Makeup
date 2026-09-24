@@ -14,8 +14,7 @@ export async function list(req: Request, res: Response, next: NextFunction) {
   } catch (err) { next(err); }
 }
 
-// Declared before the "/:id" route in cash.routes.ts so "current" is never
-// swallowed as an id.
+// Debe declararse antes de la ruta "/:id" para que "current" no se interprete como id.
 export async function current(req: Request, res: Response, next: NextFunction) {
   try {
     const { branchId } = currentCashSessionQuerySchema.parse(req.query);

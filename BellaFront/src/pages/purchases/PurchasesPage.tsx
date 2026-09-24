@@ -1,4 +1,4 @@
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ShoppingBag,
@@ -13,8 +13,10 @@ import {
   PackageCheck,
   Users,
 } from "lucide-react";
+import { staggerStyle } from "../../utils/staggerStyle";
 import { StatusState } from "../../components/common/StatusState";
 import { Select } from "../../components/common/Select";
+import { DateRangePicker } from "../../components/common/DateRangePicker";
 import { Modal } from "../../components/common/Modal";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { useAuth } from "../../hooks/useAuth";
@@ -27,31 +29,23 @@ import * as supplierService from "../../services/supplierService";
 import type { Branch, Product, ProductVariant, Purchase, Supplier } from "../../types/api";
 import "./PurchasesPage.css";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 const STATUS_LABEL: Record<Purchase["status"], string> = {
   PENDING: "Pendiente",
   COMPLETED: "Completada",
-  // Deliberately neutral wording: a discrepancy is an ordinary fact of
-  // receiving goods from a third party, not an error state (see BellaBack's
-  // receivePurchase — it records the difference rather than refusing the
-  // delivery).
+  // Redacción neutral a propósito: una diferencia es un hecho normal al
+  // recibir mercancía de un tercero, no un estado de error.
   RECEIVED_WITH_DISCREPANCIES: "Con diferencias",
   CANCELLED: "Cancelada",
 };
 
 type FetchStatus = "loading" | "ready" | "error";
 
-// Same --stagger-delay convention as TransfersPage/SalesPage/InventoryPage.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
-
-// A purchase line being drafted. Both quantity and cost are held as strings
-// so a half-typed value ("" or "12.") isn't clobbered mid-keystroke; they're
-// parsed once, at submit. This is the deliberate difference from
-// TransfersPage's simpler quantity-only line — a purchase order carries a
-// per-line cost, which is what the supplier actually invoiced.
+// Una línea de compra en borrador. Cantidad y costo se guardan como string
+// para no interrumpir un valor a medio escribir; se parsean solo al enviar.
+// A diferencia de TransfersPage, aquí cada línea sí lleva un costo (lo
+// facturado por el proveedor).
 interface PurchaseLine {
   key: string;
   productId: string;
@@ -80,9 +74,8 @@ export function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[] | null>(null);
   const [status, setStatus] = useState<FetchStatus>("loading");
 
-  // Full branch catalog — needed for allBranches users, who have no
-  // `user.branches` rows of their own to list (same reason TransfersPage
-  // fetches it).
+  // Catálogo completo de sucursales, necesario para usuarios allBranches
+  // (igual que en TransfersPage).
   const [allBranchList, setAllBranchList] = useState<Branch[]>([]);
   useEffect(() => {
     branchService.listBranches().then(setAllBranchList).catch(() => {});
@@ -90,10 +83,10 @@ export function PurchasesPage() {
 
   const accessibleBranches = user?.allBranches ? allBranchList : (user?.branches ?? []);
 
-  // Suppliers feed both the filter bar and the create modal's picker, so
-  // they're loaded once here. GET /api/suppliers is gated on purchases.view
-  // (not suppliers.manage) precisely so anyone who can raise a purchase can
-  // load this dropdown — see supplier.routes.ts's note on the split gate.
+  // Los proveedores alimentan tanto el filtro como el selector del modal de
+  // creación, por eso se cargan una sola vez aquí. GET /api/suppliers solo
+  // requiere purchases.view (no suppliers.manage) para que cualquiera que
+  // pueda generar una compra vea este dropdown.
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   useEffect(() => {
     supplierService.listSuppliers().then(setSuppliers).catch(() => {});
@@ -105,8 +98,7 @@ export function PurchasesPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // Same rationale as TransfersPage's showBranchFilter — only worth showing
-  // when there's an actual choice.
+  // Misma lógica que showBranchFilter de TransfersPage: solo se muestra si en verdad hay opción.
   const showBranchFilter = !!user?.allBranches || (user?.branches.length ?? 0) > 1;
 
   const loadPurchases = useCallback(() => {
@@ -116,8 +108,7 @@ export function PurchasesPage() {
         branchId: branchId || undefined,
         status: statusFilter || undefined,
         supplierId: supplierFilter || undefined,
-        // Same inclusive-end-of-day convention as TransfersPage/SalesPage
-        // (backend's listPurchases `to` is an `lte` on createdAt).
+        // Misma convención de fin de día inclusivo que TransfersPage/SalesPage.
         from: fromDate ? `${fromDate}T00:00:00.000` : undefined,
         to: toDate ? `${toDate}T23:59:59.999` : undefined,
       })
@@ -127,7 +118,7 @@ export function PurchasesPage() {
 
   useEffect(() => { loadPurchases(); }, [loadPurchases]);
 
-  // ---------- Create modal ----------
+  // ---------- Modal de creación ----------
   const [createOpen, setCreateOpen] = useState(false);
   const [createSupplierId, setCreateSupplierId] = useState("");
   const [createBranchId, setCreateBranchId] = useState("");
@@ -137,15 +128,14 @@ export function PurchasesPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // A picker only makes sense when there's an actual choice — mirrors
-  // PosPage.tsx's showBranchPicker exactly.
+  // Un selector solo tiene sentido si en verdad hay opción, igual que
+  // showBranchPicker de PosPage.tsx.
   const showBranchPicker = !!user?.allBranches || accessibleBranches.length > 1;
   const selectedCreateBranch = accessibleBranches.find((b) => b.id === createBranchId) ?? null;
 
-  // Only ACTIVE suppliers can be ordered from — createPurchase rejects an
-  // INACTIVE one outright, so they never reach the dropdown. The FILTER
-  // dropdown above deliberately lists all of them, since historical purchases
-  // from a since-deactivated supplier still need to be findable.
+  // Solo se puede comprar a proveedores ACTIVOS (createPurchase rechaza uno
+  // inactivo). El filtro de arriba sí lista todos, para poder encontrar
+  // compras históricas de un proveedor ya desactivado.
   const activeSuppliers = suppliers.filter((s) => s.status === "ACTIVE");
 
   function openCreateModal() {
@@ -164,19 +154,18 @@ export function PurchasesPage() {
     setCreateOpen(true);
   }
 
-  // Keep the branch default in sync if the branch catalog lands after the
-  // modal opened (an allBranches user's list arrives asynchronously).
+  // Sincroniza la sucursal por defecto si el catálogo llega después de
+  // abrir el modal (para un usuario allBranches).
   useEffect(() => {
     if (createOpen && !createBranchId && accessibleBranches.length > 0) {
       setCreateBranchId(accessibleBranches[0].id);
     }
   }, [createOpen, createBranchId, accessibleBranches]);
 
-  // ---------- Inline "proveedor nuevo" quick-create ----------
-  // Swaps the <select> for a text input + confirm/cancel in place rather than
-  // opening a modal-within-a-modal — the exact affordance ProductFormModal
-  // uses for categories/brands, reusing its class names so the two are
-  // visually identical.
+  // ---------- Creación rápida inline de "proveedor nuevo" ----------
+  // Cambia el <select> por un input de texto + confirmar/cancelar en el
+  // mismo lugar, en vez de un modal dentro de otro modal (igual que
+  // ProductFormModal hace con categorías/marcas).
   const [creatingSupplier, setCreatingSupplier] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
   const [supplierSaving, setSupplierSaving] = useState(false);
@@ -200,8 +189,8 @@ export function PurchasesPage() {
     }
   }
 
-  // ---------- Product search (same debounce-then-click-to-add convention as
-  // PosPage.tsx's product picker) ----------
+  // ---------- Búsqueda de productos (mismo patrón de debounce y clic para
+  // agregar que el selector de PosPage.tsx) ----------
   const [productSearchInput, setProductSearchInput] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [productResults, setProductResults] = useState<Product[]>([]);
@@ -244,10 +233,9 @@ export function PurchasesPage() {
         name: variant ? `${product.name} — ${variant.name}` : product.name,
         sku: variant?.sku ?? product.sku,
         expectedQuantity: "1",
-        // Seeded from the product's currently registered cost: on a reorder
-        // the price is usually unchanged, so this saves typing — but it stays
-        // fully editable, because the line cost must be what was actually
-        // invoiced on THIS delivery.
+        // Se inicializa con el costo registrado del producto para ahorrar
+        // escritura en un reorden, pero queda totalmente editable, ya que
+        // el costo debe reflejar lo realmente facturado en ESTA entrega.
         unitCost: product.cost ?? "0",
       };
       return [...prev, line];
@@ -272,9 +260,8 @@ export function PurchasesPage() {
     !createBranchId ||
     items.length === 0 ||
     submitting ||
-    // Mirrors the backend's per-item guards (expectedQuantity > 0,
-    // unitCost >= 0) so the obvious cases never make a round trip; anything
-    // subtler still comes back from the server and is shown verbatim.
+    // Refleja las validaciones del backend por ítem para evitar un viaje al
+    // servidor con casos obvios; los casos más sutiles los reporta el servidor.
     items.some((l) => !(Number(l.expectedQuantity) > 0) || !(Number(l.unitCost) >= 0));
 
   async function handleCreatePurchase() {
@@ -297,24 +284,21 @@ export function PurchasesPage() {
       setPurchases((prev) => (prev ? [created, ...prev] : [created]));
       setCreateOpen(false);
     } catch (err) {
-      // Surface the backend's exact message (e.g. "El proveedor X está
-      // inactivo", "El producto Y está inactivo") rather than papering over it
-      // with a generic one — same convention as PosPage/TransfersPage.
+      // Se muestra el mensaje exacto del backend en vez de uno genérico,
+      // igual que en PosPage/TransfersPage.
       setCreateError(err instanceof ApiError ? err.message : "No se pudo crear la compra.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ---------- Detail modal ----------
+  // ---------- Modal de detalle ----------
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // Receiving needs a real form, not a confirm button (unlike a transfer,
-  // which arrives as a sealed unit): the receiving clerk enters what actually
-  // came off the truck, line by line. Pre-filled with the ordered quantity —
-  // most lines do arrive exactly as ordered — but freely editable up or down,
-  // since a shortfall and an over-delivery are both ordinary facts.
+  // Recibir requiere un formulario real (no un simple confirmar): el
+  // encargado captura lo que realmente llegó, línea por línea. Se
+  // pre-llena con la cantidad pedida pero es totalmente editable.
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [receiveQuantities, setReceiveQuantities] = useState<Record<string, string>>({});
   const [receiveSaving, setReceiveSaving] = useState(false);
@@ -342,8 +326,8 @@ export function PurchasesPage() {
     setCancelError(null);
   }
 
-  // In-place update so both the modal and the list row reflect the new status
-  // without a page reload — TransfersPage's exact pattern.
+  // Actualización en el propio estado para reflejar el nuevo estatus en el
+  // modal y en la fila de la lista sin recargar, igual que TransfersPage.
   function applyUpdated(updated: Purchase) {
     setSelectedPurchase(updated);
     setPurchases((prev) => (prev ? prev.map((p) => (p.id === updated.id ? updated : p)) : prev));
@@ -373,7 +357,7 @@ export function PurchasesPage() {
     }
   }
 
-  // Mirrors TransfersPage.tsx's handleConfirmCancel exactly.
+  // Igual que handleConfirmCancel de TransfersPage.tsx.
   async function handleConfirmCancel() {
     if (!selectedPurchase) return;
     if (cancelReason.trim().length < 3) {
@@ -396,8 +380,8 @@ export function PurchasesPage() {
 
   const rows = purchases ?? [];
 
-  // What the purchase is actually worth: ordered value while pending, and the
-  // value of what really arrived once received.
+  // Valor real de la compra: el valor pedido mientras está pendiente, y el
+  // de lo realmente recibido una vez completada.
   function purchaseTotal(purchase: Purchase): number {
     return purchase.items.reduce((sum, i) => {
       const qty = i.receivedQuantity ?? i.expectedQuantity;
@@ -459,14 +443,14 @@ export function PurchasesPage() {
           <option value="">Todos los proveedores</option>
           {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
-        <label className="purchases-filters__date">
-          Desde
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </label>
-        <label className="purchases-filters__date">
-          Hasta
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </label>
+        {/* Real bug found on a phone-width audit: a raw native <input
+            type="date"> pair renders the OS's own unstyled date picker
+            ("dd/mm/aaaa" placeholder, browser-default popover) sitting
+            right next to the app's custom-styled Select dropdowns — a
+            visibly out-of-place mismatch, and cramped on a narrow screen.
+            Swapped for the same DateRangePicker every other filtered list
+            page already uses (Pedidos, Mermas, Caja, Auditoría...). */}
+        <DateRangePicker from={fromDate} to={toDate} onChange={(r) => { setFromDate(r.from); setToDate(r.to); }} />
       </div>
 
       {status === "loading" && <StatusState kind="loading" />}

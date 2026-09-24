@@ -6,11 +6,10 @@ import { logAudit } from "./auditService";
 
 const RETENTION_DAYS = 30;
 
-// Shape returned for "a person" everywhere in the messaging API (a
-// conversation participant, a message's author, an entry in the
-// people-picker) — mirrors the branches shape authService.toPublicUser
-// already establishes for the Users CRUD response (userBranches -> branch),
-// trimmed to just what the messaging UI needs.
+// Forma devuelta para "una persona" en toda la API de mensajería (un
+// participante, el autor de un mensaje, una entrada del selector de
+// personas) — sigue el mismo patrón de branches que authService.toPublicUser
+// ya usa (userBranches -> branch), reducido a lo que necesita el chat.
 interface PartyLike {
   id: string;
   displayName: string;
@@ -51,13 +50,11 @@ function mapParty(user: PartyLike) {
   };
 }
 
-// Task 3's "seen" contract: each participant entry carries the user's
-// public shape plus their OWN lastReadAt on this conversation. For a 1:1
-// conversation, the frontend finds the entry whose user.id !== me and shows
-// "Visto" under any of my own messages where message.createdAt <=
-// thatEntry.lastReadAt. Groups get the same shape but the frontend is told
-// (in this project's report) to skip building a per-message indicator for
-// them — the shape doesn't stop them from adding it later.
+// Contrato de "visto": cada participante trae su forma pública más su
+// PROPIO lastReadAt en esta conversación. En un chat 1:1 el frontend busca
+// la entrada cuyo user.id !== yo y muestra "Visto" bajo mis mensajes con
+// createdAt <= ese lastReadAt. Los grupos usan la misma forma aunque el
+// frontend no construya el indicador por mensaje para ellos.
 function mapParticipant(p: ParticipantLike) {
   return {
     user: mapParty(p.user),
@@ -65,11 +62,11 @@ function mapParticipant(p: ParticipantLike) {
   };
 }
 
-// Computes the unread-message count for `userId` on this conversation and
-// assembles the list/detail response shape shared by listMyConversations
-// and startConversation. `messages` is the (already-fetched) 1-item
-// last-message preview array, mapped the same way listMessages maps a full
-// thread.
+// Calcula el conteo de mensajes no leídos de `userId` en esta conversación y
+// arma la forma de respuesta compartida por listMyConversations y
+// startConversation. `messages` es el arreglo de 1 elemento con la vista
+// previa del último mensaje, mapeado igual que listMessages mapea un hilo
+// completo.
 async function toConversationSummary(
   conversation: ConversationLike & { messages: { author: PartyLike }[] },
   userId: string
@@ -105,8 +102,8 @@ export async function startConversation(userId: string, input: StartConversation
     throw new AppError(400, "No repitas participantes en la lista");
   }
 
-  // The caller is always implicitly included — strip their own id out if
-  // the frontend happened to send it, rather than treating it as an error.
+  // Quien llama siempre se incluye implícitamente: si el frontend envía su
+  // propio id, se descarta en vez de tratarlo como error.
   const otherIds = uniqueIds.filter((id) => id !== userId);
   if (otherIds.length === 0) {
     throw new AppError(400, "Debes incluir al menos otro participante");
@@ -136,9 +133,8 @@ export async function startConversation(userId: string, input: StartConversation
     return toConversationSummary(created, userId);
   }
 
-  // Groups always create a brand-new conversation — no dedup attempt, same
-  // as starting "a new group chat" with the same people twice in any
-  // messenger app.
+  // Los grupos siempre crean una conversación nueva, sin intento de
+  // deduplicación, igual que en cualquier app de mensajería.
   const created = await messageRepository.createConversationWithParticipants({
     isGroup: true,
     name: input.name?.trim() ? input.name.trim() : null,
@@ -147,12 +143,12 @@ export async function startConversation(userId: string, input: StartConversation
   return toConversationSummary(created, userId);
 }
 
-// GET .../conversations/:id/messages response shape:
+// Forma de respuesta de GET .../conversations/:id/messages:
 //   { conversation: { id, isGroup, name, participants: [{ user, lastReadAt }] }, messages: Message[] }
-// `participants[].lastReadAt` is captured BEFORE this same request marks
-// the caller's own row as read below, so for a 1:1 thread the entry whose
-// user.id !== caller still reflects whatever that other participant had
-// actually read as of just now — exactly the "seen" contract from Task 3.
+// `participants[].lastReadAt` se captura ANTES de marcar como leída la
+// propia fila más abajo, así que en un chat 1:1 la entrada del otro
+// participante sigue reflejando lo que él realmente había leído hasta
+// este momento.
 export async function listMessages(userId: string, conversationId: string) {
   const conversation = await messageRepository.findConversationById(conversationId);
   if (!conversation) throw new AppError(404, "Conversación no encontrada");
@@ -160,7 +156,7 @@ export async function listMessages(userId: string, conversationId: string) {
   const participant = conversation.participants.find((p) => p.userId === userId);
   if (!participant) throw new AppError(403, "Sin acceso a esta conversación");
 
-  // Viewing IS reading — no separate "mark read" endpoint.
+  // Ver ES leer — no hay un endpoint separado de "marcar como leído".
   await messageRepository.markConversationRead(conversationId, userId);
 
   const messages = await messageRepository.listMessagesForConversation(conversationId);
@@ -205,10 +201,10 @@ export async function sendMessage(userId: string, conversationId: string, input:
     })),
   });
 
-  // A new message should make the conversation reappear for anyone who'd
-  // hidden it — "hide" is closer to "archive until something new happens"
-  // than a true permanent delete. The sender's own hiddenAt/lastReadAt are
-  // deliberately left untouched (irrelevant — they're actively sending).
+  // Un mensaje nuevo debe hacer reaparecer la conversación para quien la
+  // ocultó: "ocultar" es más un "archivar hasta que pase algo nuevo" que un
+  // borrado real. El hiddenAt/lastReadAt del propio remitente no se tocan
+  // (irrelevante, está enviando activamente).
   await messageRepository.unhideForOtherParticipants(conversationId, userId);
 
   await logAudit({
@@ -222,8 +218,9 @@ export async function sendMessage(userId: string, conversationId: string, input:
   return { ...message, author: mapParty(message.author) };
 }
 
-// Sets the caller's own hiddenAt — purely a per-viewer flag, never touches
-// the Conversation/Message rows or any other participant's view.
+// Establece el hiddenAt propio del que llama — solo una bandera por
+// usuario, nunca toca las filas de Conversation/Message ni la vista de
+// otro participante.
 export async function hideConversation(userId: string, conversationId: string) {
   const participant = await messageRepository.findParticipant(conversationId, userId);
   if (!participant) throw new AppError(403, "Sin acceso a esta conversación");
@@ -231,10 +228,10 @@ export async function hideConversation(userId: string, conversationId: string) {
   await messageRepository.hideConversationForUser(conversationId, userId);
 }
 
-// Powers the floating unread button: the number of the caller's non-hidden
-// conversations that have at least one unread message, NOT a raw unread
-// message tally — reads more naturally as a badge ("3 conversations need
-// attention" vs. a potentially huge raw message count).
+// Alimenta el botón flotante de no leídos: el número de conversaciones no
+// ocultas con al menos un mensaje sin leer, NO el total crudo de mensajes;
+// se lee mejor como badge ("3 conversaciones pendientes") que un conteo
+// potencialmente enorme.
 export async function getUnreadCount(userId: string) {
   const conversations = await messageRepository.listNonHiddenConversationsForUnread(userId);
   let count = 0;
@@ -246,9 +243,10 @@ export async function getUnreadCount(userId: string) {
   return { count };
 }
 
-// Powers the "start a new conversation" people-picker: every active user
-// except the caller, ordered by name. No branch-access filtering — any
-// active user can message any other active user regardless of branch/role.
+// Alimenta el selector de personas para "nueva conversación": todo usuario
+// activo excepto quien llama, ordenado por nombre. Sin filtro de sucursal:
+// cualquier usuario activo puede escribirle a cualquier otro sin importar
+// sucursal o rol.
 export async function listMessagingUsers(currentUserId: string) {
   const users = await prisma.user.findMany({
     where: { status: "ACTIVE", id: { not: currentUserId } },
@@ -261,13 +259,10 @@ export async function listMessagingUsers(currentUserId: string) {
   return users.map(mapParty);
 }
 
-// Deletes every message older than 30 days and unlinks their attachment
-// files from disk. Returns the number of messages deleted, used by the
-// retention job for a log line. A missing file on disk (e.g. already
-// removed manually) is not fatal — it's logged and skipped so one bad file
-// can't abort the whole cleanup run. Participants aren't message-scoped, so
-// this still only needs to touch the Message table directly — unmodified
-// by the schema pivot.
+// Elimina todo mensaje con más de 30 días y borra sus archivos adjuntos del
+// disco. Devuelve la cantidad eliminada, usada por el job de retención para
+// su log. Un archivo faltante en disco no es fatal: se registra y se salta
+// para que uno solo no aborte toda la limpieza.
 export async function deleteExpiredMessages(): Promise<number> {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
   const { messageCount, filePaths } = await messageRepository.deleteMessagesOlderThan(cutoff);

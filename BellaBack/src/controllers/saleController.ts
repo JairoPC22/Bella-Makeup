@@ -25,7 +25,7 @@ export async function create(req: Request, res: Response, next: NextFunction) {
 
 export async function cancel(req: Request, res: Response, next: NextFunction) {
   try {
-    const { reason } = cancelSaleSchema.parse(req.body);
-    res.json(await saleService.cancelSale(req.params.id, reason, req.user!.id));
+    const { reason, pinCode } = cancelSaleSchema.parse(req.body);
+    res.json(await saleService.cancelSale(req.params.id, reason, req.user!.id, pinCode));
   } catch (err) { next(err); }
 }

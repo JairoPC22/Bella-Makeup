@@ -1,14 +1,11 @@
-/* Plain block stacking. This was `display: flex; flex-direction: column`,
-   which combined with the auto left/right margins on .storefront-section
-   suppressed flex stretch and shrank every section to fit-content — the
-   page header, the story block and the values grid each ended up a
-   different width, centered independently. See the note in
-   storefront-shared.css. */
+/* Apilado en bloque simple: con flex-column, los márgenes auto de
+   .storefront-section anulaban el stretch y cada sección terminaba con un
+   ancho distinto. Ver nota en storefront-shared.css. */
 .storefront-about {
   display: block;
 }
 
-/* ---------- Brand story ---------- */
+/* ---------- Historia de la marca ---------- */
 
 .storefront-about__story {
   display: grid;
@@ -43,20 +40,30 @@
 }
 .storefront-about__story-link:hover { text-decoration: underline; }
 
+.storefront-about__story-media {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.storefront-about__story-media picture { display: block; }
 .storefront-about__story-media img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  /* `height: auto` es necesario porque el <img> trae atributos HTML
+     width/height (936/941) que si no se sobreescriben ganan sobre
+     aspect-ratio. La proporción 4:3.4 se eligió por quedar cerca del
+     tamaño real de la foto de origen (casi cuadrada). */
+  height: auto;
+  aspect-ratio: 4 / 3.4;
   object-fit: cover;
-  /* Hero-Ima1.jpeg has a real, solid studio backdrop (not a transparency
-     bug like Hero-Ima2 on the home hero) — here it's framed intentionally
-     as a photo tile with its own soft-pink background, which reads as a
-     deliberate editorial card rather than a broken cutout. */
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
+  object-position: 50% 12%;
+  transition: transform var(--transition-slow) var(--ease-premium);
 }
+/* Zoom sutil al pasar el mouse, misma convención que las tarjetas de
+   producto (.storefront-product-card:hover img). */
+.storefront-about__story-media:hover img { transform: scale(1.06); }
 
-/* ---------- Values grid ---------- */
+/* ---------- Grilla de valores ---------- */
 
 .storefront-about__values {
   display: grid;
@@ -71,11 +78,21 @@
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium), transform var(--transition-base) var(--ease-premium);
+  /* Aparición propia (fade+rise), controlada por .reveal-on-scroll del
+     padre, con un delay por tarjeta (inline, según el índice del map)
+     para que las cuatro aparezcan una tras otra y no todas a la vez. */
+  opacity: 0;
+  transform: translateY(16px);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium),
+    transform var(--transition-base) var(--ease-premium), opacity 0.6s var(--ease-premium);
 }
-/* A hairline accent that draws itself across the top edge on hover —
-   quieter than a border-color flash, and it gives the four otherwise
-   identical cards something to do. */
+.reveal-on-scroll.is-in-view .storefront-about__value-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-on-scroll.is-in-view .storefront-about__value-card:hover { transform: translateY(-4px); }
+/* Un acento delgado que se dibuja en el borde superior al pasar el mouse,
+   más sutil que un cambio de color de borde. */
 .storefront-about__value-card::before {
   content: "";
   position: absolute;
@@ -121,7 +138,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ---------- Branches callout ---------- */
+/* ---------- Llamado a sucursales ---------- */
 
 .storefront-about__branches {
   background: var(--color-primary);

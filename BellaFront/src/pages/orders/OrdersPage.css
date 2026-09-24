@@ -1,0 +1,236 @@
+.orders-page { display: flex; flex-direction: column; gap: var(--space-4); max-width: 1280px; }
+
+.orders-page__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); }
+.orders-page__title { display: flex; align-items: center; gap: 10px; color: var(--color-ink); }
+.orders-page__title svg { color: var(--color-pink-deep); }
+.orders-page__title h1 { margin: 0; }
+
+.orders-page__subtitle { margin: calc(var(--space-3) * -1) 0 0; font-size: 0.88rem; color: var(--color-text-secondary); max-width: 720px; }
+
+/* ---------- Filter bar — same layout convention as SalesPage/TransfersPage. ---------- */
+.orders-filters { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: var(--space-1) 0 var(--space-1); }
+.orders-filters__date {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.82rem; color: var(--color-text-secondary); font-weight: 500;
+}
+.orders-filters__date input {
+  padding: 7px var(--space-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.85rem; color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.orders-filters__date input:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+
+/* ---------- Table — same structure/conventions as SalesPage/TransfersPage. ---------- */
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: fade-in-up 0.6s var(--ease-premium) both;
+}
+.orders-table th, .orders-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); font-size: 0.88rem; vertical-align: middle; }
+.orders-table tbody tr {
+  position: relative;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-fast) var(--ease-premium);
+}
+.orders-table tbody tr:hover { background: var(--color-bg); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.orders-table tbody tr:last-child td { border-bottom: none; }
+
+.orders-table__folio { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.orders-table__total { font-weight: 600; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.orders-table__eta { font-size: 0.82rem; color: var(--color-text-secondary); white-space: nowrap; }
+
+.orders-table__fulfillment { display: inline-flex; align-items: center; gap: 6px; color: var(--color-ink); }
+.orders-table__fulfillment svg { color: var(--color-text-muted); flex-shrink: 0; }
+
+.orders-table__view {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--color-border); cursor: pointer;
+  padding: 5px 10px; color: var(--color-text-secondary);
+  border-radius: var(--radius-pill); font-size: 0.8rem;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium), border-color var(--transition-fast) var(--ease-premium);
+}
+.orders-table__view:hover { background: var(--color-pink-soft); color: var(--color-pink-deep); border-color: var(--color-pink-elegant); }
+
+/* ---------- Detail modal ---------- */
+.order-detail-modal.modal { max-width: 520px; }
+.order-detail { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.order-detail__status-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.order-detail__date { font-size: 0.82rem; color: var(--color-text-secondary); }
+
+.order-detail__sale-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: var(--space-2_5) var(--space-3);
+  background: #E4F3E9; border: 1px solid #B7DFC5; border-radius: var(--radius-md);
+  color: #1F7A3E; font-size: 0.88rem; font-weight: 600;
+}
+.order-detail__cancel-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: var(--space-2_5) var(--space-3);
+  background: #FBE5E1; border: 1px solid #F2C4BC; border-radius: var(--radius-md);
+  color: #8A1F17; font-size: 0.88rem; font-weight: 600;
+}
+.order-detail__notify-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap;
+  padding: var(--space-2_5) var(--space-3);
+  background: #E7F7EF; border: 1px solid #B4E6CA; border-radius: var(--radius-md);
+  color: #146C43; font-size: 0.85rem; font-weight: 600;
+}
+.order-detail__notify-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #25D366; color: var(--color-white); border: none; border-radius: var(--radius-pill);
+  padding: 6px 14px; font-weight: 700; font-size: 0.85rem; text-decoration: none;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.order-detail__notify-btn:hover { background: #1DA851; }
+
+.order-detail__section-label {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 6px; font-size: 0.78rem; font-weight: 600; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+
+/* Customer block is kept visually distinct — this is the info a
+   non-technical cashier needs to spot first to call/contact the client. */
+.order-detail__customer {
+  padding: var(--space-2_5) var(--space-3);
+  background: var(--color-pink-soft); border-radius: var(--radius-md);
+}
+.order-detail__customer .order-detail__section-label { color: var(--color-pink-deep); }
+.order-detail__customer-row {
+  display: flex; align-items: center; gap: 8px;
+  margin: 4px 0 0; font-size: 0.92rem; font-weight: 600; color: var(--color-ink);
+}
+.order-detail__customer-row:first-of-type { margin-top: 0; }
+.order-detail__customer-row svg { color: var(--color-pink-deep); flex-shrink: 0; }
+
+.order-detail__fulfillment { padding: var(--space-2_5) var(--space-3); background: var(--color-bg); border-radius: var(--radius-md); }
+.order-detail__fulfillment-row { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.88rem; color: var(--color-ink); }
+.order-detail__fulfillment-row svg { color: var(--color-text-muted); flex-shrink: 0; }
+.order-detail__payment-row, .order-detail__notes-row { margin: 6px 0 0; font-size: 0.84rem; color: var(--color-text-secondary); }
+
+.order-detail__items { display: flex; flex-direction: column; gap: 6px; }
+.order-detail__item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+}
+.order-detail__item-info { flex: 1 1 auto; min-width: 0; }
+.order-detail__item-name { margin: 0; font-size: 0.88rem; font-weight: 500; color: var(--color-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-detail__item-sku { margin: 1px 0 0; font-size: 0.74rem; color: var(--color-text-muted); }
+.order-detail__item-qty { flex: 0 0 auto; font-size: 0.84rem; font-weight: 600; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.order-detail__item-price { flex: 0 0 auto; font-size: 0.82rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.order-detail__item-total { flex: 0 0 auto; font-size: 0.88rem; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+
+.order-detail__totals { display: flex; flex-direction: column; gap: 4px; padding: var(--space-2_5) var(--space-3); background: var(--color-bg); border-radius: var(--radius-md); }
+.order-detail__totals-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.86rem; color: var(--color-text-secondary); }
+.order-detail__totals-row--total { font-size: 1rem; font-weight: 700; color: var(--color-ink); padding-top: 4px; border-top: 1px solid var(--color-border); }
+
+.order-detail__eta { padding: var(--space-2_5) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.order-detail__eta-hint { margin: 0 0 8px; font-size: 0.78rem; color: var(--color-text-secondary); }
+.order-detail__eta-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.order-detail__eta-controls input[type="datetime-local"] {
+  padding: 7px var(--space-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.85rem; color: var(--color-primary);
+}
+.order-detail__eta-controls input[type="datetime-local"]:focus { outline: none; border-color: var(--color-pink-elegant); box-shadow: var(--shadow-focus); }
+.order-detail__eta-save {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--color-pink-deep); color: var(--color-white);
+  border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium);
+}
+.order-detail__eta-save:hover:not(:disabled) { background: var(--color-primary-focus); }
+.order-detail__eta-save:disabled { opacity: 0.55; cursor: not-allowed; }
+.order-detail__eta-clear {
+  background: none; border: none; color: var(--color-text-secondary);
+  font-size: 0.8rem; font-weight: 600; text-decoration: underline; cursor: pointer;
+}
+.order-detail__eta-clear:hover:not(:disabled) { color: #B3261E; }
+.order-detail__eta-clear:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.order-detail__action { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+
+.order-detail__pickup-code { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.order-detail__pickup-code-label { margin: 0; font-size: 0.78rem; color: var(--color-text-secondary); text-align: center; }
+.order-detail__advance-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: var(--color-pink-deep); color: var(--color-white);
+  border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2_5) var(--space-3);
+  font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.order-detail__advance-btn:hover:not(:disabled) { background: var(--color-primary-focus); }
+.order-detail__advance-btn:active:not(:disabled) { transform: scale(0.98); }
+.order-detail__advance-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.order-detail__cancel-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid #B3261E; color: #B3261E;
+  border-radius: var(--radius-pill); padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.order-detail__cancel-trigger:hover { background: #FBE5E1; }
+
+.order-detail__cancel-confirm {
+  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  padding: var(--space-2_5) var(--space-3);
+  border: 1px solid #F2C4BC; background: #FBE5E1; border-radius: var(--radius-md);
+}
+.order-detail__cancel-confirm label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; font-weight: 600; color: #8A1F17; }
+.order-detail__cancel-confirm textarea {
+  padding: var(--space-2);
+  border: 1px solid #E7A79C; border-radius: var(--radius-sm);
+  font-family: var(--font-body); font-size: 0.86rem; color: var(--color-primary);
+  background: var(--color-white); resize: vertical;
+}
+.order-detail__cancel-confirm textarea:focus { outline: none; border-color: #B3261E; }
+
+.order-detail__action-error { display: flex; align-items: flex-start; gap: 6px; margin: 6px 0 0; font-size: 0.78rem; color: #8A1F17; }
+.order-detail__action-buttons { display: flex; gap: 8px; }
+.order-detail__cancel-confirm-btn, .order-detail__dismiss-btn {
+  flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-pill);
+  font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  transition: background-color var(--transition-fast) var(--ease-premium);
+}
+.order-detail__cancel-confirm-btn { background: #B3261E; border: none; color: var(--color-white); }
+.order-detail__cancel-confirm-btn:hover:not(:disabled) { background: #8A1F17; }
+.order-detail__cancel-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.order-detail__dismiss-btn { background: var(--color-white); border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+.order-detail__dismiss-btn:hover:not(:disabled) { background: var(--color-bg); }
+
+@media (max-width: 768px) {
+  .orders-table thead { display: none; }
+  .orders-table, .orders-table tbody, .orders-table tr, .orders-table td { display: block; width: 100%; }
+  .orders-table tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) 0; }
+  .order-detail__eta-controls { flex-direction: column; align-items: stretch; }
+}
+
+/* ---------- Modal-scoped re-assertion ----------
+   Modal.css's `.modal__body label` (specificity 0,1,1) forces
+   flex-direction: column on every <label> inside a modal — harmless here
+   since .order-detail__cancel-confirm label is already column, but kept as
+   a defensive note matching TransfersPage.css/PurchasesPage.css's own
+   comment in case a future row-flex label is added to this modal. */
+
+/* Real bug found on a phone-width audit: this table has no responsive
+   treatment at all, so on a narrow screen it either got clipped or forced
+   the WHOLE PAGE (header included) to scroll horizontally. Scoping the
+   scroll to just the table itself (a plain CSS-only fix — no JSX wrapper
+   needed, since making the table element itself the scroll container
+   still renders its internal row/column structure correctly) keeps the
+   header/filters/page fixed while only the wide table content scrolls. */
+@media (max-width: 900px) {
+  .orders-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}

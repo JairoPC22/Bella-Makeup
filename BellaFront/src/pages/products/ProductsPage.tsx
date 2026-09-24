@@ -1,6 +1,6 @@
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Package, Plus, Pencil, Power, Search, ImageOff } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { Badge } from "../../components/common/Badge";
 import { Select } from "../../components/common/Select";
@@ -14,18 +14,11 @@ import type { Brand, Category, Product } from "../../types/api";
 import type { ReportColumn } from "../../utils/reportExport";
 import { ProductFormModal } from "./ProductFormModal";
 import "./ProductsPage.css";
+import { staggerStyle } from "../../utils/staggerStyle";
 
-const currencyFormatter = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+import { currencyFormatter } from "../../utils/currency";
 
 type FetchStatus = "loading" | "ready" | "error";
-
-// Same --stagger-delay custom-property pattern as DashboardPage.tsx's
-// staggerStyle — paired with the sitewide .animate-in-stagger utility in
-// global.css so table rows fade/slide in one after another instead of all
-// at once, consistent with how the rest of the app already animates lists.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -95,11 +88,8 @@ export function ProductsPage() {
     return primary ? productService.buildProductImageUrl(primary.url) : null;
   }
 
-  // Lets ProductFormModal's inline "+ Nueva categoría"/"+ Nueva marca"
-  // affordance bubble the newly-created row back up here, so this page's
-  // own filter-bar selects (and the modal's own selects, since they share
-  // this same state as props) pick it up immediately — no manual refetch
-  // or page reload needed.
+  // Permite que "+ Nueva categoría/marca" en ProductFormModal actualice
+  // este estado sin recargar ni volver a pedir datos al servidor.
   function handleCategoryCreated(category: Category) {
     setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
   }
@@ -133,17 +123,28 @@ export function ProductsPage() {
           <Package size={22} />
           <h1>Productos</h1>
         </div>
-        <PermissionGate code="products.create">
-          <button onClick={() => { setEditingProduct(undefined); setModalOpen(true); }}>
-            <Plus size={16} /> Nuevo producto
-          </button>
-        </PermissionGate>
+        <div className="products-page__header-actions">
+          <PermissionGate code="transfers.view">
+            <Link to="/admin/transferencias" className="products-page__transfers-btn">
+              <ArrowLeftRight size={16} /> Transferencias <ArrowRight size={14} />
+            </Link>
+          </PermissionGate>
+          <PermissionGate code="products.create">
+            <button onClick={() => { setEditingProduct(undefined); setModalOpen(true); }}>
+              <Plus size={16} /> Nuevo producto
+            </button>
+          </PermissionGate>
+        </div>
       </div>
 
       <p className="products-page__subtitle">
         El catálogo de productos es compartido por todas las sucursales. El stock de cada producto por sucursal se gestiona en{" "}
         <PermissionGate code="inventory.view" fallback="Inventario">
           <Link to="/admin/inventario">Inventario</Link>
+        </PermissionGate>
+        , y los envíos entre sucursales se hacen desde{" "}
+        <PermissionGate code="transfers.view" fallback="Transferencias">
+          <Link to="/admin/transferencias">Transferencias</Link>
         </PermissionGate>
         .
       </p>

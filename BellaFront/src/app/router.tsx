@@ -1,13 +1,11 @@
-import { createBrowserRouter, Link } from "react-router-dom";
+import { createBrowserRouter, Navigate, useLocation, useRouteError } from "react-router-dom";
+import { SearchX, AlertTriangle } from "lucide-react";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { PermissionRoute } from "../components/auth/PermissionRoute";
 import { AppShell } from "../components/layout/AppShell";
-import { StatusState } from "../components/common/StatusState";
 import { LoginPage } from "../pages/auth/LoginPage";
 import { DashboardPage } from "../pages/dashboard/DashboardPage";
 import { ProfilePage } from "../pages/profile/ProfilePage";
-import { UsersPage } from "../pages/users/UsersPage";
-import { RolesPage } from "../pages/roles/RolesPage";
 import { BranchesPage } from "../pages/branches/BranchesPage";
 import { ProductsPage } from "../pages/products/ProductsPage";
 import { InventoryPage } from "../pages/inventory/InventoryPage";
@@ -16,10 +14,15 @@ import { PurchasesPage } from "../pages/purchases/PurchasesPage";
 import { SuppliersPage } from "../pages/purchases/SuppliersPage";
 import { PosPage } from "../pages/pos/PosPage";
 import { SalesPage } from "../pages/sales/SalesPage";
-import { CompanySettingsPage } from "../pages/settings/CompanySettingsPage";
+import { CajaPage } from "../pages/caja/CajaPage";
+import { MermasPage } from "../pages/mermas/MermasPage";
+import { InventoryCountsPage } from "../pages/inventory-counts/InventoryCountsPage";
+import { OrdersPage } from "../pages/orders/OrdersPage";
+import { SettingsPage } from "../pages/settings/SettingsPage";
 import { AuditPage } from "../pages/audit/AuditPage";
 import { MessagesPage } from "../pages/messages/MessagesPage";
 import { AccessDeniedPage } from "../pages/errors/AccessDeniedPage";
+import { ErrorPage } from "../pages/errors/ErrorPage";
 import { CartProvider } from "../storefront/CartContext";
 import { StorefrontLayout } from "../storefront/StorefrontLayout";
 import { HomePage as StorefrontHomePage } from "../storefront/pages/HomePage";
@@ -32,28 +35,61 @@ import { FaqPage as StorefrontFaqPage } from "../storefront/pages/FaqPage";
 import { ShippingPage as StorefrontShippingPage } from "../storefront/pages/ShippingPage";
 import { LocationPage as StorefrontLocationPage } from "../storefront/pages/LocationPage";
 
+// Esta ruta vive en el nivel superior, fuera de AppShell y de
+// StorefrontLayout (debe atrapar URLs rotas de ambos lados). El enlace de
+// "volver" es contextual: una URL /admin/... rota devuelve al usuario admin
+// al dashboard; cualquier otra devuelve al visitante de la tienda al inicio.
 function NotFoundPage() {
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith("/admin");
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <StatusState kind="empty" message="No encontramos esta página." />
-      <Link to="/">Volver al inicio</Link>
-    </div>
+    <ErrorPage
+      code="404"
+      icon={SearchX}
+      title="Esta página no existe"
+      message="El enlace que seguiste puede estar roto o la página pudo haberse movido. Revisa la dirección o vuelve al inicio."
+      linkTo={isAdminPath ? "/admin" : "/"}
+      linkLabel={isAdminPath ? "Volver al panel" : "Volver a la tienda"}
+    />
+  );
+}
+
+// `errorElement` de React Router actúa como error boundary real para la
+// rama de rutas a la que está asociado (no solo errores de loaders, también
+// captura excepciones al renderizar). Se define en ambas ramas de nivel
+// superior para evitar que el usuario quede varado en una pantalla en
+// blanco. Reutiliza el mismo tratamiento visual que las rutas 404/403.
+function RouteCrashPage() {
+  const error = useRouteError();
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith("/admin");
+  if (import.meta.env.DEV) console.error("Route crashed:", error);
+  return (
+    <ErrorPage
+      code="Error"
+      icon={AlertTriangle}
+      title="Algo salió mal"
+      message="Ocurrió un error inesperado al cargar esta página. Intenta recargar o vuelve al inicio."
+      linkTo={isAdminPath ? "/admin" : "/"}
+      linkLabel={isAdminPath ? "Volver al panel" : "Volver a la tienda"}
+    />
   );
 }
 
 export const router = createBrowserRouter([
-  { path: "/admin/login", element: <LoginPage /> },
-  // Public, unauthenticated storefront ("la tienda en línea") — now the
-  // site's root, a sibling top-level route tree, NOT nested inside
-  // ProtectedRoute/AppShell like the admin panel below. CartProvider wraps
-  // StorefrontLayout so cart state is available to every storefront page
-  // via its own <Outlet/>.
+  { path: "/admin/login", element: <LoginPage />, errorElement: <RouteCrashPage /> },
+  // Tienda en línea pública y sin autenticación — es la raíz del sitio, un
+  // árbol de rutas independiente, NO anidado dentro de ProtectedRoute/
+  // AppShell como el panel de administración de abajo. CartProvider envuelve
+  // a StorefrontLayout para que el estado del carrito esté disponible en
+  // todas las páginas de la tienda a través de su propio <Outlet/>.
   {
     element: (
       <CartProvider>
         <StorefrontLayout />
       </CartProvider>
     ),
+    errorElement: <RouteCrashPage />,
     children: [
       { path: "/", element: <StorefrontHomePage /> },
       { path: "/catalogo", element: <StorefrontCatalogPage /> },
@@ -68,6 +104,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteCrashPage />,
     children: [
       {
         element: <AppShell />,
@@ -75,14 +112,11 @@ export const router = createBrowserRouter([
           { path: "/admin", element: <DashboardPage /> },
           { path: "/admin/perfil", element: <ProfilePage /> },
           { path: "/admin/acceso-denegado", element: <AccessDeniedPage /> },
-          {
-            element: <PermissionRoute code="users.view" />,
-            children: [{ path: "/admin/usuarios", element: <UsersPage /> }],
-          },
-          {
-            element: <PermissionRoute code="roles.view" />,
-            children: [{ path: "/admin/roles", element: <RolesPage /> }],
-          },
+          // Usuarios y Roles se movieron a Configuración como pestañas;
+          // estas dos rutas ahora solo redirigen cualquier marcador o enlace
+          // antiguo a la pestaña correspondiente en vez de tener su propia página.
+          { path: "/admin/usuarios", element: <Navigate to="/admin/configuracion?tab=usuarios" replace /> },
+          { path: "/admin/roles", element: <Navigate to="/admin/configuracion?tab=roles" replace /> },
           {
             element: <PermissionRoute code="branches.view" />,
             children: [{ path: "/admin/sucursales", element: <BranchesPage /> }],
@@ -103,11 +137,11 @@ export const router = createBrowserRouter([
             element: <PermissionRoute code="purchases.view" />,
             children: [{ path: "/admin/compras", element: <PurchasesPage /> }],
           },
-          // Proveedores has no sidebar entry (it's reached from the Compras
-          // page) but still needs its own route-level gate: suppliers.manage
-          // is strictly narrower than the purchases.view that gets you to
-          // Compras, so without this anyone who could see purchases could
-          // reach the supplier editor by typing the URL.
+          // Proveedores no tiene entrada en el sidebar (se llega desde
+          // Compras) pero igual necesita su propio guard de ruta:
+          // suppliers.manage es más restrictivo que purchases.view, así que
+          // sin esto cualquiera con acceso a Compras podría llegar al editor
+          // de proveedores escribiendo la URL directamente.
           {
             element: <PermissionRoute code="suppliers.manage" />,
             children: [{ path: "/admin/proveedores", element: <SuppliersPage /> }],
@@ -120,21 +154,33 @@ export const router = createBrowserRouter([
             element: <PermissionRoute code="sales.view" />,
             children: [{ path: "/admin/ventas", element: <SalesPage /> }],
           },
-          // Gated to match Sidebar.tsx's NAV_ITEMS entry for this same
-          // path, which has always hidden "Configuración" behind
-          // settings.manage. Without this route-level gate the sidebar
-          // hiding was cosmetic only: any authenticated user (e.g. a
-          // cashier) could still reach the full company-settings form by
-          // typing the URL. The backend's PUT /api/company-settings is
-          // already requirePermission("settings.manage"), so a save would
-          // have 403'd — but the form still rendered and leaked company
-          // data. Note the backend GET is deliberately requireAuth-only
-          // (SaleReceipt.tsx needs company name/currency for every
-          // cashier's printed ticket), so this gate has to live here.
+          // Un cajero abre/cierra SU PROPIA caja (cash.manage); un gerente
+          // solo audita turnos ajenos (cash.audit) sin operar caja. Cualquiera
+          // de los dos permisos basta para acceder a esta ruta.
           {
-            element: <PermissionRoute code="settings.manage" />,
-            children: [{ path: "/admin/configuracion", element: <CompanySettingsPage /> }],
+            element: <PermissionRoute anyOf={["cash.manage", "cash.audit"]} />,
+            children: [{ path: "/admin/caja", element: <CajaPage /> }],
           },
+          {
+            element: <PermissionRoute code="shrinkage.view" />,
+            children: [{ path: "/admin/mermas", element: <MermasPage /> }],
+          },
+          {
+            element: <PermissionRoute code="inventory.count" />,
+            children: [{ path: "/admin/inventarios-fisicos", element: <InventoryCountsPage /> }],
+          },
+          {
+            element: <PermissionRoute code="orders.view" />,
+            children: [{ path: "/admin/pedidos", element: <OrdersPage /> }],
+          },
+          // Configuración también aloja Usuarios/Roles/Actividad como
+          // pestañas; SettingsPage oculta las pestañas/contenido para los
+          // que el usuario no tiene permiso (los endpoints del backend
+          // siguen validando permisos de forma independiente). No hay guard
+          // de permiso a nivel de ruta a propósito: todo usuario autenticado
+          // siempre tiene la pestaña "Mi perfil", así que ninguna
+          // combinación de permisos debería bloquear la ruta por completo.
+          { path: "/admin/configuracion", element: <SettingsPage /> },
           {
             element: <PermissionRoute code="audit.view" />,
             children: [{ path: "/admin/auditoria", element: <AuditPage /> }],

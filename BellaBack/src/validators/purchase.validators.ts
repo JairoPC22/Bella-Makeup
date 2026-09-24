@@ -1,30 +1,14 @@
 import { z } from "zod";
-
-// Same recurring bug class documented in transfer.validators.ts, user.validators.ts
-// and every other validator file: Zod's strict `.uuid()` rejects the
-// deterministic seed ids ("00000000-...-000000000001") used by the seeded
-// branches, which are valid UUID-shaped strings but fail the RFC
-// version/variant check. `branchId` routinely references those seeded
-// fixtures, so it uses this shape-only regex. Never use `.uuid()` for a field
-// that can hold a seeded id.
-//
-// supplierId/productId/variantId/purchaseItemId also use uuidShape here
-// rather than `.uuid()`: unlike transfers (where products always carry
-// Prisma's real v4 default), suppliers are brand-new master data that a
-// future seed or an import script is very likely to give deterministic ids
-// for, and there is no upside to the stricter check — Prisma still rejects
-// any id that does not correspond to a real row.
-const uuidShape = z
-  .string()
-  .regex(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/, "Invalid UUID");
+import { uuidShape } from "./common.validators";
 
 const purchaseItemSchema = z.object({
   productId: uuidShape,
   variantId: uuidShape.optional(),
   expectedQuantity: z.number().int().positive(),
-  // Non-negative rather than positive: a zero-cost line is legitimate
-  // (promotional units, free samples shipped with an order, warranty
-  // replacements) and the business still needs them on the books and in stock.
+  // No negativo en vez de positivo: una línea de costo cero es legítima
+  // (unidades promocionales, muestras gratis enviadas con un pedido,
+  // reemplazos de garantía) y el negocio necesita registrarlas en libros y
+  // en stock.
   unitCost: z.number().nonnegative(),
 });
 
@@ -41,15 +25,15 @@ export const receivePurchaseSchema = z.object({
     .array(
       z.object({
         purchaseItemId: uuidShape,
-        // Zero is valid and meaningful: "this line was checked and nothing
-        // arrived". No upper bound — an over-delivery is recorded as a
-        // discrepancy, not rejected (see receivePurchase).
+        // Cero es válido y significativo: "esta línea se revisó y no llegó
+        // nada". Sin límite superior: una sobre-entrega se registra como
+        // discrepancia, no se rechaza (ver receivePurchase).
         receivedQuantity: z.number().int().nonnegative(),
       })
     )
-    // An empty array is allowed: it is the legitimate way to close out a
-    // delivery where the truck arrived with none of the ordered lines, which
-    // the service records as every line received 0 and
+    // Un arreglo vacío está permitido: es la forma legítima de cerrar una
+    // entrega donde el camión llegó sin ninguna de las líneas pedidas, que
+    // el servicio registra como cada línea recibida en 0 y
     // RECEIVED_WITH_DISCREPANCIES.
     .default([]),
 });

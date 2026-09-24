@@ -19,7 +19,10 @@
   max-width: 440px;
   height: 100%;
   background: var(--color-white);
-  box-shadow: var(--shadow-lg);
+  /* Se agrega un brillo suave con el color de marca bajo la sombra normal,
+     en el borde izquierdo, para que el drawer se vea como una superficie
+     propia y no un sidebar genérico. */
+  box-shadow: -24px 0 60px -20px color-mix(in srgb, var(--color-pink-deep) 22%, transparent), var(--shadow-lg);
   transform: translateX(100%);
   transition: transform var(--transition-slow) var(--ease-premium);
 }
@@ -28,13 +31,20 @@
 }
 
 .cart-drawer__header {
+  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  /* Tinte sutil en vez de blanco plano, en línea con la banda del
+     encabezado de la tienda, para que abrir el carrito no se sienta como
+     un panel utilitario sin diseñar. */
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--color-pink-50) 55%, var(--color-white)) 0%,
+    var(--color-white) 100%);
+  border-bottom: 1px solid var(--color-divider-soft);
 }
 .cart-drawer__title {
   display: flex;
@@ -80,7 +90,7 @@
   padding: var(--space-4);
 }
 
-/* ---------- Empty state ---------- */
+/* ---------- Estado vacío ---------- */
 
 .cart-drawer__empty {
   display: flex;
@@ -139,7 +149,7 @@
   transform: translateY(-1px);
 }
 
-/* ---------- Lines ---------- */
+/* ---------- Líneas ---------- */
 
 .cart-drawer__lines {
   list-style: none;
@@ -156,15 +166,35 @@
   gap: var(--space-3);
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-divider-soft);
+  border-radius: var(--radius-md);
+  transition: background-color 0.6s var(--ease-premium);
 }
 .cart-drawer__line:last-child { border-bottom: none; padding-bottom: 0; }
+
+/* La línea recién agregada recibe un pulso breve de fondo (CartDrawer.tsx
+   lo quita 1.4s después) como confirmación visual de que se agregó. */
+.cart-drawer__line--added {
+  background: color-mix(in srgb, var(--color-pink-50) 80%, var(--color-white));
+  margin: 0 calc(var(--space-2) * -1);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+}
+
+/* "Rodado" del dígito/precio — ver RollingValue en CartDrawer.tsx. Recorte
+   de altura fija para que la entrada/salida del valor no mueva el layout. */
+.cart-drawer__roll {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.cart-drawer__roll > span { display: inline-block; }
 
 .cart-drawer__line-thumb {
   width: 68px;
   height: 68px;
   border-radius: var(--radius-md);
-  /* Same tinted placeholder wash as the product cards, so a line with no
-     product photo still looks designed rather than like a missing asset. */
+  /* Mismo tinte de placeholder que las tarjetas de producto, para que una
+     línea sin foto se vea diseñada y no como un recurso faltante. */
   background: linear-gradient(160deg,
     color-mix(in srgb, var(--color-pink-50) 85%, var(--color-white)) 0%,
     color-mix(in srgb, var(--color-pink-100) 45%, var(--color-white)) 100%);
@@ -175,6 +205,7 @@
   overflow: hidden;
   color: color-mix(in srgb, var(--color-pink-deep) 42%, var(--color-white));
   flex-shrink: 0;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-ink) 8%, transparent);
 }
 .cart-drawer__line-thumb img {
   width: 100%;
@@ -191,8 +222,8 @@
   letter-spacing: var(--tracking-tight);
   color: var(--color-ink);
   line-height: 1.3;
-  /* Two-line clamp rather than a single-line ellipsis: variant names like
-     "Labial Matte — Nude" were being truncated mid-name before. */
+  /* Recorte a dos líneas en vez de una sola con elipsis: nombres de
+     variante como "Labial Matte — Nude" se truncaban a la mitad. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -253,11 +284,12 @@
     color var(--transition-fast) var(--ease-premium);
 }
 .cart-drawer__stepper button:hover { background: var(--color-pink-100); color: var(--color-pink-deep); }
-.cart-drawer__stepper span {
+.cart-drawer__stepper-value {
   min-width: 18px;
-  text-align: center;
+  justify-content: center;
   font-size: 0.82rem;
   font-weight: 600;
+  color: var(--color-ink);
 }
 
 .cart-drawer__remove {
@@ -276,9 +308,10 @@
 }
 .cart-drawer__remove:hover { color: #B3261E; }
 
-/* ---------- Footer ---------- */
+/* ---------- Pie ---------- */
 
 .cart-drawer__footer {
+  position: relative;
   flex: 0 0 auto;
   padding: var(--space-4);
   border-top: 1px solid var(--color-border);
@@ -286,6 +319,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2_5);
+  /* Levanta visualmente el pie sobre la lista con scroll, para que se lea
+     como un panel fijo y no solo un borde a mitad de página. */
+  box-shadow: 0 -8px 20px -12px color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
 .cart-drawer__note {
@@ -316,6 +352,11 @@
   letter-spacing: var(--tracking-tighter);
 }
 
+@keyframes cart-drawer-checkout-glow {
+  0%, 100% { box-shadow: 0 6px 16px color-mix(in srgb, var(--color-pink-deep) 22%, transparent); }
+  50% { box-shadow: 0 8px 24px color-mix(in srgb, var(--color-pink-deep) 40%, transparent); }
+}
+
 .cart-drawer__checkout {
   display: flex;
   align-items: center;
@@ -327,10 +368,14 @@
   border-radius: var(--radius-pill);
   font-weight: 600;
   text-decoration: none;
+  /* Brillo lento e inactivo: sutil, pero suficiente para que el botón más
+     importante del pie no se vea plano frente a lo demás. */
+  animation: cart-drawer-checkout-glow 2.6s ease-in-out infinite;
   transition: background-color var(--transition-base) var(--ease-premium),
     box-shadow var(--transition-base) var(--ease-premium),
     transform var(--transition-fast) var(--ease-premium);
 }
+.cart-drawer__checkout:hover { animation-play-state: paused; }
 .cart-drawer__checkout svg { transition: transform var(--transition-base) var(--ease-premium); }
 .cart-drawer__checkout:hover {
   background: var(--color-primary-focus);

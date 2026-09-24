@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Clock3, MapPin, Phone, MapPinned } from "lucide-react";
 import { StatusState } from "../../components/common/StatusState";
 import { listPublicBranches } from "../../services/storefrontService";
@@ -51,8 +51,12 @@ export function LocationPage() {
         )}
         {status === "ready" && branches.length > 0 && (
           <div className="storefront-location__grid">
-            {branches.map((branch) => (
-              <article className="storefront-location-card" key={branch.id}>
+            {branches.map((branch, index) => (
+              <article
+                className="storefront-location-card animate-in-stagger"
+                key={branch.id}
+                style={{ "--stagger-delay": `${Math.min(index, 8) * 70}ms` } as CSSProperties}
+              >
                 <h2>{branch.name}</h2>
                 <ul className="storefront-location-card__facts">
                   {branch.address && (

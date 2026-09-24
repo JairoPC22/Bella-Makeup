@@ -14,8 +14,8 @@ const EXCEL_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 
-// Cap the rendered table so a huge workbook can't hang the browser — the
-// full file is always one click away via the download button.
+// Limita la tabla renderizada para que un libro muy grande no cuelgue el
+// navegador — el archivo completo siempre está a un clic vía el botón de descarga.
 const MAX_EXCEL_ROWS = 200;
 
 function formatFileSize(bytes: number): string {
@@ -29,9 +29,9 @@ type ExcelState =
   | { status: "error" }
   | { status: "ready"; rows: unknown[][]; totalRows: number; sheetName: string; sheetCount: number };
 
-// Fetches + parses the workbook client-side with SheetJS (xlsx) and renders
-// only the first sheet as a plain HTML table — a full multi-sheet tab
-// switcher would be over-building for a chat attachment preview.
+// Descarga y parsea el libro en el cliente con SheetJS (xlsx), renderizando
+// solo la primera hoja como tabla HTML simple — un selector de pestañas para
+// múltiples hojas sería sobreingeniería para una vista previa de adjunto de chat.
 function ExcelPreview({ url }: { url: string }) {
   const [state, setState] = useState<ExcelState>({ status: "loading" });
 
@@ -123,8 +123,8 @@ function AttachmentPreviewContent({ attachment, url }: { attachment: MessageAtta
         <a className="attachment-preview__new-tab" href={url} target="_blank" rel="noreferrer">
           <ExternalLink size={14} /> Abrir en una pestaña nueva
         </a>
-        {/* Browsers render PDFs natively inside an iframe — no viewer
-           library needed for the primary experience. */}
+        {/* Los navegadores renderizan PDFs de forma nativa dentro de un iframe —
+           no se necesita una librería visor para la experiencia principal. */}
         <iframe src={url} title={attachment.fileName} className="attachment-preview__pdf" />
       </div>
     );

@@ -18,6 +18,7 @@ import profileRoutes from "./routes/profile.routes";
 import companySettingsRoutes from "./routes/companySettings.routes";
 import auditRoutes from "./routes/audit.routes";
 import inventoryRoutes from "./routes/inventory.routes";
+import inventoryCountRoutes from "./routes/inventoryCount.routes";
 import messageRoutes from "./routes/message.routes";
 import customerRoutes from "./routes/customer.routes";
 import saleRoutes from "./routes/sale.routes";
@@ -29,6 +30,7 @@ import mermaRoutes from "./routes/merma.routes";
 import supplierRoutes from "./routes/supplier.routes";
 import publicRoutes from "./routes/public.routes";
 import orderRoutes from "./routes/order.routes";
+import ratingRoutes from "./routes/rating.routes";
 import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -44,34 +46,17 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
-// helmet()'s default Cross-Origin-Resource-Policy is "same-origin", which
-// silently blocks <img>/attachment loads from the frontend's own origin
-// (e.g. localhost:5174 fetching localhost:4000/uploads/...) even though the
-// request itself succeeds with a 200 — the browser just refuses to render
-// the response, and it's invisible to curl since CORP is only enforced by
-// browsers. Scoped override to "cross-origin" for this static route only,
-// so the rest of the API keeps helmet's stricter default.
-//
-// Same story for helmet()'s default Content-Security-Policy, which includes
-// "frame-ancestors 'self'" — that blocks the frontend from embedding a
-// /uploads file (e.g. a message attachment PDF) in an <iframe>, since the
-// frontend runs on a different origin/port than this API. Real Chrome
-// enforces this (confirmed via a real Chrome-channel Playwright run — the
-// default Playwright/headless Chromium doesn't ship a PDF viewer at all, so
-// it never surfaces this particular failure and silently no-ops instead).
-// Disabling just the frame-ancestors directive for this static route (like
-// the CORP override above) is enough: everything under /uploads is a plain
-// static file (image/pdf/xlsx), never HTML/JS, so there's no clickjacking
-// surface here for frame-ancestors to protect in the first place.
-//
-// helmet()'s frameguard middleware sets the legacy "X-Frame-Options:
-// SAMEORIGIN" header too, which blocks cross-origin framing independently
-// of (and in addition to) the CSP frame-ancestors directive above — modern
-// browsers honor CSP frame-ancestors when present, but older ones fall back
-// to X-Frame-Options, so both have to be cleared for the <iframe> PDF embed
-// to render in every browser. There's no helmet sub-middleware that "unsets"
-// X-Frame-Options (xFrameOptions() always sets a value), so it's removed
-// directly once helmet has already set it.
+// El Cross-Origin-Resource-Policy por defecto de helmet() ("same-origin")
+// bloquea en silencio que el frontend cargue imágenes/adjuntos desde
+// /uploads (la petición responde 200 pero el navegador se niega a
+// renderizarla) — se relaja a "cross-origin" solo en esta ruta estática.
+// Lo mismo pasa con el CSP por defecto ("frame-ancestors 'self'"), que
+// impide incrustar un PDF de /uploads en un <iframe> desde el frontend (otro
+// origen); se desactiva esa directiva solo aquí, ya que todo lo que vive
+// bajo /uploads es archivo estático plano (nunca HTML/JS), así que no hay
+// superficie real de clickjacking que proteger. X-Frame-Options (el header
+// legado equivalente) se remueve por la misma razón, ya que ningún
+// middleware de helmet lo "desactiva" directamente.
 app.use(
   "/uploads",
   helmet.crossOriginResourcePolicy({ policy: "cross-origin" }),
@@ -105,6 +90,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/company-settings", companySettingsRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/inventory-counts", inventoryCountRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/sales", saleRoutes);
@@ -114,9 +100,8 @@ app.use("/api/cash-sessions", cashSessionRoutes);
 app.use("/api/returns", returnRoutes);
 app.use("/api/mermas", mermaRoutes);
 app.use("/api/suppliers", supplierRoutes);
-// /api/public — the anonymous storefront surface, a sibling root next to
-// every authenticated /api/* router above, not nested under any of them.
-// No requireAuth anywhere in public.routes.ts by design.
+app.use("/api/ratings", ratingRoutes);
+// /api/public es la tienda pública, sin requireAuth (acceso anónimo por diseño).
 app.use("/api/public", publicRoutes);
 app.use("/api/orders", orderRoutes);
 app.use(errorHandler);

@@ -1,0 +1,77 @@
+/* Visualmente separado del formulario: es la acción de una segunda persona,
+   no otro campo del formulario del cajero, así que tiene su propio bloque
+   con borde y color en vez de mezclarse con lo de arriba. */
+.pin-auth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-pink-100);
+  background: var(--color-pink-50);
+  border-radius: var(--radius-md);
+}
+
+.pin-auth__head { display: flex; align-items: center; gap: 7px; color: var(--color-pink-deep); }
+.pin-auth__title {
+  margin: 0; font-size: 0.78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.pin-auth__description { margin: 0; font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.4; }
+
+.pin-auth__field { display: flex; flex-direction: column; gap: 5px; }
+.pin-auth__field > span {
+  font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary);
+}
+.pin-auth__field input {
+  /* Wide letter-spacing + tabular numerals make a masked 4-6 digit entry read
+     as a keypad field rather than a password box, so it's obvious at a glance
+     how many digits have landed. */
+  width: 100%; max-width: 180px;
+  padding: var(--space-2) var(--space-2_5);
+  border: 1px solid var(--color-pink-elegant); border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-family: var(--font-body); font-size: 1.15rem; font-weight: 600;
+  letter-spacing: 0.35em; text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary);
+  transition: border-color var(--transition-base) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.pin-auth__field input:focus { outline: none; border-color: var(--color-pink-deep); box-shadow: var(--shadow-focus); }
+.pin-auth__field input::placeholder { letter-spacing: 0.25em; color: var(--color-text-muted); }
+
+.pin-auth__error {
+  display: flex; align-items: flex-start; gap: 7px;
+  margin: 0; padding: var(--space-2) var(--space-2_5);
+  background: #FBE5E1; border: 1px solid #F2C4BC;
+  border-radius: var(--radius-sm); color: #8A1F17; font-size: 0.82rem; line-height: 1.4;
+}
+.pin-auth__error svg { flex-shrink: 0; margin-top: 2px; }
+
+.pin-auth__submit {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--color-pink-deep); color: var(--color-white);
+  border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium);
+}
+.pin-auth__submit:hover:not(:disabled) { background: var(--color-primary-focus); }
+.pin-auth__submit:active:not(:disabled) { transform: scale(0.98); }
+.pin-auth__submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---------- Reafirmaciones dentro de Modal ----------
+   `.modal__body input` de Modal.css reformatea cualquier input con su propio
+   padding/borde/tamaño, lo que aplanaría el campo de PIN tipo teclado a una
+   caja de texto normal. Se reafirma aquí con la misma especificidad (no con
+   !important), misma técnica que PurchasesPage.css/TransfersPage.css. Este
+   componente hoy solo se usa dentro de un Modal, así que estas reglas son
+   necesarias, no defensivas. */
+.modal__body .pin-auth__field { flex-direction: column; gap: 5px; }
+.modal__body .pin-auth__field input {
+  padding: var(--space-2) var(--space-2_5);
+  font-size: 1.15rem; font-weight: 600;
+  letter-spacing: 0.35em; text-align: center;
+  border: 1px solid var(--color-pink-elegant); border-radius: var(--radius-sm);
+}
+.modal__body .pin-auth__field input:focus { border-color: var(--color-pink-deep); }

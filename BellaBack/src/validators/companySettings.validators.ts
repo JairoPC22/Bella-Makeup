@@ -12,4 +12,9 @@ export const updateCompanySettingsSchema = z.object({
   taxId: z.string().max(50).optional(),
   website: z.string().max(200).optional(),
   returnPolicy: z.string().max(1000).optional(),
+  requirePinForDiscounts: z.boolean().optional(),
+  requirePinForReturns: z.boolean().optional(),
+  requirePinForShrinkage: z.boolean().optional(),
+  allowPinForSaleCancel: z.boolean().optional(),
+  allowPinForInventoryAdjust: z.boolean().optional(),
 });

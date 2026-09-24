@@ -1,10 +1,8 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-// Mirrors returnRepository.ts's include exactly in spirit. Same hard rule on
-// the user sub-selects: `authorizedBy` is by construction a PIN holder, so
-// this must stay an explicit allow-list and never `true`, or every merma
-// listing would leak that user's `pinHash`.
+// Igual que el include de returnRepository.ts: `authorizedBy` requiere PIN,
+// por eso el select explícito evita filtrar `pinHash`.
 export const mermaInclude = {
   branch: { select: { id: true, name: true } },
   requestedBy: { select: { id: true, displayName: true, avatarStyle: true, avatarSeed: true } },

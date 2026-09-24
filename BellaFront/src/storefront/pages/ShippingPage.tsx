@@ -1,3 +1,4 @@
+import { type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Banknote, Clock3, MapPin, Store, Truck } from "lucide-react";
 import "./ShippingPage.css";
@@ -26,7 +27,7 @@ export function ShippingPage() {
       </div>
 
       <section className="storefront-section storefront-shipping__options">
-        <div className="storefront-shipping__option-card">
+        <div className="storefront-shipping__option-card animate-in-stagger">
           <span className="storefront-shipping__option-icon"><Store size={22} aria-hidden="true" /></span>
           <h2>Retiro en sucursal</h2>
           <p>
@@ -39,7 +40,7 @@ export function ShippingPage() {
           </ul>
         </div>
 
-        <div className="storefront-shipping__option-card">
+        <div className="storefront-shipping__option-card animate-in-stagger" style={{ "--stagger-delay": "90ms" } as CSSProperties}>
           <span className="storefront-shipping__option-icon"><Truck size={22} aria-hidden="true" /></span>
           <h2>Entrega a domicilio</h2>
           <p>
@@ -60,7 +61,11 @@ export function ShippingPage() {
         </div>
         <ol className="storefront-shipping__steps">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="storefront-shipping__step">
+            <li
+              key={step.title}
+              className="storefront-shipping__step animate-in-stagger"
+              style={{ "--stagger-delay": `${index * 70}ms` } as CSSProperties}
+            >
               <span className="storefront-shipping__step-number">{index + 1}</span>
               <div>
                 <p className="storefront-shipping__step-title">{step.title}</p>

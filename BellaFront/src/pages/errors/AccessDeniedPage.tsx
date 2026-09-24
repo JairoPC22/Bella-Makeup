@@ -1,14 +1,15 @@
-import { Link } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
-import "./ErrorPages.css";
+import { ErrorPage } from "./ErrorPage";
 
 export function AccessDeniedPage() {
   return (
-    <div className="error-page">
-      <ShieldAlert size={40} />
-      <h1>Acceso denegado</h1>
-      <p>No tienes permiso para ver esta sección.</p>
-      <Link to="/admin" className="error-page__link">Volver al inicio</Link>
-    </div>
+    <ErrorPage
+      code="403"
+      icon={ShieldAlert}
+      title="Acceso denegado"
+      message="No tienes permiso para ver esta sección. Si crees que deberías tenerlo, pídele a un administrador que revise tu rol."
+      linkTo="/admin"
+      linkLabel="Volver al inicio"
+    />
   );
 }

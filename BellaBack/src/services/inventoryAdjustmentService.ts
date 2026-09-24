@@ -1,6 +1,12 @@
 import { applyMovement } from "./inventoryService";
 import { createAdjustment } from "../repositories/inventoryAdjustmentRepository";
 import { logAudit } from "./auditService";
+import { prisma } from "../config/prisma";
+import { AppError } from "../utils/AppError";
+import { assertBranchAccess } from "./branchAccessService";
+import { hasPermissionByUser } from "./permissionCheckService";
+import { verifySupervisorPin, PIN_GENERIC_ERROR } from "./pinAuthService";
+import { getSettings as getCompanySettings } from "./companySettingsService";
 
 export interface AdjustInventoryInput {
   productId: string;
@@ -8,26 +14,34 @@ export interface AdjustInventoryInput {
   branchId: string;
   quantity: number;
   reason: string;
+  // Solo se exige cuando quien ajusta no tiene inventory.adjust y
+  // CompanySettings.allowPinForInventoryAdjust está activo.
+  pinCode?: string;
 }
 
-// Thin wrapper around applyMovement for manual/authorized stock corrections
-// (physical count discrepancies, damage write-offs, etc.). Three steps:
-//   1. applyMovement(type: "ADJUSTMENT") — the single source of truth for
-//      `inventory.stock`, guarded by its own advisory-lock transaction
-//      (Task 5). Throws AppError(400) and writes nothing if the adjustment
-//      would take stock negative.
-//   2. Only if step 1 succeeded: create the linked InventoryAdjustment row
-//      (reason + authorizedBy) referencing the new movement's id.
-//   3. Audit log entry.
+// Envoltura sobre applyMovement para correcciones manuales de stock: aplica
+// el movimiento, crea el InventoryAdjustment vinculado y registra auditoría.
+// Nota: el paso 1 corre en su propia transacción y no cubre el paso 2; es
+// una decisión deliberada, no un descuido (ver task-6-report.md).
 //
-// NOTE on transaction boundaries (see task-6-report.md for the full
-// writeup): step 1 runs in its OWN prisma.$transaction (opened inside
-// applyMovement) and is NOT extended to cover step 2. This means a
-// movement could, in a rare transient-DB-error scenario, be committed
-// without its InventoryAdjustment row ever being created. This matches the
-// brief's literal reference implementation; it was a deliberate choice, not
-// an oversight — see the report for the reasoning.
+// inventory.adjust ya no se exige en la ruta (solo inventory.view, el piso
+// para intentarlo): quien no lo tiene puede seguir ajustando si
+// CompanySettings.allowPinForInventoryAdjust está activo y trae el PIN de un
+// supervisor que sí lo tiene. Con el interruptor apagado (su default), el
+// comportamiento es idéntico al de antes: sin el permiso, no hay forma de ajustar.
 export async function adjustInventory(input: AdjustInventoryInput, actorId: string) {
+  await assertBranchAccess(prisma, actorId, input.branchId);
+
+  const canAdjustDirectly = await hasPermissionByUser(prisma, actorId, "inventory.adjust");
+  let authorizedBy = actorId;
+  if (!canAdjustDirectly) {
+    const settings = await getCompanySettings();
+    if (!settings.allowPinForInventoryAdjust) throw new AppError(403, "No tienes permiso para ajustar inventario");
+    const auth = await verifySupervisorPin(actorId, input.pinCode ?? "", "inventory.adjust");
+    if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+    authorizedBy = auth.supervisorId;
+  }
+
   const movement = await applyMovement({
     productId: input.productId,
     variantId: input.variantId,
@@ -37,7 +51,7 @@ export async function adjustInventory(input: AdjustInventoryInput, actorId: stri
     userId: actorId,
   });
 
-  await createAdjustment({ movementId: movement.id, reason: input.reason, authorizedBy: actorId });
+  await createAdjustment({ movementId: movement.id, reason: input.reason, authorizedBy });
 
   await logAudit({
     userId: actorId,

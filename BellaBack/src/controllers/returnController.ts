@@ -15,13 +15,10 @@ export async function getById(req: Request, res: Response, next: NextFunction) {
   } catch (err) { next(err); }
 }
 
-// The PIN failure path needs no special handling here: returnService throws
-// AppError(401, PIN_GENERIC_ERROR) — the message exported by the primitive
-// itself — and errorHandler renders every AppError as { message } with its
-// status. So a wrong PIN, a PIN belonging to somebody without
-// returns.authorize, a supervisor from another branch and a malformed PIN
-// all surface as one identical 401 body, exactly as generic as
-// POST /api/auth/verify-pin's own response and no more.
+// No manejo especial para el fallo de PIN: returnService lanza
+// AppError(401, PIN_GENERIC_ERROR) y errorHandler lo convierte en { message }.
+// Así, un PIN incorrecto, uno sin permiso returns.authorize o uno de otra
+// sucursal producen todos la misma respuesta 401 genérica.
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
     const data = processReturnSchema.parse(req.body);

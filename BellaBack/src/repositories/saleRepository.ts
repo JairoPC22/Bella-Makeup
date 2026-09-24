@@ -1,10 +1,9 @@
 import { prisma } from "../config/prisma";
 import { Prisma } from "@prisma/client";
 
-// Shared shape for list/detail/create/cancel responses so the receipt view
-// and the sales list always see the same fields. `user` is scoped to a
-// display-safe subset (mirrors inventoryMovementRepository's own kardex
-// include) so passwordHash never leaves the API.
+// Forma compartida por listado/detalle/creación/cancelación. `user` se
+// limita a un subconjunto seguro para mostrar, para que passwordHash nunca
+// salga de la API.
 export const saleInclude = {
   branch: true,
   user: { select: { id: true, displayName: true, avatarStyle: true, avatarSeed: true } },

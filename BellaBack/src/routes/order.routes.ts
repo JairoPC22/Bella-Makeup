@@ -5,13 +5,11 @@ import * as orderController from "../controllers/orderController";
 
 const router = Router();
 
-// Authenticated staff surface for managing orders placed via the public
-// storefront — distinct from /api/public/orders (unauthenticated). Reuses
-// the "orders.view"/"orders.update" permission codes already seeded in
-// prisma/seed.ts for the online_store_admin role, now also granted to
-// Administrator (via the wildcard admin role) and Branch Manager.
+// Superficie autenticada para gestionar pedidos de la tienda pública,
+// distinta de /api/public/orders (sin autenticación).
 router.get("/", requireAuth, requirePermission("orders.view"), orderController.list);
 router.get("/:id", requireAuth, requirePermission("orders.view"), orderController.getById);
 router.patch("/:id/status", requireAuth, requirePermission("orders.update"), orderController.updateStatus);
+router.patch("/:id/eta", requireAuth, requirePermission("orders.update"), orderController.setEta);
 
 export default router;

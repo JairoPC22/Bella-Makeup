@@ -8,8 +8,11 @@
   left: var(--space-5);
   bottom: var(--space-5);
   z-index: 60;
-  width: 56px;
-  height: 56px;
+  /* Same size as .storefront-scroll-top-button (was 56/50px vs. the scroll
+     button's 48/44px) — the two floating circles sit at opposite bottom
+     corners of every page and read as a mismatched pair otherwise. */
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -33,7 +36,7 @@
   .storefront-whatsapp-button {
     left: var(--space-3);
     bottom: var(--space-3);
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
   }
 }

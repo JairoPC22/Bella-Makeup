@@ -2,11 +2,8 @@ import { apiFetch, ApiError } from "./apiClient";
 import { buildAttachmentUrl } from "./messageService";
 import type { Product, ProductImage } from "../types/api";
 
-// buildAttachmentUrl is fully generic (relativeUrl -> static-file origin +
-// relativeUrl) despite its message-oriented name — product images are
-// served from the exact same static root (`/uploads/...`) via the exact
-// same origin-stripping logic, so this re-exports it under a
-// product-flavored name instead of duplicating the origin computation here.
+// buildAttachmentUrl es genérica pese a su nombre; se reexporta aquí con un
+// nombre de producto en vez de duplicar la lógica de origen.
 export const buildProductImageUrl = buildAttachmentUrl;
 
 export const listProducts = (filters?: { categoryId?: string; brandId?: string; status?: Product["status"]; search?: string }) => {

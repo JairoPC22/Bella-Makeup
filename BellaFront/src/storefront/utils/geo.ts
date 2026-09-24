@@ -1,9 +1,6 @@
-// Straight-line (great-circle) distance between two lat/lng points, in
-// kilometers. Purely client-side heuristic used to show the shopper an
-// informational "se surtirá desde X" note during checkout — the backend is
-// the real source of truth for nearest-branch routing once it exists (per
-// the client's requirement to route delivery orders by straight-line
-// distance), this just previews the same math up front.
+// Distancia en línea recta entre dos puntos lat/lng, en km. Heurística solo
+// de cliente para mostrar "se surtirá desde X" en checkout; el backend es
+// la fuente real de verdad cuando exista el ruteo por sucursal más cercana.
 export function haversineDistanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371; // Earth radius in km
   const dLat = toRad(b.lat - a.lat);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type CSSProperties } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import {
   Building2,
@@ -9,26 +9,37 @@ import {
   UserRound,
   ArrowUpRight,
   PackageSearch,
+  TrendingUp,
+  Sparkles,
+  Unlock,
+  AlertTriangle,
+  Star,
 } from "lucide-react";
+import { staggerStyle } from "../../utils/staggerStyle";
 import { useAuth } from "../../hooks/useAuth";
 import { usePermission } from "../../hooks/usePermission";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { Avatar } from "../../components/common/Avatar";
 import { StatusState } from "../../components/common/StatusState";
+import { RevealWords } from "../../components/common/RevealWords";
 import * as branchService from "../../services/branchService";
 import * as userService from "../../services/userService";
 import * as roleService from "../../services/roleService";
 import * as inventoryService from "../../services/inventoryService";
-import type { Branch, InventoryRow, Role, User } from "../../types/api";
+import * as saleService from "../../services/saleService";
+import * as cashSessionService from "../../services/cashSessionService";
+import * as ratingService from "../../services/ratingService";
+import type { RatingSummary } from "../../services/ratingService";
+import type { Branch, CashSession, InventoryRow, Role, Sale, User } from "../../types/api";
 import "./DashboardPage.css";
+
+import { compactCurrencyFormatter as currencyFormatter } from "../../utils/currency";
+import { INVENTORY_STATUS_LABEL } from "../../utils/inventoryStatus";
 
 type FetchStatus = "idle" | "loading" | "ready" | "error";
 
-// Time-of-day-aware, casual-but-elegant greeting copy — replaces the old
-// generic "Buenas tardes, {name}" that ran regardless of how late/early it
-// actually was. Four bands instead of the previous three so genuine late-
-// night use ("Trabajando de noche...") reads differently from a normal
-// evening shift.
+// Saludo según la hora del día, con cuatro franjas (no tres) para
+// diferenciar el turno nocturno genuino de una tarde normal.
 function getGreeting(hour: number, name: string): { title: string; subtitle: string } {
   if (hour < 5) return { title: `Trabajando de madrugada, ${name}`, subtitle: "Que rindas y descanses pronto." };
   if (hour < 12) return { title: `Buenos días, ${name}`, subtitle: "Que tengas una jornada ligera." };
@@ -39,48 +50,22 @@ function getGreeting(hour: number, name: string): { title: string; subtitle: str
 
 const today = new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
 
-// The `--stagger-delay` custom property (consumed by .animate-in-stagger in
-// global.css) isn't part of csstype's CSSProperties, so it needs an escape
-// hatch through `unknown` rather than a direct assertion.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
-
-// Hero visual — round 3. Round 1 (lucide icons orbiting a hub) was rejected
-// for being icons at all; round 2 (translucent glass spheres + a tilted halo)
-// was rejected because, although genuinely 3D and elegant, it "no tiene que
-// ver con la página" — a blue glass sphere is the hero visual of any SaaS
-// dashboard and says nothing about a cosmetics retailer. Round 3 therefore
-// keeps the 3D machinery and throws away the abstraction: it is a miniature
-// vanity display — a lipstick and a serum/dropper bottle standing on a slowly
-// turning mirrored podium, with shimmer sparkles floating around them.
+// Visual del hero: un mini tocador con un labial y un frasco de sérum sobre
+// un pódium espejado giratorio, con destellos flotando alrededor. Construido
+// enteramente con CSS (sin íconos, SVG ni imágenes): cada producto es una
+// pila de cilindros con degradados oscuro-especular-oscuro para simular
+// volumen metálico/vidrio.
 //
-// Every form here is CONSTRUCTED out of CSS — no icon glyph, no SVG, no
-// image. Each product is a stack of shaded cylinders: a horizontal
-// dark -> specular -> dark gradient is what makes a plain rectangle read as a
-// round metal barrel or a glass vial, and the pieces (barrel, chrome collar,
-// bullet / body, shoulder, neck, ridged cap) are sized and stacked like the
-// real object. The giveaway detail on the lipstick is the bullet: it is cut
-// on a slant via clip-path, and that cut is faced with a real ellipse rotated
-// into the same slant, so you are looking at the angled top surface of the
-// stick rather than at a flat blue rectangle.
+// El 3D es real (no una ilusión 2D): `.dashboard-visual` define la
+// `perspective`, `.dashboard-visual__stage` usa `transform-style:
+// preserve-3d` con rotateX/rotateY, y cada producto tiene su propio
+// `translateZ` para crear paralaje al girar.
 //
-// The 3D is real, not a 2D illusion: `.dashboard-visual` supplies the
-// `perspective` (deliberately short, so depth is exaggerated at this size),
-// `.dashboard-visual__stage` is `transform-style: preserve-3d` and turns on
-// rotateX/rotateY, the podium is a disc laid flat on the ground plane via
-// `rotateX(78deg)`, and each product sits at its own `translateZ` and travels
-// its own depth range on its own clock, so they visibly part ways in parallax
-// as the stage turns. Products pivot from their foot (`transform-origin` near
-// the base) so they stay planted on the podium instead of swinging.
-//
-// Colors come only from the existing blue token ramp via color-mix() (the
-// pink-* names being blue-valued is this codebase's long-standing quirk) — no
-// new hex anywhere. All motion runs on `animation`, so the sitewide
-// prefers-reduced-motion rule (global.css:130) freezes the scene; each
-// animated element also carries a static `transform` identical to its 0%
-// keyframe, so when that rule cuts the animation the composition still holds
-// its pose instead of collapsing to an untransformed state.
+// Los colores salen de la rampa de tokens azul existente vía color-mix()
+// (los nombres pink-* son azules por una particularidad histórica del
+// código). Toda la animación corre por `animation`, así que la regla global
+// prefers-reduced-motion congela la escena; cada elemento también lleva un
+// `transform` estático igual a su keyframe 0% para no colapsar sin animación.
 function DashboardVisual() {
   return (
     <div className="dashboard-visual" aria-hidden="true">
@@ -109,14 +94,10 @@ function DashboardVisual() {
   );
 }
 
-// Real-data-only chart pair replacing a fabricated "best sellers" widget
-// (no sales/orders data exists anywhere in the system yet — see the
-// project's own standing instruction never to invent that panel). Both
-// draw from data the dashboard already fetches for other purposes:
-// inventory rows (full distribution, not just the low-stock subset) and
-// users x branches (already-loaded arrays, no new endpoint).
+// Par de gráficas con datos reales únicamente (nunca inventar un panel de
+// "más vendidos" sin datos reales de ventas). Ambas reutilizan datos que el
+// dashboard ya obtiene para otros fines: filas de inventario y usuarios x sucursales.
 
-const ALL_STATUS_LABEL: Record<string, string> = { AVAILABLE: "Disponible", LOW: "Bajo", CRITICAL: "Crítico", OUT: "Agotado" };
 const ALL_STATUS_ORDER = ["OUT", "CRITICAL", "LOW", "AVAILABLE"] as const;
 const STATUS_COLOR: Record<string, string> = {
   OUT: "#B3261E",
@@ -125,9 +106,8 @@ const STATUS_COLOR: Record<string, string> = {
   AVAILABLE: "var(--color-accent)",
 };
 
-// A CSS conic-gradient ring (no charting library, no SVG path math) —
-// custom properties resolve fine inside conic-gradient() in every modern
-// browser, so the existing design tokens can be reused directly as stops.
+// Anillo con conic-gradient en CSS puro (sin librería de gráficas ni SVG),
+// reutilizando los tokens de diseño existentes como stops del gradiente.
 function InventoryStatusDonut({ counts, total }: { counts: Record<string, number>; total: number }) {
   if (total === 0) {
     return <StatusState kind="empty" compact message="Aún no hay inventario registrado." />;
@@ -154,7 +134,7 @@ function InventoryStatusDonut({ counts, total }: { counts: Record<string, number
         {ALL_STATUS_ORDER.filter((status) => (counts[status] ?? 0) > 0).map((status) => (
           <li key={status}>
             <span className="inventory-donut__dot" style={{ background: STATUS_COLOR[status] }} />
-            <span className="inventory-donut__legend-label">{ALL_STATUS_LABEL[status]}</span>
+            <span className="inventory-donut__legend-label">{INVENTORY_STATUS_LABEL[status]}</span>
             <strong>{counts[status]}</strong>
           </li>
         ))}
@@ -179,6 +159,57 @@ function BranchUsersBar({ data }: { data: BranchUserCount[] }) {
             <div className="branch-bar-chart__fill" style={{ width: `${(d.count / max) * 100}%` }} />
           </div>
           <span className="branch-bar-chart__value">{d.count}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------- Gráficas basadas en ventas ----------
+// Solo datos reales: ambas gráficas vienen del mismo fetch de ventas de 30
+// días. Cada una es una serie única, por eso usan un solo color de acento
+// en vez de una paleta categórica.
+
+interface DayTotal { key: string; label: string; total: number; }
+
+function SalesTrendChart({ days }: { days: DayTotal[] }) {
+  if (days.every((d) => d.total === 0)) {
+    return <StatusState kind="empty" compact message="Sin ventas registradas en los últimos 7 días." />;
+  }
+  const max = Math.max(...days.map((d) => d.total), 1);
+  return (
+    <div className="sales-trend-chart">
+      <ul className="sales-trend-chart__bars">
+        {days.map((d, i) => (
+          <li key={d.key} className="sales-trend-chart__col animate-in-stagger" style={staggerStyle(i * 50)}>
+            <span className="sales-trend-chart__value">{d.total > 0 ? currencyFormatter.format(d.total) : ""}</span>
+            <div className="sales-trend-chart__track" title={`${d.label}: ${currencyFormatter.format(d.total)}`}>
+              <div className="sales-trend-chart__fill" style={{ height: `${Math.max((d.total / max) * 100, d.total > 0 ? 6 : 0)}%` }} />
+            </div>
+            <span className="sales-trend-chart__label">{d.label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+interface ProductQty { key: string; name: string; qty: number; }
+
+function TopProductsBar({ data }: { data: ProductQty[] }) {
+  if (data.length === 0) {
+    return <StatusState kind="empty" compact message="Sin ventas registradas en los últimos 30 días." />;
+  }
+  const max = Math.max(...data.map((d) => d.qty), 1);
+  return (
+    <ul className="top-products-chart">
+      {data.map((d, i) => (
+        <li key={d.key} className="top-products-chart__row animate-in-stagger" style={staggerStyle(i * 50)}>
+          <span className="top-products-chart__label" title={d.name}>{d.name}</span>
+          <div className="top-products-chart__track">
+            <div className="top-products-chart__fill" style={{ width: `${(d.qty / max) * 100}%` }} />
+          </div>
+          <span className="top-products-chart__value">{d.qty}</span>
         </li>
       ))}
     </ul>
@@ -223,15 +254,16 @@ interface QuickLink {
 }
 
 const QUICK_LINKS: QuickLink[] = [
-  { to: "/admin/usuarios", label: "Usuarios", description: "Gestiona cuentas y roles del equipo", icon: Users, permission: "users.view" },
+  // Usuarios/Roles ahora viven como pestañas dentro de Configuración: se
+  // enlaza directo a su pestaña en vez de a las antiguas páginas separadas.
+  { to: "/admin/configuracion?tab=usuarios", label: "Usuarios", description: "Gestiona cuentas y roles del equipo", icon: Users, permission: "users.view" },
   { to: "/admin/sucursales", label: "Sucursales", description: "Consulta y edita puntos de venta", icon: Building2, permission: "branches.view" },
-  { to: "/admin/roles", label: "Roles", description: "Permisos y accesos por rol", icon: ShieldCheck, permission: "roles.view" },
-  { to: "/admin/auditoria", label: "Actividad reciente", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
+  { to: "/admin/configuracion?tab=roles", label: "Roles", description: "Permisos y accesos por rol", icon: ShieldCheck, permission: "roles.view" },
+  { to: "/admin/configuracion?tab=actividad", label: "Actividad reciente", description: "Historial completo de actividad", icon: ScrollText, permission: "audit.view" },
   { to: "/admin/configuracion", label: "Configuración", description: "Datos generales de la empresa", icon: Settings, permission: "settings.manage" },
   { to: "/admin/perfil", label: "Mi perfil", description: "Tus datos y preferencias", icon: UserRound, permission: null },
 ];
 
-const STOCK_STATUS_LABEL: Record<string, string> = { LOW: "Bajo", CRITICAL: "Crítico", OUT: "Agotado" };
 const STOCK_STATUS_ORDER: Record<string, number> = { OUT: 0, CRITICAL: 1, LOW: 2 };
 
 export function DashboardPage() {
@@ -241,6 +273,9 @@ export function DashboardPage() {
   const canViewUsers = usePermission("users.view");
   const canViewRoles = usePermission("roles.view");
   const canViewInventory = usePermission("inventory.view");
+  const canViewSales = usePermission("sales.view");
+  const canViewReports = usePermission("reports.view");
+  const canManageCash = usePermission("cash.manage");
 
   const [branches, setBranches] = useState<Branch[] | null>(null);
   const [branchesStatus, setBranchesStatus] = useState<FetchStatus>(canViewBranches ? "loading" : "idle");
@@ -253,6 +288,41 @@ export function DashboardPage() {
 
   const [inventory, setInventory] = useState<InventoryRow[] | null>(null);
   const [inventoryStatus, setInventoryStatus] = useState<FetchStatus>(canViewInventory ? "loading" : "idle");
+
+  const [sales, setSales] = useState<Sale[] | null>(null);
+  const [salesStatus, setSalesStatus] = useState<FetchStatus>(canViewSales ? "loading" : "idle");
+
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
+  const [ratingStatus, setRatingStatus] = useState<FetchStatus>(canViewReports ? "loading" : "idle");
+
+  // ---------- Recordatorio de caja abierta ----------
+  // Resuelve la misma sucursal que usaría PosPage.tsx y verifica si ya hay
+  // un turno de caja abierto ahí, usando la misma llamada que CajaPage/PosPage.
+  const [cashCheckBranchId, setCashCheckBranchId] = useState("");
+  const [openCashSession, setOpenCashSession] = useState<CashSession | null>(null);
+  const [cashSessionChecked, setCashSessionChecked] = useState(false);
+
+  useEffect(() => {
+    if (!canManageCash || !user) return;
+    if (user.allBranches) {
+      branchService.listBranches()
+        .then((list) => setCashCheckBranchId(list.find((b) => b.status === "ACTIVE")?.id ?? ""))
+        .catch(() => {});
+    } else {
+      setCashCheckBranchId(user.branches[0]?.id ?? "");
+    }
+  }, [canManageCash, user]);
+
+  useEffect(() => {
+    if (!canManageCash || !cashCheckBranchId) return;
+    let cancelled = false;
+    cashSessionService.getCurrentSession(cashCheckBranchId)
+      .then((session) => { if (!cancelled) { setOpenCashSession(session); setCashSessionChecked(true); } })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [canManageCash, cashCheckBranchId]);
+
+  const showCashReminder = canManageCash && cashSessionChecked && !openCashSession;
 
   useEffect(() => {
     if (!canViewBranches) return;
@@ -286,11 +356,31 @@ export function DashboardPage() {
       .catch(() => setInventoryStatus("error"));
   }, [canViewInventory]);
 
+  useEffect(() => {
+    if (!canViewSales) return;
+    // 30 días cubre ambas gráficas (tendencia de 7 días + top de 30 días) en una sola petición.
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 29);
+    saleService
+      .listSales({ status: "COMPLETED", from: from.toISOString(), to: to.toISOString() })
+      .then((rows) => { setSales(rows); setSalesStatus("ready"); })
+      .catch(() => setSalesStatus("error"));
+  }, [canViewSales]);
+
+  useEffect(() => {
+    if (!canViewReports) return;
+    ratingService
+      .getRatingSummary()
+      .then((s) => { setRatingSummary(s); setRatingStatus("ready"); })
+      .catch(() => setRatingStatus("error"));
+  }, [canViewReports]);
+
   const activeBranches = branches?.filter((b) => b.status === "ACTIVE").length ?? null;
   const activeUsers = users?.filter((u) => u.status === "ACTIVE").length ?? null;
   const rolesInUse = roles?.filter((r) => r.assignedUsersCount > 0).length ?? null;
 
-  const hasAnyStat = canViewBranches || canViewUsers || canViewRoles;
+  const hasAnyStat = canViewBranches || canViewUsers || canViewRoles || canViewReports;
   const visibleQuickLinks = QUICK_LINKS; // permission gating happens per-item via PermissionGate
 
   const lowStockRows = (inventory ?? [])
@@ -310,6 +400,36 @@ export function DashboardPage() {
     count: (users ?? []).filter((u) => u.status === "ACTIVE" && (u.allBranches || u.branches.some((ub) => ub.id === b.id))).length,
   }));
 
+  // Últimos 7 días de calendario (incluyendo hoy), pre-inicializados en $0
+  // para que un día sin ventas igual muestre su barra/etiqueta.
+  const last7Days: DayTotal[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    return { key, label: d.toLocaleDateString("es-MX", { weekday: "short" }).replace(/^./, (c) => c.toUpperCase()), total: 0 };
+  });
+  (sales ?? []).forEach((s) => {
+    const key = s.createdAt.slice(0, 10);
+    const day = last7Days.find((d) => d.key === key);
+    if (day) day.total += Number(s.total);
+  });
+
+  // Top 5 de productos por unidades vendidas en toda la ventana de 30 días.
+  const productQtyMap = new Map<string, { name: string; qty: number }>();
+  (sales ?? []).forEach((s) => {
+    s.items.forEach((item) => {
+      const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+      const name = item.variant ? `${item.product.name} — ${item.variant.name}` : item.product.name;
+      const entry = productQtyMap.get(key) ?? { name, qty: 0 };
+      entry.qty += item.quantity;
+      productQtyMap.set(key, entry);
+    });
+  });
+  const topProducts: ProductQty[] = Array.from(productQtyMap.entries())
+    .map(([key, v]) => ({ key, name: v.name, qty: v.qty }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+
   const hour = new Date().getHours();
   const greeting = getGreeting(hour, user?.displayName ?? "de nuevo");
 
@@ -318,7 +438,11 @@ export function DashboardPage() {
       <header className="dashboard-hero animate-in">
         <div className="dashboard-hero__text">
           <p className="dashboard-hero__eyebrow">{today}</p>
-          <h1 className="dashboard-hero__title">{greeting.title}</h1>
+          {/* Same `motion`-based word-by-word reveal as the storefront
+              hero's opening line — "las palabras de inicio... y las del
+              admin" — rather than the plain instant text this h1 rendered
+              before. */}
+          <RevealWords as="h1" className="dashboard-hero__title" text={greeting.title} delay={80} />
           <p className="dashboard-hero__subtitle">{greeting.subtitle}</p>
           {user && (
             <p className="dashboard-hero__meta">
@@ -338,6 +462,21 @@ export function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {showCashReminder && (
+        <div className="dashboard-cash-reminder animate-in">
+          <span className="dashboard-cash-reminder__icon">
+            <AlertTriangle size={17} />
+          </span>
+          <div className="dashboard-cash-reminder__copy">
+            <p className="dashboard-cash-reminder__title">Aún no abres caja hoy</p>
+            <p className="dashboard-cash-reminder__text">Ábrela antes de registrar ventas en el punto de venta.</p>
+          </div>
+          <Link to="/admin/caja" className="dashboard-cash-reminder__button">
+            <Unlock size={15} /> Abrir caja
+          </Link>
+        </div>
+      )}
 
       <div className="dashboard-body">
         <div className="dashboard-body__charts">
@@ -365,7 +504,7 @@ export function DashboardPage() {
                         <p className="stock-item__branch">{row.branch.name}</p>
                       </div>
                       <span className={`stock-badge stock-badge--${row.status.toLowerCase()}`}>
-                        {STOCK_STATUS_LABEL[row.status]} · {row.stock}
+                        {INVENTORY_STATUS_LABEL[row.status]} · {row.stock}
                       </span>
                     </li>
                   ))}
@@ -394,6 +533,34 @@ export function DashboardPage() {
             {branchesStatus === "ready" && usersStatus === "ready" && <BranchUsersBar data={branchUserCounts} />}
           </section>
         )}
+
+        <PermissionGate code="sales.view">
+          <section className="dashboard-panel dashboard-panel--sales-trend animate-in" style={{ animationDelay: "260ms" }}>
+            <header className="dashboard-panel__header">
+              <div className="dashboard-panel__title">
+                <TrendingUp size={17} />
+                <h2>Ventas — últimos 7 días</h2>
+              </div>
+            </header>
+            {salesStatus === "loading" && <StatusState kind="loading" />}
+            {salesStatus === "error" && <StatusState kind="error" message="No se pudieron cargar las ventas." />}
+            {salesStatus === "ready" && <SalesTrendChart days={last7Days} />}
+          </section>
+        </PermissionGate>
+
+        <PermissionGate code="sales.view">
+          <section className="dashboard-panel dashboard-panel--top-products animate-in" style={{ animationDelay: "300ms" }}>
+            <header className="dashboard-panel__header">
+              <div className="dashboard-panel__title">
+                <Sparkles size={17} />
+                <h2>Más vendidos — últimos 30 días</h2>
+              </div>
+            </header>
+            {salesStatus === "loading" && <StatusState kind="loading" />}
+            {salesStatus === "error" && <StatusState kind="error" message="No se pudieron cargar las ventas." />}
+            {salesStatus === "ready" && <TopProductsBar data={topProducts} />}
+          </section>
+        </PermissionGate>
         </div>
 
         <section className="dashboard-panel dashboard-panel--links dashboard-panel--gradient animate-in" style={{ animationDelay: "260ms" }}>
@@ -459,6 +626,17 @@ export function DashboardPage() {
               status={rolesStatus}
               errorMessage="No se pudo cargar"
               delay={140}
+            />
+          </PermissionGate>
+          <PermissionGate code="reports.view">
+            <StatCard
+              icon={Star}
+              label="Satisfacción del sitio"
+              value={ratingSummary ? Math.round(ratingSummary.average * 10) / 10 : null}
+              caption={ratingSummary ? `${ratingSummary.total} calificaciones · de 5` : undefined}
+              status={ratingStatus}
+              errorMessage="No se pudo cargar"
+              delay={210}
             />
           </PermissionGate>
         </section>

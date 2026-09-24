@@ -3,6 +3,10 @@ import { prisma } from "../config/prisma";
 import { AppError } from "../utils/AppError";
 import { applyMovement } from "./inventoryService";
 import { logAudit } from "./auditService";
+import { assertBranchAccess, getAccessibleBranchIds } from "./branchAccessService";
+import { hasPermissionByRole } from "./permissionCheckService";
+import { verifySupervisorPin, PIN_GENERIC_ERROR } from "./pinAuthService";
+import { getSettings as getCompanySettings } from "./companySettingsService";
 import * as saleRepo from "../repositories/saleRepository";
 
 export interface SaleItemInput {
@@ -23,31 +27,31 @@ export interface CreateSaleInput {
   customerId?: string;
   items: SaleItemInput[];
   payments: SalePaymentInput[];
+  // PIN de supervisor, igual que en devoluciones/mermas: solo se exige (y
+  // solo se verifica) cuando algún descuento excede el umbral que el cajero
+  // puede autorizar con su propio rol.
+  pinCode?: string;
 }
 
-// Money is handled as plain JS numbers throughout this service (not
-// Prisma.Decimal/decimal.js instances) for readability of the arithmetic —
-// rounded to 2 decimal places after every operation that could introduce
-// floating-point drift, so partial-cent errors never accumulate across a
-// multi-item cart. Prisma accepts a plain number for a Decimal column on
-// write, so no conversion back to Decimal is needed before create/update.
+// El dinero se maneja como number plano de JS en todo este servicio (no
+// instancias Prisma.Decimal/decimal.js) por legibilidad de la aritmética,
+// redondeado a 2 decimales tras cada operación que pudiera introducir
+// drift de punto flotante. Prisma acepta un number plano al escribir una
+// columna Decimal, así que no hace falta reconvertir.
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-// A discount is only ever a reduction — a promoPrice that happens to be
-// *higher* than the regular price (e.g. left stale after a promo ended)
-// must never be used to upcharge a customer, so it's ignored in that case.
-// A variant's own `price` (when set) overrides the product's price/promo
-// logic entirely — variants don't have their own promo field in the schema.
+// Un descuento solo puede reducir el precio: un promoPrice que resulte
+// *mayor* al precio normal (por ejemplo, dejado obsoleto tras terminar una
+// promo) nunca debe usarse para cobrar de más. El `price` propio de una
+// variante (cuando existe) sobreescribe por completo la lógica de
+// precio/promo del producto; las variantes no tienen su propio campo promo.
 //
-// Exported (was private) so returnService and mermaService price against the
-// exact same function rather than a copy of it. Both genuinely need THIS
-// rule: an exchange's NEW line is a fresh sale and must be priced like one,
-// and a merma's retail impact is "what this would have sold for today",
-// which is the same question. A duplicated copy would drift the first time
-// the promo rule changes, and the two modules would silently start pricing
-// differently from the POS.
+// Exportada (antes era privada) para que returnService y mermaService
+// calculen el precio con esta misma función en vez de una copia. Ambas
+// necesitan exactamente esta regla, y una copia duplicada se desalinearía
+// en cuanto cambiara la regla de promoción.
 export function resolveUnitPrice(
   product: { price: Prisma.Decimal; promoPrice: Prisma.Decimal | null },
   variant: { price: Prisma.Decimal | null } | null
@@ -57,34 +61,6 @@ export function resolveUnitPrice(
   const promo = product.promoPrice != null ? product.promoPrice.toNumber() : null;
   if (promo != null && promo < price) return promo;
   return price;
-}
-
-async function hasPermission(client: Prisma.TransactionClient, roleId: string, code: string): Promise<boolean> {
-  const count = await client.rolePermission.count({ where: { roleId, permission: { code } } });
-  return count > 0;
-}
-
-// Mirrors middleware/permissions.ts's requireBranchScope logic (allBranches
-// OR an explicit UserBranch row), but against a body-supplied branchId
-// instead of a route param — requireBranchScope only reads req.params, so it
-// can't be reused directly here. There's no currently-live shared helper for
-// the body-supplied-branchId case (an earlier version of the messaging
-// feature had one before that feature was pivoted away from
-// branch-scoping), so this is written inline per that established pattern.
-async function assertBranchAccess(client: Prisma.TransactionClient, userId: string, branchId: string): Promise<void> {
-  const user = await client.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return;
-  const assignment = await client.userBranch.findUnique({ where: { userId_branchId: { userId, branchId } } });
-  if (!assignment) throw new AppError(403, "Sin acceso a esta sucursal");
-}
-
-async function getAccessibleBranchIds(userId: string): Promise<string[] | "ALL"> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new AppError(401, "Usuario no encontrado");
-  if (user.allBranches) return "ALL";
-  const rows = await prisma.userBranch.findMany({ where: { userId }, select: { branchId: true } });
-  return rows.map((r) => r.branchId);
 }
 
 export function formatTicketNumber(folio: number): string {
@@ -97,12 +73,11 @@ function customerDisplayName(customer: { firstName: string | null; lastName: str
   return name || "Cliente general";
 }
 
-// Shapes every sale (create/list/detail/cancel) the same way, so the
-// frontend's receipt/ticket view and the sales list both get `ticketNumber`
-// and `customerName` for free instead of recomputing them client-side.
-// `changeDue` is only meaningful right after checkout (it's the change owed
-// on the payments just submitted) — omitted from list/detail responses,
-// included only when createSale passes it explicitly.
+// Da forma a cada venta (create/list/detail/cancel) igual, así el ticket y
+// la lista de ventas obtienen `ticketNumber` y `customerName` gratis sin
+// recalcularlos en el cliente. `changeDue` solo tiene sentido justo después
+// del checkout (el cambio de los pagos recién enviados), se omite en
+// list/detail y se incluye solo cuando createSale lo pasa explícitamente.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSale(sale: any, changeDue?: number) {
   const mapped: Record<string, unknown> = {
@@ -115,20 +90,36 @@ function mapSale(sale: any, changeDue?: number) {
   return mapped;
 }
 
-// Checkout: creates a Sale + its SaleItem/SalePayment rows and decrements
-// stock for every line item as ONE atomic prisma.$transaction. If any item
-// fails to price (404/400) or oversells (applyMovement's own AppError(400)),
-// the whole transaction rolls back — no partial sale, no partial stock
-// decrement for the items that *were* valid. This is exactly what Task 1's
-// `applyMovement(input, tx)` extension exists for: every applyMovement call
-// below passes the outer `tx` so it participates in this same transaction
-// instead of opening its own.
+// Checkout: crea una Sale y sus filas SaleItem/SalePayment, y descuenta
+// stock de cada línea, todo como UNA prisma.$transaction atómica. Si algún
+// item falla al calcular precio (404/400) o sobrevende (AppError(400) de
+// applyMovement), toda la transacción se revierte: ninguna venta parcial,
+// ningún descuento parcial de los items que sí eran válidos. Cada llamada a
+// applyMovement de abajo pasa la `tx` externa para participar en esta misma
+// transacción en vez de abrir una propia.
 export async function createSale(input: CreateSaleInput, actorId: string) {
-  const { sale, changeDue } = await prisma.$transaction(async (tx) => {
+  const companySettings = await getCompanySettings();
+  const { sale, changeDue, discountSupervisorId } = await prisma.$transaction(async (tx) => {
     await assertBranchAccess(tx, actorId, input.branchId);
 
     const actor = await tx.user.findUniqueOrThrow({ where: { id: actorId } });
-    const canAuthorizeDiscount = await hasPermission(tx, actor.roleId, "discounts.authorize");
+    const canAuthorizeDiscount = await hasPermissionByRole(tx, actor.roleId, "discounts.authorize");
+
+    // El PIN de supervisor se verifica como máximo una vez por venta (no una
+    // vez por línea): la primera línea que exceda su propio umbral dispara
+    // la verificación, y el resultado se reutiliza para el resto de líneas.
+    let pinChecked = false;
+    let discountSupervisorId: string | null = null;
+    async function isDiscountAuthorized(): Promise<boolean> {
+      if (canAuthorizeDiscount) return true;
+      if (pinChecked) return discountSupervisorId !== null;
+      pinChecked = true;
+      if (!input.pinCode) return false;
+      const auth = await verifySupervisorPin(actorId, input.pinCode, "discounts.authorize");
+      if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+      discountSupervisorId = auth.supervisorId;
+      return true;
+    }
 
     let subtotal = 0;
     let discountTotal = 0;
@@ -159,15 +150,15 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
       const lineSubtotal = round2(unitPrice * item.quantity);
       const discount = item.discount ?? 0;
 
-      // Placeholder default: a discount up to 15% of the line's own
-      // subtotal only requires `discounts.apply` (already gated at the
-      // route level). Anything above that requires `discounts.authorize`.
-      // Not yet configurable (e.g. via CompanySettings) — this constant is
-      // the single source of truth for the threshold until a future task
-      // makes it per-branch/company configurable.
-      if (discount > 0) {
+      // Valor por defecto provisional: un descuento de hasta 15% del
+      // subtotal de la línea solo requiere `discounts.apply` (ya validado
+      // en la ruta). Más que eso requiere `discounts.authorize`. El umbral en
+      // sí sigue fijo en 15% (aún no configurable), pero CompanySettings.
+      // requirePinForDiscounts sí decide si ese tope se exige del todo: si
+      // el negocio lo apaga, cualquier descuento pasa sin pedir PIN.
+      if (discount > 0 && companySettings.requirePinForDiscounts) {
         const threshold = round2(lineSubtotal * 0.15);
-        if (discount > threshold && !canAuthorizeDiscount) {
+        if (discount > threshold && !(await isDiscountAuthorized())) {
           throw new AppError(403, "Este descuento requiere autorización");
         }
       }
@@ -196,23 +187,21 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
     }
     const changeDue = round2(paymentsTotal - total);
 
-    // Caja auto-attach. A POS sale rung up by a cashier who currently has
-    // an OPEN CashSession at this same branch accrues to that session, so
-    // the blind close can later sum "this shift's takings" without the POS
-    // frontend ever having to thread a session id through checkout. The
-    // lookup is deterministic by construction: cashSessionService.openSession
-    // refuses to create a second OPEN session for the same user (or a second
-    // one at the same branch under a different user), so this can match at
-    // most one row.
+    // Auto-attach de caja. Una venta de POS registrada por un cajero que
+    // tiene una CashSession OPEN en esta sucursal se asocia a esa sesión,
+    // así el cierre a ciegas puede sumar después "lo vendido en este turno"
+    // sin que el POS tenga que pasar un session id por el checkout. La
+    // búsqueda es determinista por construcción: openSession de
+    // cashSessionService impide una segunda sesión OPEN para el mismo
+    // usuario o sucursal, así que esto solo puede coincidir con una fila.
     //
-    // Deliberately a plain nullable lookup rather than a requirement: if no
-    // session is open, cashSessionId stays null and the sale behaves exactly
-    // as it did before this module existed. That is what keeps every
-    // non-POS/online-order-adjacent path — and every existing test — working
-    // untouched. It adds one indexed SELECT to the transaction and changes
-    // none of its atomicity properties: it reads inside the same tx, so it
-    // rolls back with everything else and cannot attach a sale to a session
-    // that a concurrent close is retiring.
+    // Es una búsqueda nullable a propósito, no un requisito: si no hay
+    // sesión abierta, cashSessionId queda null y la venta se comporta igual
+    // que antes de que existiera este módulo. Eso mantiene intacto cualquier
+    // camino que no sea POS/pedido en línea. Agrega un SELECT indexado a la
+    // transacción sin cambiar su atomicidad: se lee dentro de la misma tx,
+    // así que se revierte con todo lo demás y no puede asociar una venta a
+    // una sesión que un cierre concurrente está retirando.
     const openCashSession = await tx.cashSession.findFirst({
       where: { branchId: input.branchId, userId: actorId, status: "OPEN" },
       select: { id: true },
@@ -246,10 +235,9 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
         tx
       );
 
-      // Passing `tx` here (Task 1's signature extension) is what makes this
-      // whole checkout atomic: if this throws (insufficient stock), it
-      // aborts the SAME transaction that created the Sale/SaleItem rows
-      // above, rolling all of it back together.
+      // Pasar `tx` aquí es lo que hace atómico todo el checkout: si esto
+      // lanza error (stock insuficiente), aborta la MISMA transacción que
+      // creó las filas Sale/SaleItem de arriba, revirtiendo todo junto.
       await applyMovement(
         {
           productId: item.productId,
@@ -272,7 +260,7 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
     }
 
     const full = await saleRepo.findSaleById(createdSale.id, tx);
-    return { sale: full!, changeDue };
+    return { sale: full!, changeDue, discountSupervisorId };
   });
 
   await logAudit({
@@ -282,7 +270,12 @@ export async function createSale(input: CreateSaleInput, actorId: string) {
     entityType: "sale",
     entityId: sale.id,
     branchId: sale.branchId,
-    details: { folio: sale.folio, total: sale.total.toNumber(), itemCount: sale.items.length },
+    details: {
+      folio: sale.folio,
+      total: sale.total.toNumber(),
+      itemCount: sale.items.length,
+      ...(discountSupervisorId ? { discountAuthorizedBy: discountSupervisorId } : {}),
+    },
   });
 
   return mapSale(sale, changeDue);
@@ -295,11 +288,11 @@ export interface ListSalesFilters {
   to?: Date;
 }
 
-// Branch-scoped exactly like requireBranchScope: a caller with
-// `allBranches` sees everything (optionally narrowed further by the
-// `branchId` query param); everyone else is restricted to their assigned
-// branches, and an explicit `branchId` query param outside that set is
-// rejected with 403 rather than silently returning zero rows.
+// Filtrado por sucursal igual que requireBranchScope: quien tiene
+// `allBranches` ve todo (opcionalmente acotado por el query param
+// `branchId`); el resto solo ve sus sucursales asignadas, y un `branchId`
+// explícito fuera de ese conjunto se rechaza con 403 en vez de devolver
+// silenciosamente cero filas.
 export async function listSales(actorId: string, filters: ListSalesFilters) {
   const accessible = await getAccessibleBranchIds(actorId);
   if (accessible !== "ALL" && filters.branchId && !accessible.includes(filters.branchId)) {
@@ -324,18 +317,36 @@ export async function getSale(id: string, actorId: string) {
   return mapSale(sale);
 }
 
-// Full void (same-session "undo"), not a partial/post-hoc return — restores
-// every line item's stock in full via applyMovement and marks the sale
-// CANCELLED. Partial/post-hoc returns against an already-completed sale are
-// explicitly out of scope for this task (a distinct future feature gated
-// behind the already-seeded `sales.return` permission).
-export async function cancelSale(id: string, reason: string, actorId: string) {
-  const updated = await prisma.$transaction(async (tx) => {
+// Anulación total (un "deshacer" de la misma sesión), no una devolución
+// parcial/posterior: restaura por completo el stock de cada línea vía
+// applyMovement y marca la venta CANCELLED. Las devoluciones parciales
+// contra una venta ya completada son una función distinta, fuera del
+// alcance aquí (gateada tras el permiso `sales.return`, ya sembrado).
+//
+// sales.cancel ya no se exige en la ruta (solo sales.view, el piso para
+// intentarlo): quien no tiene sales.cancel puede seguir cancelando si
+// CompanySettings.allowPinForSaleCancel está activo y trae el PIN de un
+// supervisor que sí lo tiene. Con el interruptor apagado (su default), el
+// comportamiento es idéntico al de antes de esta función existir: sin el
+// permiso, no hay forma de cancelar.
+export async function cancelSale(id: string, reason: string, actorId: string, pinCode?: string) {
+  const settings = await getCompanySettings();
+  const { updated, cancelSupervisorId } = await prisma.$transaction(async (tx) => {
     const sale = await saleRepo.findSaleById(id, tx);
     if (!sale) throw new AppError(404, "Venta no encontrada");
     if (sale.status === "CANCELLED") throw new AppError(400, "La venta ya está cancelada");
 
     await assertBranchAccess(tx, actorId, sale.branchId);
+
+    const actor = await tx.user.findUniqueOrThrow({ where: { id: actorId } });
+    const canCancelDirectly = await hasPermissionByRole(tx, actor.roleId, "sales.cancel");
+    let cancelSupervisorId: string | null = null;
+    if (!canCancelDirectly) {
+      if (!settings.allowPinForSaleCancel) throw new AppError(403, "No tienes permiso para cancelar ventas");
+      const auth = await verifySupervisorPin(actorId, pinCode ?? "", "sales.cancel");
+      if (!auth.ok) throw new AppError(401, PIN_GENERIC_ERROR);
+      cancelSupervisorId = auth.supervisorId;
+    }
 
     for (const item of sale.items) {
       await applyMovement(
@@ -352,7 +363,8 @@ export async function cancelSale(id: string, reason: string, actorId: string) {
       );
     }
 
-    return saleRepo.cancelSale(id, { cancelledAt: new Date(), cancelledBy: actorId, cancelReason: reason }, tx);
+    const updated = await saleRepo.cancelSale(id, { cancelledAt: new Date(), cancelledBy: actorId, cancelReason: reason }, tx);
+    return { updated, cancelSupervisorId };
   });
 
   await logAudit({
@@ -362,7 +374,11 @@ export async function cancelSale(id: string, reason: string, actorId: string) {
     entityType: "sale",
     entityId: updated.id,
     branchId: updated.branchId,
-    details: { folio: updated.folio, reason },
+    details: {
+      folio: updated.folio,
+      reason,
+      ...(cancelSupervisorId ? { cancelAuthorizedBy: cancelSupervisorId } : {}),
+    },
   });
 
   return mapSale(updated);

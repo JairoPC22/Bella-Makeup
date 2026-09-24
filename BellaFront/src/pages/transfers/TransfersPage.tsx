@@ -1,5 +1,7 @@
-import { type CSSProperties, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
   Eye,
@@ -12,8 +14,10 @@ import {
   Ban,
   PackageCheck,
 } from "lucide-react";
+import { staggerStyle } from "../../utils/staggerStyle";
 import { StatusState } from "../../components/common/StatusState";
 import { Select } from "../../components/common/Select";
+import { DateRangePicker } from "../../components/common/DateRangePicker";
 import { Modal } from "../../components/common/Modal";
 import { PermissionGate } from "../../components/auth/PermissionGate";
 import { useAuth } from "../../hooks/useAuth";
@@ -33,11 +37,6 @@ const STATUS_LABEL: Record<Transfer["status"], string> = {
 };
 
 type FetchStatus = "loading" | "ready" | "error";
-
-// Same --stagger-delay convention as SalesPage/InventoryPage/ProductsPage.
-function staggerStyle(ms: number): CSSProperties {
-  return { "--stagger-delay": `${ms}ms` } as unknown as CSSProperties;
-}
 
 interface TransferLine {
   key: string;
@@ -65,11 +64,10 @@ export function TransfersPage() {
   const [transfers, setTransfers] = useState<Transfer[] | null>(null);
   const [status, setStatus] = useState<FetchStatus>("loading");
 
-  // Full branch catalog — needed unconditionally (not just for
-  // allBranches users, unlike SalesPage's equivalent) because the
-  // destination picker must offer every active branch system-wide, and the
-  // detail modal cross-references it for source/destination addresses,
-  // which transferInclude itself doesn't carry (only {id,name}).
+  // Catálogo completo de sucursales, necesario siempre (no solo para
+  // allBranches) porque el selector de destino debe ofrecer todas las
+  // sucursales activas, y el modal de detalle lo usa para mostrar
+  // direcciones de origen/destino.
   const [allBranchList, setAllBranchList] = useState<Branch[]>([]);
   useEffect(() => {
     branchService.listBranches().then(setAllBranchList).catch(() => {});
@@ -82,8 +80,7 @@ export function TransfersPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // Same rationale as SalesPage.tsx's showBranchFilter — only worth
-  // showing when there's an actual choice.
+  // Misma lógica que showBranchFilter de SalesPage.tsx: solo se muestra si en verdad hay opción.
   const showBranchFilter = !!user?.allBranches || (user?.branches.length ?? 0) > 1;
 
   const loadTransfers = useCallback(() => {
@@ -92,8 +89,7 @@ export function TransfersPage() {
       .listTransfers({
         branchId: branchId || undefined,
         status: statusFilter || undefined,
-        // Same inclusive-end-of-day convention as SalesPage.tsx (backend's
-        // listTransfers `to` is a `lte` on createdAt).
+        // Misma convención de fin de día inclusivo que SalesPage.tsx.
         from: fromDate ? `${fromDate}T00:00:00.000` : undefined,
         to: toDate ? `${toDate}T23:59:59.999` : undefined,
       })
@@ -107,7 +103,7 @@ export function TransfersPage() {
     return allBranchList.find((b) => b.id === branchIdToFind)?.address ?? null;
   }
 
-  // ---------- Create modal ----------
+  // ---------- Modal de creación ----------
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceBranchId, setSourceBranchId] = useState("");
   const [destinationBranchId, setDestinationBranchId] = useState("");
@@ -116,8 +112,8 @@ export function TransfersPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // A picker only makes sense when there's an actual choice — mirrors
-  // PosPage.tsx's showBranchPicker exactly.
+  // Un selector solo tiene sentido si en verdad hay opción, igual que
+  // showBranchPicker de PosPage.tsx.
   const showSourcePicker = !!user?.allBranches || accessibleBranches.length > 1;
   const selectedSourceBranch = accessibleBranches.find((b) => b.id === sourceBranchId) ?? null;
 
@@ -125,9 +121,8 @@ export function TransfersPage() {
     (b) => b.status === "ACTIVE" && b.id !== sourceBranchId
   );
 
-  // Reactively clear a now-invalid destination when the source changes —
-  // the backend rejects a same-branch transfer outright, so this keeps the
-  // client from ever submitting one.
+  // Limpia el destino si queda inválido al cambiar el origen (el backend
+  // rechaza una transferencia a la misma sucursal).
   useEffect(() => {
     setDestinationBranchId((prev) => (prev === sourceBranchId ? "" : prev));
   }, [sourceBranchId]);
@@ -144,8 +139,8 @@ export function TransfersPage() {
     setCreateOpen(true);
   }
 
-  // ---------- Product search (same debounce-then-click-to-add convention
-  // as PosPage.tsx's product picker) ----------
+  // ---------- Búsqueda de productos (mismo patrón de debounce y clic para
+  // agregar que el selector de PosPage.tsx) ----------
   const [productSearchInput, setProductSearchInput] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [productResults, setProductResults] = useState<Product[]>([]);
@@ -213,16 +208,16 @@ export function TransfersPage() {
       setTransfers((prev) => (prev ? [created, ...prev] : [created]));
       setCreateOpen(false);
     } catch (err) {
-      // Same "surface the exact backend message" convention as PosPage.tsx's
-      // checkout error handling — e.g. the real insufficient-stock message
-      // names the product and the available/requested quantities.
+      // Se muestra el mensaje exacto del backend, igual que en el cobro de
+      // PosPage.tsx (ej. el mensaje real de stock insuficiente nombra el
+      // producto y las cantidades disponible/solicitada).
       setCreateError(err instanceof ApiError ? err.message : "No se pudo crear la transferencia.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ---------- Detail modal ----------
+  // ---------- Modal de detalle ----------
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -261,7 +256,7 @@ export function TransfersPage() {
     }
   }
 
-  // Mirrors SalesPage.tsx's handleConfirmCancel exactly.
+  // Igual que handleConfirmCancel de SalesPage.tsx.
   async function handleConfirmCancel() {
     if (!selectedTransfer) return;
     if (cancelReason.trim().length < 3) {
@@ -296,6 +291,9 @@ export function TransfersPage() {
 
   return (
     <div className="transfers-page">
+      <Link to="/admin/productos" className="transfers-page__back-link">
+        <ArrowLeft size={15} /> Volver a Productos
+      </Link>
       <div className="transfers-page__header">
         <div className="transfers-page__title">
           <ArrowLeftRight size={22} />
@@ -321,14 +319,7 @@ export function TransfersPage() {
           <option value="COMPLETED">Completada</option>
           <option value="CANCELLED">Cancelada</option>
         </Select>
-        <label className="transfers-filters__date">
-          Desde
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </label>
-        <label className="transfers-filters__date">
-          Hasta
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </label>
+        <DateRangePicker from={fromDate} to={toDate} onChange={(r) => { setFromDate(r.from); setToDate(r.to); }} />
       </div>
 
       {status === "loading" && <StatusState kind="loading" />}

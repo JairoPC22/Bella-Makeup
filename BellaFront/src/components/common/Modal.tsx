@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { useScrollLock } from "../../hooks/useScrollLock";
 import "./Modal.css";
 
 export function Modal({
@@ -57,16 +58,8 @@ export function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mounted, onClose]);
 
-  // Lock background scroll while the modal is mounted so the page behind
-  // it can't scroll independently of the modal's own internal scroll area.
-  useEffect(() => {
-    if (!mounted) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [mounted]);
+  // Bloquea el scroll de fondo mientras el modal está montado.
+  useScrollLock(mounted);
 
   if (!mounted) return null;
 

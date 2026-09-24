@@ -1,55 +1,125 @@
-/* ---------- Select wrapper ----------
-   Positions a real lucide ChevronDown over a native <select>'s own
-   reserved padding-right space (global.css's select:not([multiple]) rule
-   already carves out that space and keeps appearance:none/border/focus-ring
-   — this only replaces the chevron itself).
+/* ---------- Custom Select (trigger + owned listbox) ----------
+   Replaces a native <select> entirely — see Select.tsx's own doc comment
+   for why: the native OPTION LIST cannot be styled by CSS at all, so a
+   custom-chevron trigger opening an OS-default grey popup was always a
+   mismatch. Both pieces here are plain divs/buttons/lists this app fully
+   owns.
 
-   `display: inline-flex` + `select { width: 100% }` is the load-bearing
-   trick that lets the exact same markup work in both layout contexts this
-   app already has selects in, with zero per-page CSS changes:
-     - Filter bars (`display:flex; align-items:center`, no stretch): the
-       wrapper isn't forced to any width, so it shrinks to the select's own
-       intrinsic content width, same as an unwrapped <select> would.
-     - Modal form labels (`.modal__body label { display:flex;
-       flex-direction:column }`, default align-items:stretch): the wrapper
-       — like any flex child — stretches to the label's full width, and the
-       select fills the wrapper via width:100%, matching the full-width
-       fields every modal form already has. */
+   `display: inline-flex` on the wrapper mirrors the previous version's
+   layout trick, so this drops into both contexts already used across the
+   app with zero per-page CSS changes: shrinks to content in a flex filter
+   bar, stretches full-width inside a modal form label (align-items:stretch
+   by default). */
 .select-wrapper {
   position: relative;
   display: inline-flex;
   max-width: 100%;
   min-width: 0;
 }
-.select-wrapper select {
+.select-wrapper--disabled { cursor: not-allowed; }
+
+.select-wrapper__trigger {
   width: 100%;
-  /* Overrides global.css's data-URI background-image chevron (both the
-     resting-state rule and the hover/focus color-swap rule) — this wrapper
-     renders a real icon in the same reserved space instead. `!important` is
-     deliberate and scoped to this one property: specificity alone doesn't
-     reliably win here since the two rules live in separately-bundled CSS
-     files with no guaranteed load order relative to each other. */
-  background-image: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2_5) var(--space-3);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-base) var(--ease-premium),
+    box-shadow var(--transition-base) var(--ease-premium),
+    background-color var(--transition-base) var(--ease-premium);
+}
+.select-wrapper__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-wrapper__trigger:hover:not(:disabled) { border-color: var(--color-pink-elegant); background-color: var(--color-surface-pearl); }
+.select-wrapper__trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-focus);
+}
+.select-wrapper__trigger[aria-expanded="true"] {
+  border-color: var(--color-pink-elegant);
+  box-shadow: var(--shadow-focus);
+}
+.select-wrapper__trigger:disabled {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  filter: opacity(0.7);
 }
 
 .select-wrapper__chevron {
-  position: absolute;
-  top: 50%;
-  right: var(--space-3);
-  transform: translateY(-50%);
-  pointer-events: none;
+  flex-shrink: 0;
   color: var(--color-text-secondary);
   transition: color var(--transition-base) var(--ease-premium), transform var(--transition-base) var(--ease-premium);
 }
-.select-wrapper select:hover + .select-wrapper__chevron,
-.select-wrapper select:focus + .select-wrapper__chevron {
+.select-wrapper__trigger:hover:not(:disabled) .select-wrapper__chevron,
+.select-wrapper__trigger:focus-visible .select-wrapper__chevron {
   color: var(--color-pink-elegant);
 }
-/* Small "open" affordance — the chevron flips on focus, echoing a real
-   listbox's open/closed state even though this stays a native <select>. */
-.select-wrapper select:focus + .select-wrapper__chevron {
-  transform: translateY(-50%) rotate(180deg);
+.select-wrapper__chevron.is-open { transform: rotate(180deg); color: var(--color-pink-elegant); }
+
+/* ---------- Owned option list ----------
+   Portaled to document.body and positioned inline via `top`/`left`/`width`
+   style props computed in Select.tsx (`position: fixed`, in viewport
+   coordinates) — see that file's class doc-comment for why: any ancestor's
+   scroll clipping (a modal body, most often) would otherwise cut the list
+   off. Only z-index and visual styling belong here; position/top/left are
+   deliberately NOT set in this stylesheet so the inline values are never
+   fought. */
+.select-wrapper__list {
+  z-index: 1000;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transform-origin: top;
+  animation: select-list-pop 0.14s var(--ease-premium) both;
 }
-.select-wrapper select:disabled + .select-wrapper__chevron {
-  opacity: 0.5;
+@keyframes select-list-pop {
+  from { opacity: 0; transform: scaleY(0.96) translateY(-2px); }
+  to { opacity: 1; transform: scaleY(1) translateY(0); }
 }
+
+.select-wrapper__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color var(--transition-fast) var(--ease-premium), color var(--transition-fast) var(--ease-premium);
+}
+.select-wrapper__option.is-highlighted { background: var(--color-pink-50); }
+.select-wrapper__option.is-selected { color: var(--color-pink-deep); font-weight: 600; }
+.select-wrapper__option.is-selected.is-highlighted { background: var(--color-pink-100); }
+.select-wrapper__option.is-disabled { color: var(--color-text-muted); cursor: not-allowed; }
+.select-wrapper__check { flex-shrink: 0; color: var(--color-pink-deep); }
+
+/* Thin, unobtrusive scrollbar for long lists (Sucursal/Rol pickers etc.) —
+   WebKit + Firefox, both graceful no-ops elsewhere. */
+.select-wrapper__list::-webkit-scrollbar { width: 8px; }
+.select-wrapper__list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+.select-wrapper__list { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }

@@ -23,3 +23,22 @@ export async function updateBranchStatus(id: string, status: "ACTIVE" | "INACTIV
   await logAudit({ userId: actorId, action: status === "ACTIVE" ? "branches.activate" : "branches.deactivate", module: "branches", entityType: "branch", entityId: branch.id, branchId: branch.id });
   return branch;
 }
+
+export async function getRevenueReport(from?: Date, to?: Date) {
+  const [branches, sums] = await Promise.all([
+    branchRepository.findAllBranches(),
+    branchRepository.sumRevenueByBranch(from, to),
+  ]);
+  const byBranch = new Map(sums.map((s) => [s.branchId, s]));
+  const rows = branches.map((b) => {
+    const s = byBranch.get(b.id);
+    return {
+      branchId: b.id,
+      branchName: b.name,
+      revenue: Number(s?._sum.total ?? 0),
+      saleCount: s?._count._all ?? 0,
+    };
+  });
+  const grandTotal = rows.reduce((sum, r) => sum + r.revenue, 0);
+  return { rows, grandTotal };
+}

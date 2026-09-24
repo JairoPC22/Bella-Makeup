@@ -6,10 +6,60 @@
 }
 
 /* ---------- Hero ----------
-   Deliberately discreet: no solid dark background card, no shadow, no
-   glow/grid decoration on a filled panel — just generous whitespace and a
-   hairline bottom divider, so the page opens quietly instead of with a
-   heavy block of chrome. */
+   Deliberadamente discreto: sin tarjeta oscura, sombra ni decoración de
+   fondo, solo espacio en blanco y un divisor sutil, para que la página
+   abra con calma. */
+
+/* Toda la familia ámbar (ícono, acento, texto, botón) usa la misma rampa
+   dorada con degradado y sombra suave, para que se vea como una tarjeta
+   de alerta diseñada a propósito. */
+.dashboard-cash-reminder {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(135deg, #FFF7EB 0%, #FFEFD6 100%);
+  border: 1px solid #F0D19B;
+  border-left: 3px solid #D98C0F;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 14px -6px rgba(180, 120, 20, 0.28);
+  color: #7A4E06;
+}
+.dashboard-cash-reminder__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #D98C0F 16%, white);
+  color: #B4700F;
+}
+.dashboard-cash-reminder__copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dashboard-cash-reminder__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #6B4405;
+}
+.dashboard-cash-reminder__text { margin: 0; font-size: 0.84rem; color: #8A5F1E; }
+.dashboard-cash-reminder__button {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  background: #B4700F; color: var(--color-white); border: none; border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4); font-weight: 700; font-size: 0.85rem; text-decoration: none;
+  box-shadow: 0 3px 10px -3px rgba(180, 112, 15, 0.55);
+  transition: background-color var(--transition-base) var(--ease-premium), transform var(--transition-fast) var(--ease-premium), box-shadow var(--transition-base) var(--ease-premium);
+}
+.dashboard-cash-reminder__button:hover { background: #96590A; box-shadow: 0 5px 14px -3px rgba(180, 112, 15, 0.65); }
+.dashboard-cash-reminder__button:active { transform: scale(0.98); }
+
+@media (max-width: 640px) {
+  .dashboard-cash-reminder { flex-wrap: wrap; }
+  .dashboard-cash-reminder__button { margin-left: 48px; }
+}
 
 .dashboard-hero {
   display: flex;
@@ -72,61 +122,35 @@
 }
 .dashboard-hero__avatar img { display: block; border: 2px solid var(--color-white) !important; }
 
-/* ---------- Hero visual (round 3: the vanity display) ----------
-   History: round 1 was lucide icons orbiting a hub (rejected — no icons);
-   round 2 was abstract translucent spheres + a tilted halo (rejected — real
-   3D and elegant, but "no tiene que ver con la página": a blue glass sphere
-   belongs to any SaaS dashboard, not to a makeup retailer). Round 3 keeps the
-   3D machinery and replaces the abstraction with recognisable cosmetics: a
-   lipstick and a serum/dropper bottle standing on a slowly turning mirrored
-   podium, with shimmer sparkles drifting around them.
+/* ---------- Visual del hero (vitrina de cosméticos) ----------
+   Un labial y un frasco de sérum sobre un podio giratorio, con destellos
+   decorativos alrededor. Son construcciones CSS reales, no íconos:
 
-   How the shapes are made (this is the important part — they are CSS
-   constructions, not icon glyphs):
-   - A rectangle reads as a cylinder when it carries a horizontal
-     dark to specular to dark gradient. That single trick turns the lipstick
-     barrel into brushed chrome, the bullet into a round stick of colour, and
-     the serum body into a glass vial. The specular band sits left of centre
-     on every piece so the whole scene shares one light direction.
-   - The lipstick is barrel + chrome collar + bullet, stacked at real
-     proportions. Its bullet is cut on a slant with clip-path, and that cut is
-     faced by `.dashboard-visual__lip-tip` — a real ellipse rotated to the same
-     angle — so the top of the stick is a visible angled surface. That slanted
-     cut is the single cue that makes the object unmistakably a lipstick.
-   - The serum bottle is body + trapezoid shoulder (clip-path) + neck + a
-     ridged cap (a repeating-linear-gradient of translucent darks laid over the
-     cylinder shading, so the ridges wrap the curve instead of flattening it).
-   - The sparkles are four-point stars via clip-path, twinkling at different
-     depths — cosmetic shimmer, and the only purely decorative element.
+   - Un rectángulo con degradado horizontal oscuro-brillo-oscuro se lee como
+     cilindro; ese truco crea el tubo cromado, la barra de color y el frasco
+     de vidrio. El brillo se ubica a la izquierda del centro en todas las
+     piezas para compartir una sola dirección de luz.
+   - El labial es tubo + collar + barra, con un corte en diagonal (clip-path)
+     rematado por `.dashboard-visual__lip-tip`, una elipse rotada al mismo
+     ángulo: ese corte es lo que lo hace reconocible como labial.
+   - El frasco es cuerpo + hombro trapezoidal (clip-path) + cuello + tapa
+     estriada (gradiente repetido sobre el sombreado del cilindro).
+   - Los destellos son estrellas de cuatro puntas vía clip-path, decorativas.
 
-   How the 3D is real (not a 2D illusion):
-   - `.dashboard-visual` is the camera and sets `perspective`. It is short on
-     purpose (420px for a 112px box) so translateZ actually changes apparent
-     size instead of being a no-op at this scale.
-   - `.dashboard-visual__stage` is `transform-style: preserve-3d` and rotates
-     on rotateX + rotateY, so the whole scene turns like a display turntable.
-   - `.dashboard-visual__podium` is a circle laid down onto the ground plane
-     with `rotateX(78deg)` — it renders as a thin ellipse because it genuinely
-     is a disc seen edge-on, and it spins on rotateZ so its off-centre
-     highlight sweeps around like light across a mirrored vanity top.
-   - Each product sits at its own `translateZ` and animates through its own
-     depth range on its own duration, so they cross in front of / behind one
-     another as the stage turns. That relative drift under a shared
-     perspective is what reads as depth.
-   - Products use `transform-origin` near their foot, so when they pivot they
-     stay planted on the podium rather than swinging around their middle.
-   - Each product carries a flattened, blurred contact-shadow ellipse
-     (`::after`, also on the ground plane) so it sits on the podium instead of
-     hovering in front of it.
+   El 3D es real, no una ilusión 2D: `.dashboard-visual` define la cámara
+   (`perspective` corto a propósito para que translateZ cambie el tamaño
+   aparente); `.dashboard-visual__stage` preserva 3D y rota como una vitrina;
+   el podio es un círculo visto de canto (`rotateX(78deg)`) que gira su
+   brillo; cada producto anima su propio `translateZ` para cruzarse entre sí
+   y usa `transform-origin` cerca de su base para quedar plantado; cada uno
+   lleva una sombra de contacto (`::after`) aplanada en el plano del suelo.
 
-   Every colour is color-mix() over the existing token ramp — never a new hex.
-   (The tokens are named pink-* but are blue-valued; that is this codebase's
-   long-standing deliberate quirk.) Every motion is an `animation`, so the
-   sitewide prefers-reduced-motion rule (global.css:130) freezes all of it.
-   Note that each animated element also declares a static `transform` equal to
-   its own 0% keyframe: when that rule cuts the animation short the element
-   falls back to its own transform property, so the scene holds its composed
-   pose instead of collapsing to an untransformed pile. */
+   Los colores salen de color-mix() sobre la rampa de tokens existente (los
+   tokens se llaman pink-* pero son azules, una rareza deliberada del
+   proyecto). Todo el movimiento es una `animation`, por lo que la regla
+   sitewide de prefers-reduced-motion (global.css:130) la congela; cada
+   elemento declara además un `transform` estático igual a su keyframe 0%
+   para sostener la pose cuando la animación se corta. */
 
 .dashboard-visual {
   position: relative;
@@ -148,7 +172,7 @@
   animation: dashboard-vanity-turn 24s var(--ease-premium) infinite;
 }
 
-/* ----- The mirrored podium: a real disc laid onto the ground plane ----- */
+/* ----- El podio espejado: un disco apoyado en el plano del suelo ----- */
 
 .dashboard-visual__podium {
   position: absolute;
@@ -172,7 +196,7 @@
   animation: dashboard-podium-spin 32s linear infinite;
 }
 
-/* ----- Lipstick ----- */
+/* ----- Labial ----- */
 
 .dashboard-visual__lipstick {
   position: absolute;
@@ -187,8 +211,8 @@
   animation: dashboard-lipstick-pose 16s ease-in-out infinite;
 }
 
-/* Contact shadow, laid flat on the ground plane so the tube sits on the
-   podium rather than floating in front of it. */
+/* Sombra de contacto, aplanada en el plano del suelo para que el tubo
+   parezca apoyado en el podio y no flotando. */
 .dashboard-visual__lipstick::after {
   content: "";
   position: absolute;
@@ -204,8 +228,8 @@
   filter: blur(2px);
 }
 
-/* Brushed-chrome barrel. The horizontal dark to white to dark ramp is what
-   makes this rectangle read as a round metal tube. */
+/* Tubo cromado: el degradado horizontal oscuro-blanco-oscuro es lo que
+   hace que este rectángulo se lea como un tubo metálico redondo. */
 .dashboard-visual__lip-barrel {
   position: absolute;
   left: 0;
@@ -226,8 +250,8 @@
     inset 0 -3px 5px color-mix(in srgb, var(--color-pink-800) 30%, transparent);
 }
 
-/* The polished ring where cap meets base — slightly wider than the barrel so
-   it catches the light as a distinct band. */
+/* El anillo pulido donde la tapa se une a la base, un poco más ancho que
+   el tubo para que capte la luz como una franja distinta. */
 .dashboard-visual__lip-collar {
   position: absolute;
   left: -1px;
@@ -244,8 +268,8 @@
   box-shadow: 0 2px 4px color-mix(in srgb, var(--color-pink-800) 26%, transparent);
 }
 
-/* The stick of colour itself, cut on a slant (clip-path) the way a used
-   lipstick is. Same cylinder ramp, saturated end of the ramp. */
+/* La barra de color en sí, cortada en diagonal (clip-path) como un labial
+   usado. Misma rampa del cilindro, en su extremo más saturado. */
 .dashboard-visual__lip-bullet {
   position: absolute;
   left: 2.5px;
@@ -263,8 +287,8 @@
     color-mix(in srgb, var(--color-pink-800) 96%, transparent) 100%);
 }
 
-/* Specular sheen down the bullet — a soft vertical highlight, blurred, that
-   sells the waxy gloss of the stick. */
+/* Brillo especular a lo largo de la barra: un highlight vertical suave y
+   difuminado que vende el aspecto ceroso y brillante. */
 .dashboard-visual__lip-bullet::before {
   content: "";
   position: absolute;
@@ -279,9 +303,8 @@
   filter: blur(1px);
 }
 
-/* The angled cut surface: a real ellipse rotated into the slant of the
-   clip-path above, so the top of the stick is a face you look across rather
-   than a flat edge. */
+/* La superficie del corte diagonal: una elipse real rotada al mismo ángulo
+   del clip-path, para que la punta se vea como una cara y no un borde plano. */
 .dashboard-visual__lip-tip {
   position: absolute;
   left: 0.5px;
@@ -298,7 +321,7 @@
   box-shadow: inset 0 -1px 2px color-mix(in srgb, var(--color-pink-800) 42%, transparent);
 }
 
-/* ----- Serum / dropper bottle: glassy, smaller, and set back in Z ----- */
+/* ----- Frasco de sérum: vidrioso, más pequeño y retrasado en Z ----- */
 
 .dashboard-visual__serum {
   position: absolute;
@@ -328,8 +351,8 @@
   filter: blur(2px);
 }
 
-/* Glass vial: the same cylinder ramp, but pale and translucent so it reads as
-   glass next to the lipstick's opaque chrome. */
+/* Frasco de vidrio: misma rampa del cilindro, pero pálida y translúcida
+   para que se lea como vidrio junto al cromado opaco del labial. */
 .dashboard-visual__serum-body {
   position: absolute;
   left: 0;
@@ -349,7 +372,7 @@
     0 4px 9px color-mix(in srgb, var(--color-pink-800) 18%, transparent);
 }
 
-/* Fill line — the meniscus of the serum inside the vial. */
+/* Línea de nivel: el menisco del sérum dentro del frasco. */
 .dashboard-visual__serum-body::before {
   content: "";
   position: absolute;
@@ -361,7 +384,7 @@
   background: color-mix(in srgb, var(--color-pink-deep) 50%, transparent);
 }
 
-/* Trapezoid shoulder tapering into the neck. */
+/* Hombro trapezoidal que se estrecha hacia el cuello. */
 .dashboard-visual__serum-shoulder {
   position: absolute;
   left: 0;
@@ -389,8 +412,8 @@
     color-mix(in srgb, var(--color-pink-800) 84%, transparent) 100%);
 }
 
-/* Ridged dropper cap: the repeating gradient is translucent, so the knurling
-   rides on top of the cylinder shading instead of flattening it. */
+/* Tapa estriada del gotero: el gradiente repetido es translúcido, así el
+   estriado se apoya sobre el sombreado del cilindro sin aplanarlo. */
 .dashboard-visual__serum-cap {
   position: absolute;
   left: 4px;
@@ -411,7 +434,7 @@
   box-shadow: 0 2px 5px color-mix(in srgb, var(--color-pink-800) 26%, transparent);
 }
 
-/* ----- Shimmer sparkles: four-point stars at three different depths ----- */
+/* ----- Destellos: estrellas de cuatro puntas a tres profundidades ----- */
 
 .dashboard-visual__sparkle {
   position: absolute;
@@ -483,7 +506,7 @@
   50% { transform: translateZ(22px) scale(0.55) rotate(50deg); opacity: 0.45; }
 }
 
-/* ---------- Stat grid ---------- */
+/* ---------- Grilla de estadísticas ---------- */
 
 .stat-grid {
   display: grid;
@@ -522,10 +545,9 @@
 .stat-card__caption { margin: 2px 0 0; font-size: 0.78rem; color: var(--color-text-muted); }
 .stat-card .status-state--compact { align-items: flex-start; text-align: left; padding: 4px 0 0; }
 
-/* ---------- Multi-column body: donut + bar chart + gradient quick-links,
-   loosely echoing a finance-dashboard's stat/chart row without inventing
-   any data — every number here comes from inventory/users/branches the
-   page already fetches for the stat cards above. ---------- */
+/* ---------- Cuerpo multi-columna: dona + gráfico de barras + accesos
+   rápidos con degradado. Todos los datos provienen de inventario/usuarios/
+   sucursales que la página ya obtiene para las tarjetas de estadísticas. ---------- */
 
 .dashboard-body {
   display: grid;
@@ -533,10 +555,14 @@
   gap: var(--space-4);
   align-items: start;
 }
+/* Grilla 2x2 para los 4 paneles de gráficos; una sola columna vertical
+   quedaría mucho más alta que "Accesos rápidos" al lado. Baja a una
+   columna debajo de 1180px (ver sección responsive). */
 .dashboard-body__charts {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
+  align-items: start;
 }
 
 .dashboard-panel {
@@ -569,7 +595,7 @@
 }
 .dashboard-panel__subheading--ok { color: var(--color-pink-deep); text-transform: none; letter-spacing: normal; font-weight: 500; }
 
-/* ---------- Inventory status donut (pure CSS conic-gradient, no chart lib) ---------- */
+/* ---------- Dona de estado de inventario (conic-gradient puro en CSS, sin librería) ---------- */
 
 .inventory-donut { display: flex; align-items: center; gap: var(--space-4); }
 .inventory-donut__ring {
@@ -601,7 +627,7 @@
 .inventory-donut__legend strong { color: var(--color-ink); font-weight: 700; }
 .inventory-donut__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-/* ---------- Branch bar chart (CSS width bars, no chart lib) ---------- */
+/* ---------- Gráfico de barras por sucursal (barras con ancho en CSS, sin librería) ---------- */
 
 .branch-bar-chart { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
 .branch-bar-chart__row { display: flex; align-items: center; gap: var(--space-2); }
@@ -631,7 +657,89 @@
 }
 .branch-bar-chart__value { width: 22px; flex-shrink: 0; text-align: right; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
 
-/* ---------- Gradient quick-links panel ---------- */
+/* ---------- Tendencia de ventas (barras verticales de 7 días, alturas en CSS, sin librería) ---------- */
+
+.sales-trend-chart__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  height: 148px;
+}
+.sales-trend-chart__col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+.sales-trend-chart__value {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.sales-trend-chart__track {
+  flex: 1;
+  width: 100%;
+  max-width: 34px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.sales-trend-chart__fill {
+  width: 100%;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: linear-gradient(180deg, var(--color-pink-elegant), var(--color-pink-deep));
+  transition: height 0.6s var(--ease-premium);
+  min-height: 2px;
+}
+.sales-trend-chart__label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+/* ---------- Productos más vendidos (barras horizontales, igual que branch-bar-chart) ---------- */
+
+.top-products-chart { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.top-products-chart__row { display: flex; align-items: center; gap: var(--space-2); }
+.top-products-chart__label {
+  width: 150px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+.top-products-chart__track {
+  flex: 1;
+  min-width: 0;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+.top-products-chart__fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--color-pink-elegant), var(--color-pink-deep));
+  transition: width 0.6s var(--ease-premium);
+}
+.top-products-chart__value { width: 28px; flex-shrink: 0; text-align: right; font-size: 0.85rem; font-weight: 700; color: var(--color-ink); }
+
+/* ---------- Panel de accesos rápidos con degradado ---------- */
 
 .dashboard-panel--gradient {
   position: relative;
@@ -653,7 +761,7 @@
 .dashboard-panel--gradient .dashboard-panel__header,
 .dashboard-panel--gradient .quick-links { position: relative; z-index: 1; }
 
-/* ---------- Low-stock widget ---------- */
+/* ---------- Widget de stock bajo ---------- */
 
 .stock-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--space-3); }
 .stock-chip {
@@ -696,7 +804,7 @@
 
 .stock-list__more { margin: var(--space-2) 0 0; font-size: 0.78rem; color: var(--color-text-muted); text-align: center; }
 
-/* ---------- Quick links ---------- */
+/* ---------- Accesos rápidos ---------- */
 
 .quick-links { display: flex; flex-direction: column; gap: var(--space-2); }
 
@@ -742,6 +850,13 @@
 
 /* ---------- Responsive ---------- */
 
+/* Entre 961–1180px la columna de gráficos sigue angosta (dashboard-body aún
+   tiene 2 columnas), así que la sub-grilla 2x2 se aprieta antes de que el
+   layout externo colapse: se baja a 1 columna antes en ese rango. */
+@media (max-width: 1180px) and (min-width: 961px) {
+  .dashboard-body__charts { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 960px) {
   .dashboard-body { grid-template-columns: 1fr; }
 }
@@ -749,4 +864,5 @@
 @media (max-width: 640px) {
   .dashboard-hero { flex-direction: column; align-items: flex-start; }
   .dashboard-hero__side { align-self: flex-end; }
+  .dashboard-body__charts { grid-template-columns: 1fr; }
 }
