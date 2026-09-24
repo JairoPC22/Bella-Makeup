@@ -1,5 +1,7 @@
 .superpowers/
 .claude/scheduled_tasks.lock
+.claude/skills/
+.agents/
 /*.report.md
 /apple-design-refresh-report.md
 /dashboard-sidebar-report.md
