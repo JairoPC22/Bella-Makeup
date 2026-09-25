@@ -160,8 +160,12 @@ export function Sidebar() {
             onClick={() => setCollapsed((c) => !c)}
             aria-pressed={collapsed}
             aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
+            data-tooltip={collapsed ? "Expandir" : "Colapsar"}
           >
-            {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+            <span className="sidebar__link-icon">
+              {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+            </span>
+            <span className="sidebar__link-label">Colapsar</span>
           </button>
         </div>
       </aside>
