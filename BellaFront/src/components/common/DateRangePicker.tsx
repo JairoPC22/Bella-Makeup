@@ -62,6 +62,18 @@ export function DateRangePicker({
   // en vez de quedar dentro — este estado decide de qué lado se ancla,
   // recalculado cada vez que se abre.
   const [alignRight, setAlignRight] = useState(false);
+  // Mismo problema en el eje vertical: el trigger suele estar bien abajo en
+  // la página (debajo de la tabla de filtros), así que el popover —abierto
+  // siempre hacia abajo con ~400px de alto— terminaba con la mitad fuera de
+  // la pantalla, obligando a bajar el scroll de toda la página para llegar
+  // al botón "Aplicar". Si no cabe hacia abajo pero sí hacia arriba, se abre
+  // hacia arriba en su lugar.
+  const [openUpward, setOpenUpward] = useState(false);
+  // Espacio real disponible del lado elegido (arriba o abajo del trigger),
+  // aplicado como tope de alto — si ninguno de los dos lados alcanza para
+  // los ~430px del calendario completo, se vuelve desplazable por dentro
+  // en vez de salirse de la pantalla de todos modos.
+  const [maxPopoverHeight, setMaxPopoverHeight] = useState<number | null>(null);
   const [viewMonth, setViewMonth] = useState<Date>(() => {
     const base = from ? fromIso(from) : new Date();
     return new Date(base.getFullYear(), base.getMonth(), 1);
@@ -73,6 +85,10 @@ export function DateRangePicker({
   const [hoverDate, setHoverDate] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const POPOVER_WIDTH = 280;
+  // Alto aproximado del popover completo (atajos + nav + cuadrícula de 6
+  // semanas + pie) — no se puede medir antes de montarlo, así que se usa
+  // una estimación holgada solo para decidir de qué lado abrir.
+  const POPOVER_HEIGHT_ESTIMATE = 430;
 
   useEffect(() => {
     if (!open) return;
@@ -90,6 +106,16 @@ export function DateRangePicker({
     setViewMonth(new Date(base.getFullYear(), base.getMonth(), 1));
     const rootRect = rootRef.current?.getBoundingClientRect();
     setAlignRight(!!rootRect && rootRect.left + POPOVER_WIDTH > window.innerWidth - 16);
+    const GAP = 8, MARGIN = 16;
+    const spaceBelow = rootRect ? window.innerHeight - rootRect.bottom - GAP - MARGIN : Infinity;
+    const spaceAbove = rootRect ? rootRect.top - GAP - MARGIN : 0;
+    const goUp = spaceBelow < POPOVER_HEIGHT_ESTIMATE && spaceAbove > spaceBelow;
+    setOpenUpward(goUp);
+    // Si ni siquiera el lado elegido alcanza el alto estimado, se limita el
+    // popover a lo que sí hay disponible ahí (con scroll interno) — nunca a
+    // los 430px completos, que es lo que lo hacía salirse de la pantalla.
+    const available = goUp ? spaceAbove : spaceBelow;
+    setMaxPopoverHeight(available < POPOVER_HEIGHT_ESTIMATE ? Math.max(200, available) : null);
     setOpen(true);
   }
 
@@ -162,7 +188,12 @@ export function DateRangePicker({
 
       {open && (
         <div
-          className={`date-range-picker__popover${alignRight ? " date-range-picker__popover--right" : ""}`}
+          className={[
+            "date-range-picker__popover",
+            alignRight ? "date-range-picker__popover--right" : "",
+            openUpward ? "date-range-picker__popover--up" : "",
+          ].filter(Boolean).join(" ")}
+          style={maxPopoverHeight ? { maxHeight: maxPopoverHeight } : undefined}
           role="dialog"
           aria-label="Selecciona un rango de fechas"
         >
