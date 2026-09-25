@@ -55,6 +55,13 @@ export function DateRangePicker({
   onChange: (range: { from: string; to: string }) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // El trigger puede caer en cualquier punto de la fila de filtros (a veces
+  // muy cerca del borde derecho, ej. junto a los botones de exportar). El
+  // popover medía siempre desde el borde izquierdo del trigger hacia la
+  // derecha con un ancho fijo, así que en esos casos se salía de la página
+  // en vez de quedar dentro — este estado decide de qué lado se ancla,
+  // recalculado cada vez que se abre.
+  const [alignRight, setAlignRight] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => {
     const base = from ? fromIso(from) : new Date();
     return new Date(base.getFullYear(), base.getMonth(), 1);
@@ -65,6 +72,7 @@ export function DateRangePicker({
   const [draftTo, setDraftTo] = useState(to);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const POPOVER_WIDTH = 280;
 
   useEffect(() => {
     if (!open) return;
@@ -80,6 +88,8 @@ export function DateRangePicker({
     setDraftTo(to);
     const base = from ? fromIso(from) : new Date();
     setViewMonth(new Date(base.getFullYear(), base.getMonth(), 1));
+    const rootRect = rootRef.current?.getBoundingClientRect();
+    setAlignRight(!!rootRect && rootRect.left + POPOVER_WIDTH > window.innerWidth - 16);
     setOpen(true);
   }
 
@@ -151,7 +161,11 @@ export function DateRangePicker({
       </button>
 
       {open && (
-        <div className="date-range-picker__popover" role="dialog" aria-label="Selecciona un rango de fechas">
+        <div
+          className={`date-range-picker__popover${alignRight ? " date-range-picker__popover--right" : ""}`}
+          role="dialog"
+          aria-label="Selecciona un rango de fechas"
+        >
           <div className="date-range-picker__presets">
             <button type="button" onClick={() => applyPreset(1)}>Hoy</button>
             <button type="button" onClick={applyYesterday}>Ayer</button>
